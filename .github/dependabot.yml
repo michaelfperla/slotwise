@@ -1,0 +1,161 @@
+version: 2
+updates:
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(frontend)"
+      include: "scope"
+
+  # Shared types dependencies
+  - package-ecosystem: "npm"
+    directory: "/shared/types"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(shared/types)"
+      include: "scope"
+
+  # Shared utils dependencies
+  - package-ecosystem: "npm"
+    directory: "/shared/utils"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(shared/utils)"
+      include: "scope"
+
+  # Business service dependencies
+  - package-ecosystem: "npm"
+    directory: "/services/business-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(business-service)"
+      include: "scope"
+
+  # Notification service dependencies
+  - package-ecosystem: "npm"
+    directory: "/services/notification-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(notification-service)"
+      include: "scope"
+
+  # Auth service Go dependencies
+  - package-ecosystem: "gomod"
+    directory: "/services/auth-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(auth-service)"
+      include: "scope"
+
+  # Scheduling service Go dependencies
+  - package-ecosystem: "gomod"
+    directory: "/services/scheduling-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(scheduling-service)"
+      include: "scope"
+
+  # Root package.json dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(root)"
+      include: "scope"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/infrastructure"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    commit-message:
+      prefix: "chore(github-actions)"
+      include: "scope"

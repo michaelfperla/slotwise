@@ -1,0 +1,225 @@
+version: '3.8'
+
+services:
+  # Infrastructure Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: slotwise-postgres
+    environment:
+      POSTGRES_DB: slotwise
+      POSTGRES_USER: slotwise
+      POSTGRES_PASSWORD: slotwise_password
+      POSTGRES_MULTIPLE_DATABASES: slotwise_auth,slotwise_business,slotwise_scheduling,slotwise_notification
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    networks:
+      - slotwise-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotwise"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: slotwise-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - slotwise-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: slotwise-nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+      - "6222:6222"
+    volumes:
+      - ./nats/nats.conf:/etc/nats/nats.conf
+    networks:
+      - slotwise-network
+    command: ["-c", "/etc/nats/nats.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Services
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    container_name: slotwise-auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=slotwise_auth_user
+      - DATABASE_PASSWORD=slotwise_auth_password
+      - DATABASE_NAME=slotwise_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-network
+    restart: unless-stopped
+
+  business-service:
+    build:
+      context: ../services/business-service
+      dockerfile: Dockerfile
+    container_name: slotwise-business-service
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://slotwise_business_user:slotwise_business_password@postgres:5432/slotwise_business
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - NODE_ENV=production
+      - PORT=8003
+      - HOST=0.0.0.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-network
+    restart: unless-stopped
+
+  scheduling-service:
+    build:
+      context: ../services/scheduling-service
+      dockerfile: Dockerfile
+    container_name: slotwise-scheduling-service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=slotwise_scheduling_user
+      - DATABASE_PASSWORD=slotwise_scheduling_password
+      - DATABASE_NAME=slotwise_scheduling
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NATS_URL=nats://nats:4222
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    container_name: slotwise-notification-service
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql://slotwise_notification_user:slotwise_notification_password@postgres:5432/slotwise_notification
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - NODE_ENV=production
+      - PORT=8004
+      - HOST=0.0.0.0
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: slotwise-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://auth-service:8001
+      - NEXT_PUBLIC_BUSINESS_SERVICE_URL=http://business-service:8003
+      - NEXT_PUBLIC_SCHEDULING_SERVICE_URL=http://scheduling-service:8002
+      - NODE_ENV=production
+    depends_on:
+      - auth-service
+      - business-service
+      - scheduling-service
+      - notification-service
+    networks:
+      - slotwise-network
+    restart: unless-stopped
+
+  # API Gateway (Nginx)
+  api-gateway:
+    image: nginx:alpine
+    container_name: slotwise-api-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/api-gateway.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - auth-service
+      - business-service
+      - scheduling-service
+      - notification-service
+    networks:
+      - slotwise-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  slotwise-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

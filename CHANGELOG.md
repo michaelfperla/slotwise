@@ -1,0 +1,144 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Initial project setup and architecture
+- Comprehensive documentation and development guides
+- GitHub repository preparation with CI/CD workflows
+
+## [1.0.0-alpha] - 2024-01-01
+
+### Added
+- **Core Architecture**: Event-driven microservices architecture with NATS.io
+- **Auth Service**: JWT-based authentication with refresh tokens
+- **Business Service**: Multi-tenant business and service management
+- **Scheduling Service**: Booking management with availability calculation
+- **Notification Service**: Multi-channel notifications (Email, SMS)
+- **Frontend**: Next.js 14 application with TypeScript and Tailwind CSS
+- **Infrastructure**: Docker containers and Kubernetes deployment configs
+- **API Gateway**: Nginx-based routing and load balancing
+- **Database**: PostgreSQL with Prisma (Node.js) and GORM (Go)
+- **Caching**: Redis for session storage and performance optimization
+- **Documentation**: Comprehensive API docs, deployment guides, and development setup
+
+### Features
+- **Multi-tenant Architecture**: Support for multiple businesses with custom subdomains
+- **Real-time Booking**: Conflict detection and availability management
+- **Payment Integration**: Stripe payment processing with webhooks
+- **Event-driven Communication**: Asynchronous service communication via NATS
+- **Type Safety**: Full TypeScript coverage across frontend and Node.js services
+- **Security**: JWT authentication, rate limiting, CORS, and input validation
+- **Monitoring**: Health checks, structured logging, and observability
+- **Testing**: Unit, integration, and end-to-end testing frameworks
+- **CI/CD**: GitHub Actions workflows for automated testing and deployment
+
+### Technical Stack
+- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS, Zustand, TanStack Query
+- **Backend**: Go (Auth/Scheduling), Node.js (Business/Notification), TypeScript
+- **Database**: PostgreSQL with Prisma ORM and GORM
+- **Message Broker**: NATS.io with JetStream for persistence
+- **Cache**: Redis for session storage and caching
+- **API Gateway**: Nginx with load balancing and rate limiting
+- **Containerization**: Docker and Docker Compose
+- **Orchestration**: Kubernetes with Helm charts
+- **External Services**: Stripe (payments), SendGrid (email), Twilio (SMS)
+
+### Development Experience
+- **Automated Setup**: One-command development environment setup
+- **Hot Reload**: Live reloading for all services during development
+- **Code Quality**: ESLint, Prettier, and Go formatting tools
+- **Testing**: Comprehensive test suites with coverage reporting
+- **Documentation**: Auto-generated API docs with OpenAPI/Swagger
+- **Debugging**: Structured logging with correlation IDs
+- **Monitoring**: Development tools for database, cache, and message broker
+
+### Security Features
+- **Authentication**: JWT with secure token management
+- **Authorization**: Role-based access control (RBAC)
+- **Input Validation**: Comprehensive validation with Zod schemas
+- **Rate Limiting**: API endpoint protection against abuse
+- **CORS**: Proper cross-origin resource sharing configuration
+- **Security Headers**: HSTS, CSP, and other security headers
+- **Secrets Management**: Environment-based configuration
+- **SQL Injection Protection**: Parameterized queries and ORM usage
+
+### Performance Optimizations
+- **Caching Strategy**: Redis caching for frequently accessed data
+- **Database Optimization**: Proper indexing and query optimization
+- **Connection Pooling**: Efficient database connection management
+- **Compression**: Gzip compression for API responses
+- **CDN Ready**: Static asset optimization for CDN delivery
+- **Horizontal Scaling**: Kubernetes-ready for multi-instance deployment
+
+### Deployment Options
+- **Development**: Docker Compose with hot reload
+- **Staging**: Docker Compose with production-like configuration
+- **Production**: Kubernetes with Helm charts
+- **Cloud Ready**: AWS, GCP, and Azure compatible
+- **Database**: Managed PostgreSQL support (RDS, Cloud SQL, etc.)
+- **Monitoring**: Prometheus and Grafana integration ready
+
+## [0.1.0] - 2024-01-01
+
+### Added
+- Initial project structure and monorepo setup
+- Basic service scaffolding for all microservices
+- Shared TypeScript types and utilities packages
+- Docker configurations for development environment
+- Basic documentation structure
+
+---
+
+## Release Notes
+
+### Version 1.0.0-alpha
+
+This is the initial alpha release of SlotWise, a high-velocity scheduling platform designed for solopreneurs and small businesses. The platform provides a complete solution for managing bookings, payments, and customer communications through a modern, scalable architecture.
+
+**Key Highlights:**
+- **Production-ready architecture** with microservices and event-driven design
+- **Complete booking flow** from user registration to payment confirmation
+- **Multi-tenant support** with custom subdomains for businesses
+- **Real-time availability** calculation with conflict detection
+- **Comprehensive API** with OpenAPI documentation
+- **Developer-friendly** setup with automated scripts and hot reload
+
+**What's Next:**
+- Beta release with user feedback integration
+- Advanced scheduling features (recurring bookings, group bookings)
+- Mobile application development
+- Advanced analytics and reporting
+- Third-party integrations (Google Calendar, Zoom, etc.)
+
+**Breaking Changes:**
+- None (initial release)
+
+**Migration Guide:**
+- Not applicable (initial release)
+
+**Known Issues:**
+- None reported
+
+**Contributors:**
+- SlotWise Development Team
+
+For detailed information about features and usage, see the [documentation](docs/).
+
+---
+
+## How to Contribute
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started.
+
+## Support
+
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/your-org/slotwise/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/slotwise/discussions)
+- **Email**: support@slotwise.com

@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: slotwise-postgres
+    environment:
+      POSTGRES_DB: slotwise
+      POSTGRES_USER: slotwise
+      POSTGRES_PASSWORD: slotwise_dev_password
+      POSTGRES_MULTIPLE_DATABASES: slotwise_auth,slotwise_business,slotwise_scheduling,slotwise_notification
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    networks:
+      - slotwise-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotwise"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: slotwise-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - slotwise-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # NATS Message Broker
+  nats:
+    image: nats:2.10-alpine
+    container_name: slotwise-nats
+    ports:
+      - "4222:4222"  # Client connections
+      - "8222:8222"  # HTTP monitoring
+      - "6222:6222"  # Routing port for clustering
+    volumes:
+      - ./nats/nats.conf:/etc/nats/nats.conf
+    networks:
+      - slotwise-network
+    command: ["-c", "/etc/nats/nats.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS Streaming (JetStream)
+  nats-streaming:
+    image: nats:2.10-alpine
+    container_name: slotwise-nats-streaming
+    ports:
+      - "4223:4222"
+      - "8223:8222"
+    volumes:
+      - ./nats/jetstream.conf:/etc/nats/jetstream.conf
+      - nats_jetstream_data:/data
+    networks:
+      - slotwise-network
+    command: ["-c", "/etc/nats/jetstream.conf"]
+    depends_on:
+      - nats
+
+  # Adminer (Database Management UI)
+  adminer:
+    image: adminer:4.8.1
+    container_name: slotwise-adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - slotwise-network
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+  # Redis Commander (Redis Management UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: slotwise-redis-commander
+    ports:
+      - "8081:8081"
+    networks:
+      - slotwise-network
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOSTS: local:redis:6379
+
+  # NATS Monitoring (NATS Management UI)
+  nats-surveyor:
+    image: natsio/nats-surveyor:latest
+    container_name: slotwise-nats-surveyor
+    ports:
+      - "8082:7777"
+    networks:
+      - slotwise-network
+    depends_on:
+      - nats
+    environment:
+      NATS_SURVEYOR_SERVERS: "nats://nats:4222"
+    command: ["-s", "nats://nats:4222"]
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  nats_jetstream_data:
+    driver: local
+
+networks:
+  slotwise-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

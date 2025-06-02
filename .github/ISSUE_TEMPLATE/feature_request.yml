@@ -1,0 +1,163 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for SlotWise
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What is the current limitation?
+      placeholder: Describe the problem or limitation...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+      placeholder: Describe your proposed solution...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: service
+    attributes:
+      label: Affected Service/Component
+      description: Which part of SlotWise would this feature affect?
+      options:
+        - Frontend (Next.js)
+        - Auth Service (Go)
+        - Business Service (Node.js)
+        - Scheduling Service (Go)
+        - Notification Service (Node.js)
+        - API Gateway (Nginx)
+        - Infrastructure (Docker/K8s)
+        - Documentation
+        - Multiple Services
+        - New Service
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Important for business needs
+        - Critical - Blocking current usage
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: User Type
+      description: Who would benefit from this feature?
+      options:
+        - End Users (Clients booking services)
+        - Business Owners
+        - Developers/Integrators
+        - System Administrators
+        - All Users
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternative solutions or features have you considered?
+      placeholder: Describe any alternative approaches...
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific use cases or scenarios where this feature would be helpful.
+      placeholder: |
+        1. As a [user type], I want to [action] so that [benefit]
+        2. When [scenario], I need to [action] because [reason]
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What would need to be true for this feature to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Wireframes
+      description: If applicable, add mockups, wireframes, or screenshots to illustrate your idea.
+      placeholder: Drag and drop images here...
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical aspects, constraints, or implementation details to consider?
+      placeholder: Technical notes, API changes, database schema changes, etc...
+
+  - type: textarea
+    id: business-impact
+    attributes:
+      label: Business Impact
+      description: How would this feature impact the business or users?
+      placeholder: Revenue impact, user experience improvement, operational efficiency, etc...
+
+  - type: checkboxes
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this? (Select all that apply)
+      options:
+        - label: New functionality
+        - label: Enhancement to existing feature
+        - label: Performance improvement
+        - label: User experience improvement
+        - label: Developer experience improvement
+        - label: Security enhancement
+        - label: Integration with external service
+        - label: API enhancement
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, links, or references about the feature request.
+      placeholder: Links to similar features, research, user feedback, etc...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided a clear problem statement and proposed solution
+          required: true
+        - label: I have considered the impact on different user types
+          required: true
+        - label: I have provided specific use cases
+          required: true

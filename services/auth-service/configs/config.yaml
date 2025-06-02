@@ -1,0 +1,37 @@
+environment: development
+port: 8001
+log_level: info
+
+database:
+  host: localhost
+  port: 5432
+  user: slotwise_auth_user
+  password: slotwise_auth_password
+  name: slotwise_auth
+  ssl_mode: disable
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
+nats:
+  url: nats://localhost:4222
+  subject: slotwise.auth
+
+jwt:
+  secret: your-super-secret-jwt-key-change-in-production
+  access_token_ttl: 15m
+  refresh_token_ttl: 7d
+  issuer: slotwise-auth-service
+
+email:
+  provider: sendgrid
+  api_key: ${SENDGRID_API_KEY}
+  from: noreply@slotwise.com
+
+rate_limit:
+  requests_per_minute: 60
+  burst_size: 10
+  cleanup_interval: 1m

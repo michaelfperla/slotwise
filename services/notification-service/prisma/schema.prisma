@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Notification {
+  id           String             @id @default(cuid())
+  recipientId  String
+  type         NotificationType
+  channel      NotificationChannel
+  subject      String?
+  content      String
+  templateId   String?
+  templateData Json?
+  status       NotificationStatus @default(PENDING)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  readAt       DateTime?
+  failureReason String?
+  retryCount   Int                @default(0)
+  maxRetries   Int                @default(3)
+  priority     NotificationPriority @default(NORMAL)
+  externalId   String?            // ID from external service (SendGrid, Twilio)
+  scheduledFor DateTime?          // For scheduled notifications
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  // Relations
+  template NotificationTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id          String             @id @default(cuid())
+  name        String
+  type        NotificationType
+  channel     NotificationChannel
+  subject     String?
+  content     String
+  variables   String[]           // List of template variables
+  isActive    Boolean            @default(true)
+  businessId  String?            // If null, it's a system template
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  notifications Notification[]
+
+  @@unique([name, businessId])
+  @@map("notification_templates")
+}
+
+model NotificationPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Email preferences
+  emailEnabled Boolean @default(true)
+  emailTypes   NotificationType[]
+
+  // SMS preferences
+  smsEnabled   Boolean @default(false)
+  smsTypes     NotificationType[]
+  phoneNumber  String?
+
+  // Push preferences
+  pushEnabled Boolean @default(true)
+  pushTypes   NotificationType[]
+
+  // In-app preferences
+  inAppEnabled Boolean @default(true)
+  inAppTypes   NotificationType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+model NotificationLog {
+  id             String   @id @default(cuid())
+  notificationId String
+  event          String   // sent, delivered, failed, bounced, etc.
+  timestamp      DateTime @default(now())
+  data           Json?    // Additional event data
+  externalId     String?  // External service event ID
+
+  @@map("notification_logs")
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMATION
+  BOOKING_REMINDER
+  BOOKING_CANCELLATION
+  BOOKING_RESCHEDULED
+  PAYMENT_CONFIRMATION
+  PAYMENT_FAILED
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  WELCOME
+  MARKETING
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
