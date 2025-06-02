@@ -8,6 +8,7 @@
     "start": "nx next:start",
     "lint": "next lint",
     "test": "echo 'No tests yet' && exit 0",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write ."
   },
   "dependencies": {

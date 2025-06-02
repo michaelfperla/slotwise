@@ -48,14 +48,14 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint src --ext .ts",
+        "command": "eslint src",
         "cwd": "services/business-service"
       }
     },
     "lint:fix": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint src --ext .ts --fix",
+        "command": "eslint src --fix",
         "cwd": "services/business-service"
       }
     },
