@@ -74,8 +74,21 @@ jobs:
 
       - name: Format check
         run: |
+          echo "Checking code formatting..."
           npm run format
-          git diff --exit-code
+          if ! git diff --exit-code; then
+            echo "❌ Code formatting issues detected!"
+            echo "The following files need formatting:"
+            git diff --name-only
+            echo ""
+            echo "To fix this locally, run:"
+            echo "  npm run format"
+            echo "  git add ."
+            echo "  git commit -m 'fix: apply code formatting'"
+            exit 1
+          else
+            echo "✅ All files are properly formatted"
+          fi
 
       - name: Go lint
         run: |
@@ -102,8 +115,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: TypeScript type check
+        run: |
+          echo "Running TypeScript type checking..."
+          npx nx affected -t typecheck --base=${{ needs.setup.outputs.nx-base }} --head=${{ needs.setup.outputs.nx-head }}
+
       - name: Build affected projects
         run: |
+          echo "Building affected projects..."
           npx nx affected -t build --base=${{ needs.setup.outputs.nx-base }} --head=${{ needs.setup.outputs.nx-head }}
 
   # Unit tests using Nx
