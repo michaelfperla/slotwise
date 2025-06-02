@@ -1,0 +1,34 @@
+# Docker Compose file for testing builds locally
+# Run: docker-compose -f docker-compose.test.yml build
+version: '3.8'
+
+services:
+  business-service-test:
+    build:
+      context: .
+      dockerfile: services/business-service/Dockerfile
+    image: test-business-service:latest
+    
+  notification-service-test:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    image: test-notification-service:latest
+    
+  frontend-test:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    image: test-frontend:latest
+    
+  auth-service-test:
+    build:
+      context: services/auth-service
+      dockerfile: Dockerfile
+    image: test-auth-service:latest
+    
+  scheduling-service-test:
+    build:
+      context: services/scheduling-service
+      dockerfile: Dockerfile
+    image: test-scheduling-service:latest

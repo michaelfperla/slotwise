@@ -50,11 +50,11 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
 
-# Copy package files
-COPY --from=builder /app/services/business-service/package*.json ./
+# Copy package files and lock file
+COPY --from=builder /app/package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built application
 COPY --from=builder /app/services/business-service/dist ./dist
