@@ -1,8 +1,10 @@
+# Dependabot configuration for SlotWise microservices
+# Enhanced with dependency grouping to reduce conflicts and maintenance overhead
 version: 2
 updates:
-  # Frontend dependencies
+  # Root workspace dependencies
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -12,6 +14,74 @@ updates:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      root-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(root)"
+      include: "scope"
+
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "michaelfperla"
+    assignees:
+      - "michaelfperla"
+    groups:
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "next*"
+          - "@next/*"
+          - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
+      ui-libraries:
+        patterns:
+          - "@radix-ui/*"
+          - "tailwind*"
+          - "@tailwindcss/*"
+          - "lucide-react"
+          - "clsx"
+        update-types:
+          - "minor"
+          - "patch"
+      state-management:
+        patterns:
+          - "@tanstack/*"
+          - "zustand"
+          - "axios"
+          - "zod"
+        update-types:
+          - "minor"
+          - "patch"
+      frontend-dev-tools:
+        patterns:
+          - "eslint*"
+          - "@eslint/*"
+          - "typescript"
+          - "@types/*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(frontend)"
       include: "scope"
@@ -28,6 +98,13 @@ updates:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      shared-types:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "chore(shared/types)"
       include: "scope"
@@ -44,6 +121,13 @@ updates:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      shared-utils:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "chore(shared/utils)"
       include: "scope"
@@ -53,13 +137,78 @@ updates:
     directory: "/services/business-service"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "wednesday"
       time: "09:00"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     reviewers:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      fastify-ecosystem:
+        patterns:
+          - "fastify*"
+          - "@fastify/*"
+        update-types:
+          - "minor"
+          - "patch"
+      database-tools:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+        update-types:
+          - "minor"
+          - "patch"
+      auth-security:
+        patterns:
+          - "bcryptjs"
+          - "jsonwebtoken"
+          - "@types/bcryptjs"
+          - "@types/jsonwebtoken"
+        update-types:
+          - "minor"
+          - "patch"
+      messaging-caching:
+        patterns:
+          - "nats"
+          - "ioredis"
+        update-types:
+          - "minor"
+          - "patch"
+      utilities:
+        patterns:
+          - "zod"
+          - "nanoid"
+          - "date-fns"
+          - "dotenv"
+        update-types:
+          - "minor"
+          - "patch"
+      logging:
+        patterns:
+          - "pino*"
+        update-types:
+          - "minor"
+          - "patch"
+      business-dev-tools:
+        patterns:
+          - "typescript"
+          - "tsx"
+          - "@types/*"
+          - "jest"
+          - "ts-jest"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier"
+          - "rimraf"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "fastify"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(business-service)"
       include: "scope"
@@ -69,13 +218,81 @@ updates:
     directory: "/services/notification-service"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "thursday"
       time: "09:00"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     reviewers:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      fastify-ecosystem:
+        patterns:
+          - "fastify*"
+          - "@fastify/*"
+        update-types:
+          - "minor"
+          - "patch"
+      notification-providers:
+        patterns:
+          - "@sendgrid/*"
+          - "twilio"
+        update-types:
+          - "minor"
+          - "patch"
+      template-processing:
+        patterns:
+          - "handlebars"
+          - "mjml"
+          - "@types/handlebars"
+        update-types:
+          - "minor"
+          - "patch"
+      queue-processing:
+        patterns:
+          - "bull"
+          - "@types/bull"
+        update-types:
+          - "minor"
+          - "patch"
+      database-messaging:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+          - "nats"
+          - "ioredis"
+        update-types:
+          - "minor"
+          - "patch"
+      utilities:
+        patterns:
+          - "zod"
+          - "nanoid"
+          - "date-fns"
+          - "dotenv"
+        update-types:
+          - "minor"
+          - "patch"
+      logging:
+        patterns:
+          - "pino*"
+        update-types:
+          - "minor"
+          - "patch"
+      notification-dev-tools:
+        patterns:
+          - "typescript"
+          - "tsx"
+          - "@types/*"
+          - "jest"
+          - "ts-jest"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier"
+          - "rimraf"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "chore(notification-service)"
       include: "scope"
@@ -85,13 +302,52 @@ updates:
     directory: "/services/auth-service"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "friday"
       time: "09:00"
     open-pull-requests-limit: 5
     reviewers:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      web-framework:
+        patterns:
+          - "github.com/gin-gonic/*"
+        update-types:
+          - "minor"
+          - "patch"
+      auth-security:
+        patterns:
+          - "github.com/golang-jwt/*"
+          - "golang.org/x/crypto"
+        update-types:
+          - "minor"
+          - "patch"
+      database-orm:
+        patterns:
+          - "gorm.io/*"
+        update-types:
+          - "minor"
+          - "patch"
+      messaging-caching:
+        patterns:
+          - "github.com/nats-io/*"
+          - "github.com/redis/*"
+        update-types:
+          - "minor"
+          - "patch"
+      configuration:
+        patterns:
+          - "github.com/spf13/*"
+        update-types:
+          - "minor"
+          - "patch"
+      utilities:
+        patterns:
+          - "github.com/google/uuid"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "chore(auth-service)"
       include: "scope"
@@ -101,39 +357,62 @@ updates:
     directory: "/services/scheduling-service"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      day: "friday"
+      time: "10:00"
     open-pull-requests-limit: 5
     reviewers:
       - "michaelfperla"
     assignees:
       - "michaelfperla"
+    groups:
+      web-framework:
+        patterns:
+          - "github.com/gin-gonic/*"
+        update-types:
+          - "minor"
+          - "patch"
+      database-orm:
+        patterns:
+          - "gorm.io/*"
+          - "github.com/lib/pq"
+        update-types:
+          - "minor"
+          - "patch"
+      scheduling:
+        patterns:
+          - "github.com/robfig/cron/*"
+        update-types:
+          - "minor"
+          - "patch"
+      messaging-caching:
+        patterns:
+          - "github.com/nats-io/*"
+          - "github.com/redis/*"
+        update-types:
+          - "minor"
+          - "patch"
+      configuration:
+        patterns:
+          - "github.com/spf13/*"
+        update-types:
+          - "minor"
+          - "patch"
+      utilities:
+        patterns:
+          - "github.com/google/uuid"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "chore(scheduling-service)"
-      include: "scope"
-
-  # Root package.json dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 3
-    reviewers:
-      - "michaelfperla"
-    assignees:
-      - "michaelfperla"
-    commit-message:
-      prefix: "chore(root)"
       include: "scope"
 
   # Docker dependencies
   - package-ecosystem: "docker"
     directory: "/infrastructure"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
+      day: "first-tuesday"
       time: "09:00"
     open-pull-requests-limit: 3
     reviewers:
@@ -148,8 +427,8 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
+      day: "first-monday"
       time: "09:00"
     open-pull-requests-limit: 3
     reviewers:

@@ -58,11 +58,27 @@
     "clean:frontend": "cd frontend && rm -rf .next",
     "db:migrate": "npm run db:migrate:business && npm run db:migrate:notification",
     "db:migrate:business": "cd services/business-service && npx prisma migrate dev",
-    "db:migrate:notification": "cd services/notification-service && npx prisma migrate dev"
+    "db:migrate:notification": "cd services/notification-service && npx prisma migrate dev",
+    "deps:update": "npm run deps:update:go && npm run deps:update:node",
+    "deps:update:go": "npm run deps:update:auth && npm run deps:update:scheduling",
+    "deps:update:auth": "cd services/auth-service && go get -u && go mod tidy",
+    "deps:update:scheduling": "cd services/scheduling-service && go get -u && go mod tidy",
+    "deps:update:node": "npm run deps:update:business && npm run deps:update:notification && npm run deps:update:frontend",
+    "deps:update:business": "cd services/business-service && npm update",
+    "deps:update:notification": "cd services/notification-service && npm update",
+    "deps:update:frontend": "cd frontend && npm update",
+    "deps:audit": "npm run deps:audit:node && npm run deps:audit:go",
+    "deps:audit:node": "npm run deps:audit:business && npm run deps:audit:notification && npm run deps:audit:frontend",
+    "deps:audit:business": "cd services/business-service && npm audit",
+    "deps:audit:notification": "cd services/notification-service && npm audit",
+    "deps:audit:frontend": "cd frontend && npm audit",
+    "deps:audit:go": "npm run deps:audit:auth && npm run deps:audit:scheduling",
+    "deps:audit:auth": "cd services/auth-service && go list -json -deps ./... | nancy sleuth",
+    "deps:audit:scheduling": "cd services/scheduling-service && go list -json -deps ./... | nancy sleuth"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
     "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
     "typescript": "^5.3.0"
   },
   "engines": {
@@ -84,5 +100,8 @@
     "nextjs"
   ],
   "author": "SlotWise Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "latest": "^0.2.0"
+  }
 }
