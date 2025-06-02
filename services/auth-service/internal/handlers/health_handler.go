@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"os"
+	"runtime"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -74,8 +76,8 @@ func (h *HealthHandler) Health(c *gin.Context) {
 	status := HealthStatus{
 		Status:      overallStatus,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
-		Version:     "1.0.0",       // TODO: Get from build info
-		Environment: "development", // TODO: Get from config
+		Version:     getServiceVersion(),
+		Environment: getEnvironment(),
 		Uptime:      uptime.String(),
 		Checks:      checks,
 	}
@@ -187,10 +189,10 @@ func (h *HealthHandler) Metrics(c *gin.Context) {
 	metrics := map[string]interface{}{
 		"uptime_seconds":  time.Since(startTime).Seconds(),
 		"timestamp":       time.Now().UTC().Format(time.RFC3339),
-		"go_version":      "1.21", // TODO: Get from runtime
+		"go_version":      runtime.Version(),
 		"service_name":    "auth-service",
-		"service_version": "1.0.0",
-		"environment":     "development", // TODO: Get from config
+		"service_version": getServiceVersion(),
+		"environment":     getEnvironment(),
 	}
 
 	c.JSON(http.StatusOK, metrics)
@@ -198,17 +200,50 @@ func (h *HealthHandler) Metrics(c *gin.Context) {
 
 // Info returns general information about the service
 func (h *HealthHandler) Info(c *gin.Context) {
+	buildTime, gitCommit, goVersion := getBuildInfo()
+
 	info := map[string]interface{}{
 		"service":     "auth-service",
-		"version":     "1.0.0",
+		"version":     getServiceVersion(),
 		"description": "Authentication and authorization service for SlotWise",
-		"environment": "development",          // TODO: Get from config
-		"build_time":  "2024-01-01T00:00:00Z", // TODO: Get from build info
-		"git_commit":  "unknown",              // TODO: Get from build info
-		"go_version":  "1.21",                 // TODO: Get from runtime
+		"environment": getEnvironment(),
+		"build_time":  buildTime,
+		"git_commit":  gitCommit,
+		"go_version":  goVersion,
 		"uptime":      time.Since(startTime).String(),
 		"timestamp":   time.Now().UTC().Format(time.RFC3339),
 	}
 
 	c.JSON(http.StatusOK, info)
+}
+
+// Helper functions for service information
+func getServiceVersion() string {
+	if version := os.Getenv("SERVICE_VERSION"); version != "" {
+		return version
+	}
+	return "1.0.0"
+}
+
+func getEnvironment() string {
+	if env := os.Getenv("ENVIRONMENT"); env != "" {
+		return env
+	}
+	return "development"
+}
+
+func getBuildInfo() (string, string, string) {
+	buildTime := os.Getenv("BUILD_TIME")
+	if buildTime == "" {
+		buildTime = "unknown"
+	}
+
+	gitCommit := os.Getenv("GIT_COMMIT")
+	if gitCommit == "" {
+		gitCommit = "unknown"
+	}
+
+	goVersion := runtime.Version()
+
+	return buildTime, gitCommit, goVersion
 }

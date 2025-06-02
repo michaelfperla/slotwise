@@ -1,5 +1,5 @@
 import { BaseEntity } from './index';
-import { PaymentMethodEnum } from './payment';
+import { PaymentMethod } from './payment';
 
 export interface Business extends BaseEntity {
   name: string;
@@ -37,7 +37,7 @@ export interface BusinessSettings {
   };
   payment: {
     requirePayment: boolean;
-    acceptedMethods: PaymentMethodEnum[];
+    acceptedMethods: PaymentMethod[];
     currency: string;
   };
   notifications: {
