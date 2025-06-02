@@ -1,10 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { BusinessService } from '../services/BusinessService';
+import { AvailabilityService } from '../services/AvailabilityService'; // Import AvailabilityService
+import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats';
 
 const businessService = new BusinessService(prisma, natsConnection);
+const availabilityService = new AvailabilityService(); // Instantiate AvailabilityService
 
 // Validation schemas
 const createBusinessSchema = z.object({
@@ -30,8 +33,26 @@ const createBusinessSchema = z.object({
 const updateBusinessSchema = createBusinessSchema.partial();
 
 const businessParamsSchema = z.object({
-  id: z.string().cuid(),
+  id: z.string().cuid(), // General business ID
 });
+
+// Specific param schema for routes that use businessId in path
+const businessIdParamsSchema = z.object({
+  businessId: z.string().cuid(),
+});
+
+
+// Availability Schemas
+const availabilityRuleSchema = z.object({
+  dayOfWeek: z.nativeEnum(DayOfWeek),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid start time format, use HH:MM"),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid end time format, use HH:MM"),
+});
+
+const setAvailabilitySchema = z.object({
+  rules: z.array(availabilityRuleSchema),
+});
+
 
 export async function businessRoutes(fastify: FastifyInstance) {
   // Create business
@@ -261,6 +282,110 @@ export async function businessRoutes(fastify: FastifyInstance) {
         data: business,
         timestamp: new Date().toISOString(),
       });
+    }
+  );
+
+  // --- Availability Routes ---
+
+  // Set/Update Availability for a Business
+  fastify.post(
+    '/:businessId/availability',
+    {
+      schema: {
+        tags: ['Business', 'Availability'],
+        summary: 'Set or update availability for a business',
+        params: businessIdParamsSchema,
+        body: setAvailabilitySchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object' } }, // Array of availability rules
+              message: { type: 'string' },
+              timestamp: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ 
+        Params: z.infer<typeof businessIdParamsSchema>; 
+        Body: z.infer<typeof setAvailabilitySchema> 
+      }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const newAvailability = await availabilityService.setAvailability(
+          request.params.businessId,
+          request.user!.id, // Authorize by owner
+          request.body
+        );
+        return reply.send({
+          success: true,
+          data: newAvailability,
+          message: 'Availability updated successfully.',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error: any) {
+        fastify.log.error('Error setting availability:', error);
+        // More specific error handling can be added here (e.g., validation errors, not found)
+        if (error.message.includes('Business not found') || error.message.includes('not the owner')) {
+          return reply.status(404).send({ success: false, message: error.message, timestamp: new Date().toISOString() });
+        }
+        if (error.message.includes('Invalid availability rule')) {
+            return reply.status(400).send({ success: false, message: error.message, timestamp: new Date().toISOString() });
+        }
+        return reply.status(500).send({ success: false, message: 'Failed to update availability.', error: error.message, timestamp: new Date().toISOString() });
+      }
+    }
+  );
+
+  // Get Availability for a Business
+  fastify.get(
+    '/:businessId/availability',
+    {
+      schema: {
+        tags: ['Business', 'Availability'],
+        summary: 'Get availability for a business',
+        params: businessIdParamsSchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object' } },
+              timestamp: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Params: z.infer<typeof businessIdParamsSchema> }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        // For this GET route, we might allow broader access or differentiate based on user role later.
+        // For now, let's use ownerId for consistency, but it could be made public or role-based.
+        // The service method getAvailability has an optional userId for ownership check.
+        // If request.user is available, pass it. Otherwise, it's a more public query.
+        const userId = request.user?.id; 
+        const availability = await availabilityService.getAvailability(request.params.businessId, userId);
+        
+        return reply.send({
+          success: true,
+          data: availability,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error: any) {
+        fastify.log.error('Error getting availability:', error);
+         if (error.message.includes('Business not found')) {
+          return reply.status(404).send({ success: false, message: error.message, timestamp: new Date().toISOString() });
+        }
+        return reply.status(500).send({ success: false, message: 'Failed to retrieve availability.', error: error.message, timestamp: new Date().toISOString() });
+      }
     }
   );
 }

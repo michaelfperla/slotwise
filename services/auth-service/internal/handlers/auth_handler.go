@@ -31,6 +31,7 @@ type RegisterRequest struct {
 	LastName  string `json:"lastName" binding:"required"`
 	Timezone  string `json:"timezone" binding:"required"`
 	Role      string `json:"role,omitempty"`
+	BusinessName *string `json:"businessName,omitempty"` // Added for business registration
 }
 
 // LoginRequest represents the login request payload
@@ -91,6 +92,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		LastName:  req.LastName,
 		Timezone:  req.Timezone,
 		Role:      req.Role,
+		BusinessName: req.BusinessName, // Pass through business name
 	}
 
 	response, err := h.authService.Register(serviceReq)

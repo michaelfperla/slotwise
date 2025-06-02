@@ -58,6 +58,7 @@ func Migrate(db *gorm.DB) error {
 	// Auto-migrate models
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.Business{}, // Add Business model to migrations
 	); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Cancellation Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        .header { background-color: #ffc107; color: #333; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; }
+        .footer { margin-top: 20px; text-align: center; font-size: 0.9em; color: #777; }
+        strong { color: #333; } /* Adjusted for yellow background */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Booking Cancelled</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{businessOwnerName}},</p>
+            <p>A booking for your service <strong>{{serviceName}}</strong> at <strong>{{businessName}}</strong> has been cancelled.</p>
+            
+            <h2>Cancelled Booking Details:</h2>
+            <p><strong>Booking ID:</strong> {{bookingId}}</p>
+            <p><strong>Customer Name:</strong> {{customerName}} ({{customerEmail}})</p>
+            <p><strong>Service:</strong> {{serviceName}}</p>
+            <p><strong>Original Date:</strong> {{bookingDate}}</p>
+            <p><strong>Original Time:</strong> {{bookingTime}}</p>
+            
+            {{#if cancellationReason}}
+            <p><strong>Reason for cancellation:</strong> {{cancellationReason}}</p>
+            {{/if}}
+            {{#if cancelledBy}}
+            <p><strong>Cancelled By:</strong> {{cancelledBy}}</p>
+            {{/if}}
+            
+            <p>This time slot may now be available for other customers unless it conflicts with other bookings or your current availability settings.</p>
+            <p>You can view and manage your bookings in your SlotWise business dashboard.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{currentYear}} SlotWise. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

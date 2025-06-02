@@ -47,7 +47,8 @@ model Business {
   cancelAtPeriodEnd  Boolean            @default(false)
 
   // Relations
-  services Service[]
+  services      Service[]
+  availabilities Availability[] // Added relation to Availability
 
   @@map("businesses")
 }
@@ -75,6 +76,22 @@ model Service {
   @@map("services")
 }
 
+model Availability {
+  id          String   @id @default(cuid())
+  businessId  String
+  dayOfWeek   DayOfWeek // Enum for days
+  startTime   String   // Store as HH:MM string in 24-hour format e.g., "09:00"
+  endTime     String   // Store as HH:MM string e.g., "17:00"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, dayOfWeek, startTime, endTime], name: "business_day_time_unique") // Prevent duplicate entries
+  @@map("availabilities")
+}
+
 enum BusinessStatus {
   ACTIVE
   INACTIVE
@@ -94,4 +111,14 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELED
   UNPAID
+}
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
 }

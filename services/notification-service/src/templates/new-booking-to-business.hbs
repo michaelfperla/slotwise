@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Booking Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        .header { background-color: #28a745; color: white; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; }
+        .footer { margin-top: 20px; text-align: center; font-size: 0.9em; color: #777; }
+        strong { color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New Booking Received!</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{businessOwnerName}},</p>
+            <p>You have a new booking for your service <strong>{{serviceName}}</strong> at <strong>{{businessName}}</strong>.</p>
+            
+            <h2>Booking Details:</h2>
+            <p><strong>Booking ID:</strong> {{bookingId}}</p>
+            <p><strong>Customer Name:</strong> {{customerName}}</p>
+            <p><strong>Customer Email:</strong> {{customerEmail}}</p>
+            <p><strong>Service:</strong> {{serviceName}}</p>
+            <p><strong>Date:</strong> {{bookingDate}}</p>
+            <p><strong>Time:</strong> {{bookingTime}}</p>
+            <p><strong>Duration:</strong> {{durationMinutes}} minutes</p>
+            {{#if price}}
+            <p><strong>Price:</strong> {{price}} {{currency}}</p>
+            {{/if}}
+            
+            <p>You can view and manage this booking in your SlotWise business dashboard.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{currentYear}} SlotWise. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

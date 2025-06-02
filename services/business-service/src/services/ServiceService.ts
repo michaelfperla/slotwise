@@ -1,5 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Service } from '@prisma/client'; // Import Service type
 import { prisma } from '../database/prisma';
+import { natsConnection } from '../events/nats'; // Import NATS connection
+import { logger } from '../utils/logger'; // Optional: for logging event publishing
 
 export interface CreateServiceData {
   name: string;
@@ -44,7 +46,7 @@ export class ServiceService {
     this.prisma = prisma;
   }
 
-  async createService(userId: string, data: CreateServiceData) {
+  async createService(userId: string, data: CreateServiceData): Promise<Service> { // Added return type
     // First, get the user's business
     const business = await this.prisma.business.findFirst({
       where: {
@@ -78,10 +80,33 @@ export class ServiceService {
       },
     });
 
+    // Publish event to NATS
+    try {
+      const eventPayload = {
+        businessId: service.businessId,
+        serviceId: service.id,
+        serviceDetails: {
+          name: service.name,
+          description: service.description,
+          durationMinutes: service.duration,
+          price: service.price.toNumber(), // Convert Decimal to number
+          currency: service.currency,
+          category: service.category,
+          isActive: service.isActive,
+          // Add any other details from 'service' object that are relevant
+        },
+      };
+      await natsConnection.publish('business.service.created', eventPayload);
+      logger.info('Published business.service.created event to NATS', { serviceId: service.id, businessId: service.businessId });
+    } catch (error) {
+      // Log error but don't let NATS failure block core operation
+      logger.error('Failed to publish business.service.created event to NATS', { serviceId: service.id, error });
+    }
+
     return service;
   }
 
-  async getServices(userId: string, params: ServiceQueryParams): Promise<PaginatedResult<any>> {
+  async getServices(userId: string, params: ServiceQueryParams): Promise<PaginatedResult<Service>> { // Changed any to Service
     const page = params.page || 1;
     const limit = params.limit || 20;
     const skip = (page - 1) * limit;
@@ -117,7 +142,7 @@ export class ServiceService {
     }
 
     const [services, total] = await Promise.all([
-      this.prisma.service.findMany({
+      this.prisma.service.findMany({ // Prisma returns typed results
         where,
         skip,
         take: limit,
@@ -138,7 +163,7 @@ export class ServiceService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: services,
+      data: services as Service[], // Cast to Service[]
       pagination: {
         page,
         limit,
@@ -150,7 +175,7 @@ export class ServiceService {
     };
   }
 
-  async getServiceById(serviceId: string, userId: string) {
+  async getServiceById(serviceId: string, userId: string): Promise<Service | null> { // Added return type
     const service = await this.prisma.service.findFirst({
       where: {
         id: serviceId,
@@ -172,7 +197,7 @@ export class ServiceService {
     return service;
   }
 
-  async updateService(serviceId: string, userId: string, data: UpdateServiceData) {
+  async updateService(serviceId: string, userId: string, data: UpdateServiceData): Promise<Service | null> { // Added return type
     // First verify the service belongs to the user
     const existingService = await this.getServiceById(serviceId, userId);
     if (!existingService) {

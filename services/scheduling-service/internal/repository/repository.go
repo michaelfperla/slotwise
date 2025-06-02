@@ -6,12 +6,10 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	// "time" // No longer needed here if Booking struct is removed
+	"github.com/slotwise/scheduling-service/internal/models" // For models.DayOfWeekString
+	"fmt" // For fmt.Errorf
 )
-
-// BookingRepository handles booking data operations
-type BookingRepository struct {
-	db *gorm.DB
-}
 
 // AvailabilityRepository handles availability data operations
 type AvailabilityRepository struct {
@@ -57,11 +55,31 @@ func NewAvailabilityRepository(db *gorm.DB) *AvailabilityRepository {
 	return &AvailabilityRepository{db: db}
 }
 
-// GetAvailableSlots gets available time slots (stub)
-func (r *AvailabilityRepository) GetAvailableSlots(ctx context.Context, serviceID string, date time.Time) ([]time.Time, error) {
-	// TODO: Implement actual availability logic
-	return []time.Time{}, nil
+// GetServiceDefinition retrieves a single service definition by its ID.
+func (r *AvailabilityRepository) GetServiceDefinition(ctx context.Context, serviceID string) (*models.ServiceDefinition, error) {
+	var serviceDef models.ServiceDefinition
+	if err := r.db.WithContext(ctx).First(&serviceDef, "id = ?", serviceID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // Return nil, nil if not found, service layer can handle "not found" error
+		}
+		return nil, fmt.Errorf("error fetching service definition %s: %w", serviceID, err)
+	}
+	return &serviceDef, nil
 }
+
+// GetAvailabilityRulesFiltered retrieves all availability rules for a given business and day of the week.
+func (r *AvailabilityRepository) GetAvailabilityRulesFiltered(ctx context.Context, businessID string, dayOfWeek models.DayOfWeekString) ([]models.AvailabilityRule, error) {
+	var rules []models.AvailabilityRule
+	err := r.db.WithContext(ctx).
+		Where("business_id = ? AND day_of_week = ?", businessID, dayOfWeek).
+		Order("start_time asc"). // Order by start time for predictable processing
+		Find(&rules).Error
+	if err != nil {
+		return nil, fmt.Errorf("error fetching availability rules for business %s on %s: %w", businessID, dayOfWeek, err)
+	}
+	return rules, nil
+}
+
 
 // NewCacheRepository creates a new cache repository
 func NewCacheRepository(client *redis.Client) *CacheRepository {
