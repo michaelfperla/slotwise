@@ -8,15 +8,15 @@ import (
 )
 
 type Config struct {
-	Environment string       `mapstructure:"environment"`
-	Port        int          `mapstructure:"port"`
-	LogLevel    string       `mapstructure:"log_level"`
-	Database    Database     `mapstructure:"database"`
-	Redis       Redis        `mapstructure:"redis"`
-	NATS        NATS         `mapstructure:"nats"`
-	JWT         JWT          `mapstructure:"jwt"`
-	Email       Email        `mapstructure:"email"`
-	RateLimit   RateLimit    `mapstructure:"rate_limit"`
+	Environment string    `mapstructure:"environment"`
+	Port        int       `mapstructure:"port"`
+	LogLevel    string    `mapstructure:"log_level"`
+	Database    Database  `mapstructure:"database"`
+	Redis       Redis     `mapstructure:"redis"`
+	NATS        NATS      `mapstructure:"nats"`
+	JWT         JWT       `mapstructure:"jwt"`
+	Email       Email     `mapstructure:"email"`
+	RateLimit   RateLimit `mapstructure:"rate_limit"`
 }
 
 type Database struct {
@@ -41,10 +41,10 @@ type NATS struct {
 }
 
 type JWT struct {
-	Secret           string        `mapstructure:"secret"`
-	AccessTokenTTL   time.Duration `mapstructure:"access_token_ttl"`
-	RefreshTokenTTL  time.Duration `mapstructure:"refresh_token_ttl"`
-	Issuer           string        `mapstructure:"issuer"`
+	Secret          string        `mapstructure:"secret"`
+	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
+	Issuer          string        `mapstructure:"issuer"`
 }
 
 type Email struct {
@@ -113,7 +113,7 @@ func setDefaults() {
 	// JWT defaults
 	viper.SetDefault("jwt.secret", "your-super-secret-jwt-key-change-in-production")
 	viper.SetDefault("jwt.access_token_ttl", "15m")
-	viper.SetDefault("jwt.refresh_token_ttl", "7d")
+	viper.SetDefault("jwt.refresh_token_ttl", "168h") // 7 days
 	viper.SetDefault("jwt.issuer", "slotwise-auth-service")
 
 	// Email defaults

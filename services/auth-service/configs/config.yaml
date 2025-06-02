@@ -23,7 +23,7 @@ nats:
 jwt:
   secret: your-super-secret-jwt-key-change-in-production
   access_token_ttl: 15m
-  refresh_token_ttl: 7d
+  refresh_token_ttl: 168h
   issuer: slotwise-auth-service
 
 email:
