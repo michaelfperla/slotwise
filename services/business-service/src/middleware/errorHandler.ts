@@ -1,6 +1,5 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
-import { Prisma } from '@prisma/client';
 import { logger } from '../utils/logger';
 
 export async function errorHandler(
@@ -33,30 +32,31 @@ export async function errorHandler(
   }
 
   // Prisma errors
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
+  if (error.name === 'PrismaClientKnownRequestError') {
+    const prismaError = error as any;
+    switch (prismaError.code) {
       case 'P2002':
         return reply.status(409).send({
           success: false,
           error: {
             code: 'RESOURCE_ALREADY_EXISTS',
             message: 'Resource already exists',
-            details: error.meta
+            details: prismaError.meta || {}
           },
           timestamp: new Date().toISOString()
         });
-      
+
       case 'P2025':
         return reply.status(404).send({
           success: false,
           error: {
             code: 'RESOURCE_NOT_FOUND',
             message: 'Resource not found',
-            details: error.meta
+            details: prismaError.meta || {}
           },
           timestamp: new Date().toISOString()
         });
-      
+
       default:
         return reply.status(500).send({
           success: false,

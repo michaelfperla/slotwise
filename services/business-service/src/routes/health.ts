@@ -5,7 +5,7 @@ import { natsConnection } from '../events/nats';
 
 export async function healthRoutes(fastify: FastifyInstance) {
   // Basic health check
-  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.send({
       status: 'healthy',
       service: 'business-service',
@@ -16,7 +16,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
   });
 
   // Readiness check (all dependencies ready)
-  fastify.get('/ready', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
     const dependencies = [];
 
     // Check database
@@ -81,7 +81,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
   });
 
   // Liveness check (service is alive)
-  fastify.get('/live', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/live', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.send({
       status: 'alive',
       service: 'business-service',

@@ -1,4 +1,5 @@
 import { BaseEntity } from './index';
+import { PaymentStatus } from './payment';
 
 export interface Booking extends BaseEntity {
   businessId: string;
@@ -28,13 +29,7 @@ export enum BookingStatus {
   NO_SHOW = 'no_show'
 }
 
-export enum PaymentStatus {
-  PENDING = 'pending',
-  PAID = 'paid',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
-  PARTIALLY_REFUNDED = 'partially_refunded'
-}
+// PaymentStatus moved to payment.ts to avoid conflicts
 
 export interface BookingClient {
   id?: string; // Optional for new clients

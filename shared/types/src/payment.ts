@@ -29,7 +29,7 @@ export enum PaymentStatus {
   PARTIALLY_REFUNDED = 'partially_refunded'
 }
 
-export enum PaymentMethod {
+export enum PaymentMethodEnum {
   CARD = 'card',
   BANK_TRANSFER = 'bank_transfer',
   PAYPAL = 'paypal',
@@ -134,7 +134,7 @@ export interface PaymentStats {
   refundRate: number;
   processingFees: number;
   netRevenue: number;
-  byMethod: Record<PaymentMethod, {
+  byMethod: Record<PaymentMethodEnum, {
     count: number;
     amount: number;
     successRate: number;
@@ -169,7 +169,7 @@ export interface PaymentConfiguration {
   stripeAccountId?: string;
   stripePublishableKey?: string;
   paypalClientId?: string;
-  acceptedMethods: PaymentMethod[];
+  acceptedMethods: PaymentMethodEnum[];
   currency: string;
   processingFeePercentage: number;
   minimumAmount: number;

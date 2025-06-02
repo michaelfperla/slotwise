@@ -89,7 +89,7 @@ export interface BulkNotificationRequest {
   scheduledFor?: Date;
 }
 
-export interface NotificationPreferences {
+export interface UserNotificationPreferences {
   userId: string;
   email: {
     enabled: boolean;

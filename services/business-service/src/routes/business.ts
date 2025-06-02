@@ -154,7 +154,7 @@ export async function businessRoutes(fastify: FastifyInstance) {
 
     return reply.send({
       success: true,
-      data: result.businesses,
+      data: result.data,
       pagination: result.pagination,
       timestamp: new Date().toISOString()
     });

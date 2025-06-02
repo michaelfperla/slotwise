@@ -1,6 +1,20 @@
-import { PrismaClient, Business, BusinessStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { logger } from '../utils/logger';
+
+// Define types based on Prisma schema
+type BusinessStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_SETUP';
+
+interface Business {
+  id: string;
+  name: string;
+  description?: string;
+  subdomain: string;
+  ownerId: string;
+  status: BusinessStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface CreateBusinessData {
   name: string;
@@ -84,7 +98,7 @@ export class BusinessService {
           timezone: data.timezone,
           currency: data.currency,
           ownerId: data.ownerId,
-          status: BusinessStatus.PENDING_SETUP
+          status: 'PENDING_SETUP'
         }
       });
 
@@ -164,7 +178,7 @@ export class BusinessService {
         }
       });
 
-      if (!business || business.status !== BusinessStatus.ACTIVE) {
+      if (!business || business.status !== 'ACTIVE') {
         throw new Error('Business not found or inactive');
       }
 
