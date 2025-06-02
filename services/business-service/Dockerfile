@@ -28,9 +28,8 @@ COPY services/business-service/prisma ./services/business-service/prisma
 WORKDIR /app/services/business-service
 RUN npx prisma generate
 
-# Build using Nx
-WORKDIR /app
-RUN npx nx build @slotwise/business-service
+# Build the service
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production

@@ -28,9 +28,8 @@ COPY services/notification-service/prisma ./services/notification-service/prisma
 WORKDIR /app/services/notification-service
 RUN npx prisma generate
 
-# Build using Nx
-WORKDIR /app
-RUN npx nx build @slotwise/notification-service
+# Build the service
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production
