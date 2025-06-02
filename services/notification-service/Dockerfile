@@ -59,7 +59,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application
 COPY --from=builder /app/services/notification-service/dist ./dist
 COPY --from=builder /app/services/notification-service/prisma ./prisma
-COPY --from=builder /app/services/notification-service/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Change ownership to non-root user
 RUN chown -R nextjs:nodejs /app
