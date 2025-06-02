@@ -37,7 +37,7 @@ export async function authMiddleware(fastify: FastifyInstance) {
         email: decoded.email,
         role: decoded.role
       };
-    } catch (error) {
+    } catch {
       return reply.code(401).send({
         success: false,
         error: 'Unauthorized',

@@ -14,7 +14,7 @@ export interface CreateServiceData {
   requiresApproval?: boolean;
 }
 
-export interface UpdateServiceData extends Partial<CreateServiceData> {}
+export type UpdateServiceData = Partial<CreateServiceData>;
 
 export interface ServiceQueryParams {
   page?: number;

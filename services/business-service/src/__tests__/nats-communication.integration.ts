@@ -8,7 +8,7 @@ describe('NATS Communication Integration', () => {
     // Connect to NATS for integration testing
     try {
       natsConnection = await connect({ servers: config.nats.url });
-    } catch (error) {
+    } catch {
       console.warn('NATS not available for integration tests, skipping...');
     }
   });

@@ -48,7 +48,7 @@ export async function authMiddleware(fastify: FastifyInstance) {
           businessId: decoded.businessId
         };
 
-      } catch (jwtError) {
+      } catch {
         return reply.status(401).send({
           success: false,
           error: {

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Notification service for SlotWise - handles email, SMS, and push notifications",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

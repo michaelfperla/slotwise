@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   displayName: 'notification-service',
   preset: 'ts-jest',
   testEnvironment: 'node',

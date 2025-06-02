@@ -25,7 +25,7 @@ export const waitForService = async (url: string, timeout = 10000): Promise<void
     try {
       const response = await fetch(url);
       if (response.ok) return;
-    } catch (error) {
+    } catch {
       // Service not ready yet
     }
     await new Promise(resolve => setTimeout(resolve, 100));
