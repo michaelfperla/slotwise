@@ -100,8 +100,5 @@
     "nextjs"
   ],
   "author": "SlotWise Team",
-  "license": "MIT",
-  "dependencies": {
-    "latest": "^0.2.0"
-  }
+  "license": "MIT"
 }
