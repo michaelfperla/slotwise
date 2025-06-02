@@ -13,20 +13,19 @@ class NATSConnection {
         name: 'business-service',
         reconnect: true,
         maxReconnectAttempts: -1,
-        reconnectTimeWait: 2000
+        reconnectTimeWait: 2000,
       });
 
       logger.info('Connected to NATS');
 
       // Handle connection events
-      this.connection.closed().then((err) => {
+      this.connection.closed().then(err => {
         if (err) {
           logger.error('NATS connection closed with error', { error: err });
         } else {
           logger.info('NATS connection closed');
         }
       });
-
     } catch (error) {
       logger.error('Failed to connect to NATS', { error });
       throw error;
@@ -54,7 +53,7 @@ class NATSConnection {
 
     try {
       const subscription = this.connection.subscribe(subject);
-      
+
       (async () => {
         for await (const message of subscription) {
           try {

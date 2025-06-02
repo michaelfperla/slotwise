@@ -1,6 +1,5 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
-import { Prisma } from '@prisma/client';
 import { logger } from '../utils/logger';
 
 export async function errorHandler(
@@ -13,7 +12,7 @@ export async function errorHandler(
     stack: error.stack,
     url: request.url,
     method: request.method,
-    requestId: request.id
+    requestId: request.id,
   });
 
   // Validation errors (Zod)
@@ -25,47 +24,48 @@ export async function errorHandler(
         message: 'Validation failed',
         details: error.errors.map(err => ({
           field: err.path.join('.'),
-          message: err.message
-        }))
+          message: err.message,
+        })),
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   // Prisma errors
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
+  if (error.name === 'PrismaClientKnownRequestError') {
+    const prismaError = error as any;
+    switch (prismaError.code) {
       case 'P2002':
         return reply.status(409).send({
           success: false,
           error: {
             code: 'RESOURCE_ALREADY_EXISTS',
             message: 'Resource already exists',
-            details: error.meta
+            details: prismaError.meta || {},
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-      
+
       case 'P2025':
         return reply.status(404).send({
           success: false,
           error: {
             code: 'RESOURCE_NOT_FOUND',
             message: 'Resource not found',
-            details: error.meta
+            details: prismaError.meta || {},
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
-      
+
       default:
         return reply.status(500).send({
           success: false,
           error: {
             code: 'DATABASE_ERROR',
             message: 'Database operation failed',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined,
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
     }
   }
@@ -76,9 +76,9 @@ export async function errorHandler(
       success: false,
       error: {
         code: error.code || 'HTTP_ERROR',
-        message: error.message
+        message: error.message,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -88,8 +88,8 @@ export async function errorHandler(
     error: {
       code: 'INTERNAL_SERVER_ERROR',
       message: 'An unexpected error occurred',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }

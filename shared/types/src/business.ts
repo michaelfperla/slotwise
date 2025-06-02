@@ -1,4 +1,5 @@
 import { BaseEntity } from './index';
+import { PaymentMethod } from './payment';
 
 export interface Business extends BaseEntity {
   name: string;
@@ -50,12 +51,7 @@ export interface BusinessSettings {
   };
 }
 
-export enum PaymentMethod {
-  CREDIT_CARD = 'credit_card',
-  DEBIT_CARD = 'debit_card',
-  PAYPAL = 'paypal',
-  BANK_TRANSFER = 'bank_transfer'
-}
+// PaymentMethod moved to payment.ts to avoid conflicts
 
 export enum BusinessStatus {
   ACTIVE = 'active',

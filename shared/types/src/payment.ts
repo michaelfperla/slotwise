@@ -64,7 +64,7 @@ export interface CreatePaymentIntentRequest {
   bookingId: string;
   amount: number;
   currency: string;
-  paymentMethods?: PaymentMethod[];
+  paymentMethods?: PaymentMethodDetails[];
   metadata?: Record<string, any>;
 }
 
@@ -96,7 +96,7 @@ export enum RefundStatus {
   CANCELLED = 'cancelled'
 }
 
-export interface PaymentMethod {
+export interface PaymentMethodDetails {
   id: string;
   type: PaymentMethodType;
   card?: {

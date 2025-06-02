@@ -1,4 +1,4 @@
-import { format, parseISO, addMinutes, subMinutes, isAfter, isBefore, isEqual, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
+import { addMinutes, subMinutes, isAfter, isBefore, isEqual, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
 import { fromZonedTime, toZonedTime, format as formatTz } from 'date-fns-tz';
 
 export class DateUtils {
@@ -139,7 +139,7 @@ export class DateUtils {
     bookingTime: Date,
     minAdvanceHours: number,
     maxAdvanceDays: number,
-    timezone: string
+    _timezone: string
   ): boolean {
     const now = new Date();
     const minTime = addMinutes(now, minAdvanceHours * 60);
