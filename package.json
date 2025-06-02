@@ -91,7 +91,7 @@
     "@swc-node/register": "^1.10.10",
     "@swc/core": "^1.11.29",
     "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^8.33.0",
+    "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.0",
     "concurrently": "^9.1.2",
     "eslint": "~8.57.0",
