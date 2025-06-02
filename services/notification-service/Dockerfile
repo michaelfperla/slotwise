@@ -24,12 +24,18 @@ RUN npm ci && npm cache clean --force
 COPY services/notification-service/src ./services/notification-service/src
 COPY services/notification-service/prisma ./services/notification-service/prisma
 
+# Build shared packages first
+WORKDIR /app
+RUN npx nx build @slotwise/types
+RUN npx nx build @slotwise/utils
+
 # Generate Prisma client
 WORKDIR /app/services/notification-service
 RUN npx prisma generate
 
-# Build the service
-RUN npm run build
+# Build the service using workspace context
+WORKDIR /app
+RUN npx nx build @slotwise/notification-service
 
 # Production stage
 FROM node:20-alpine AS production

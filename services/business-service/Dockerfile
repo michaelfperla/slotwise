@@ -24,12 +24,18 @@ RUN npm ci && npm cache clean --force
 COPY services/business-service/src ./services/business-service/src
 COPY services/business-service/prisma ./services/business-service/prisma
 
+# Build shared packages first
+WORKDIR /app
+RUN npx nx build @slotwise/types
+RUN npx nx build @slotwise/utils
+
 # Generate Prisma client
 WORKDIR /app/services/business-service
 RUN npx prisma generate
 
-# Build the service
-RUN npm run build
+# Build the service using workspace context
+WORKDIR /app
+RUN npx nx build @slotwise/business-service
 
 # Production stage
 FROM node:20-alpine AS production
