@@ -24,7 +24,6 @@ WORKDIR /root/
 
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
-COPY --from=builder /app/configs ./configs
 
 # Create non-root user
 RUN adduser -D -s /bin/sh appuser
