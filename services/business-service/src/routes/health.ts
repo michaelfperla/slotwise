@@ -11,7 +11,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
       service: 'business-service',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   });
 
@@ -25,13 +25,13 @@ export async function healthRoutes(fastify: FastifyInstance) {
       dependencies.push({
         name: 'database',
         status: 'healthy',
-        responseTime: 0 // Could measure actual response time
+        responseTime: 0, // Could measure actual response time
       });
     } catch (error) {
       dependencies.push({
         name: 'database',
         status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
 
@@ -41,13 +41,13 @@ export async function healthRoutes(fastify: FastifyInstance) {
       dependencies.push({
         name: 'redis',
         status: 'healthy',
-        responseTime: 0
+        responseTime: 0,
       });
     } catch (error) {
       dependencies.push({
         name: 'redis',
         status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
 
@@ -57,13 +57,13 @@ export async function healthRoutes(fastify: FastifyInstance) {
       dependencies.push({
         name: 'nats',
         status: natsStatus,
-        responseTime: 0
+        responseTime: 0,
       });
     } catch (error) {
       dependencies.push({
         name: 'nats',
         status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
 
@@ -76,7 +76,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
       version: '1.0.0',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      dependencies
+      dependencies,
     });
   });
 
@@ -87,7 +87,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
       service: 'business-service',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   });
 }

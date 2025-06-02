@@ -49,8 +49,8 @@ export class ServiceService {
     const business = await this.prisma.business.findFirst({
       where: {
         ownerId: userId,
-        status: 'ACTIVE'
-      }
+        status: 'ACTIVE',
+      },
     });
 
     if (!business) {
@@ -72,10 +72,10 @@ export class ServiceService {
           select: {
             id: true,
             name: true,
-            slug: true
-          }
-        }
-      }
+            slug: true,
+          },
+        },
+      },
     });
 
     return service;
@@ -95,7 +95,7 @@ export class ServiceService {
     } else {
       const businesses = await this.prisma.business.findMany({
         where: { ownerId: userId },
-        select: { id: true }
+        select: { id: true },
       });
       where.businessId = { in: businesses.map((b: { id: string }) => b.id) };
     }
@@ -104,7 +104,7 @@ export class ServiceService {
       where.OR = [
         { name: { contains: params.search, mode: 'insensitive' } },
         { description: { contains: params.search, mode: 'insensitive' } },
-        { category: { contains: params.search, mode: 'insensitive' } }
+        { category: { contains: params.search, mode: 'insensitive' } },
       ];
     }
 
@@ -127,12 +127,12 @@ export class ServiceService {
             select: {
               id: true,
               name: true,
-              subdomain: true
-            }
-          }
-        }
+              subdomain: true,
+            },
+          },
+        },
       }),
-      this.prisma.service.count({ where })
+      this.prisma.service.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -145,8 +145,8 @@ export class ServiceService {
         total,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -155,18 +155,18 @@ export class ServiceService {
       where: {
         id: serviceId,
         business: {
-          ownerId: userId
-        }
+          ownerId: userId,
+        },
       },
       include: {
         business: {
           select: {
             id: true,
             name: true,
-            subdomain: true
-          }
-        }
-      }
+            subdomain: true,
+          },
+        },
+      },
     });
 
     return service;
@@ -187,10 +187,10 @@ export class ServiceService {
           select: {
             id: true,
             name: true,
-            subdomain: true
-          }
-        }
-      }
+            subdomain: true,
+          },
+        },
+      },
     });
 
     return service;
@@ -207,7 +207,7 @@ export class ServiceService {
     // For now, we'll allow deletion since booking model isn't implemented yet
 
     await this.prisma.service.delete({
-      where: { id: serviceId }
+      where: { id: serviceId },
     });
 
     return true;
@@ -221,7 +221,7 @@ export class ServiceService {
 
     return this.prisma.service.findMany({
       where,
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
     });
   }
 }

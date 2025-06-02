@@ -8,7 +8,7 @@ import { authMiddleware } from './middleware/auth';
 import { natsClient } from './events/natsClient';
 
 const fastify = Fastify({
-  logger: false // We'll use our custom logger
+  logger: false, // We'll use our custom logger
 });
 
 async function start() {
@@ -28,11 +28,11 @@ async function start() {
     logger.info('Connected to NATS');
 
     // Start server
-    await fastify.listen({ 
-      port: config.port, 
-      host: config.host 
+    await fastify.listen({
+      port: config.port,
+      host: config.host,
     });
-    
+
     logger.info(`Notification service started on ${config.host}:${config.port}`);
   } catch (error) {
     logger.error('Error starting notification service:', error);

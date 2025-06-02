@@ -73,7 +73,7 @@ export class BusinessService {
     try {
       // Check if subdomain is already taken
       const existingBusiness = await this.prisma.business.findUnique({
-        where: { subdomain: data.subdomain }
+        where: { subdomain: data.subdomain },
       });
 
       if (existingBusiness) {
@@ -98,8 +98,8 @@ export class BusinessService {
           timezone: data.timezone,
           currency: data.currency,
           ownerId: data.ownerId,
-          status: 'PENDING_SETUP'
-        }
+          status: 'PENDING_SETUP',
+        },
       });
 
       // Publish business created event
@@ -107,7 +107,7 @@ export class BusinessService {
         businessId: business.id,
         name: business.name,
         subdomain: business.subdomain,
-        ownerId: business.ownerId
+        ownerId: business.ownerId,
       });
 
       logger.info('Business created', { businessId: business.id, subdomain: business.subdomain });
@@ -124,11 +124,11 @@ export class BusinessService {
       const business = await this.prisma.business.findFirst({
         where: {
           id,
-          ownerId: userId
+          ownerId: userId,
         },
         include: {
-          services: true
-        }
+          services: true,
+        },
       });
 
       if (!business) {
@@ -172,10 +172,10 @@ export class BusinessService {
               duration: true,
               price: true,
               currency: true,
-              category: true
-            }
-          }
-        }
+              category: true,
+            },
+          },
+        },
       });
 
       if (!business || business.status !== 'ACTIVE') {
@@ -195,8 +195,8 @@ export class BusinessService {
       const existingBusiness = await this.prisma.business.findFirst({
         where: {
           id,
-          ownerId: userId
-        }
+          ownerId: userId,
+        },
       });
 
       if (!existingBusiness) {
@@ -207,14 +207,14 @@ export class BusinessService {
         where: { id },
         data: {
           ...data,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
 
       // Publish business updated event
       await this.publishEvent('business.updated', {
         businessId: business.id,
-        changes: data
+        changes: data,
       });
 
       logger.info('Business updated', { businessId: business.id, changes: data });
@@ -226,7 +226,10 @@ export class BusinessService {
     }
   }
 
-  async getUserBusinesses(userId: string, options: PaginationOptions): Promise<PaginatedResult<Business>> {
+  async getUserBusinesses(
+    userId: string,
+    options: PaginationOptions
+  ): Promise<PaginatedResult<Business>> {
     try {
       const { page, limit } = options;
       const skip = (page - 1) * limit;
@@ -239,17 +242,17 @@ export class BusinessService {
               select: {
                 id: true,
                 name: true,
-                isActive: true
-              }
-            }
+                isActive: true,
+              },
+            },
           },
           skip,
           take: limit,
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
         }),
         this.prisma.business.count({
-          where: { ownerId: userId }
-        })
+          where: { ownerId: userId },
+        }),
       ]);
 
       return {
@@ -258,8 +261,8 @@ export class BusinessService {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit)
-        }
+          totalPages: Math.ceil(total / limit),
+        },
       };
     } catch (error) {
       logger.error('Failed to get user businesses', { error, userId, options });
@@ -273,8 +276,8 @@ export class BusinessService {
       const business = await this.prisma.business.findFirst({
         where: {
           id,
-          ownerId: userId
-        }
+          ownerId: userId,
+        },
       });
 
       if (!business) {
@@ -283,13 +286,13 @@ export class BusinessService {
 
       // Delete business (cascade will handle services)
       await this.prisma.business.delete({
-        where: { id }
+        where: { id },
       });
 
       // Publish business deleted event
       await this.publishEvent('business.deleted', {
         businessId: id,
-        ownerId: userId
+        ownerId: userId,
       });
 
       logger.info('Business deleted', { businessId: id });
@@ -307,7 +310,7 @@ export class BusinessService {
         timestamp: new Date(),
         version: '1.0',
         source: 'business-service',
-        data
+        data,
       };
 
       await this.eventPublisher.publish(`slotwise.${eventType}`, event);

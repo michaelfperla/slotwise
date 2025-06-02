@@ -24,24 +24,24 @@ export async function authMiddleware(fastify: FastifyInstance) {
       return reply.code(401).send({
         success: false,
         error: 'Unauthorized',
-        message: 'Missing or invalid authorization header'
+        message: 'Missing or invalid authorization header',
       });
     }
 
     const token = authHeader.substring(7);
-    
+
     try {
       const decoded = jwt.verify(token, config.jwt.secret) as any;
       request.user = {
         id: decoded.sub || decoded.id,
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
       };
     } catch {
       return reply.code(401).send({
         success: false,
         error: 'Unauthorized',
-        message: 'Invalid or expired token'
+        message: 'Invalid or expired token',
       });
     }
   });

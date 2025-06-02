@@ -18,7 +18,7 @@ import { authMiddleware } from './middleware/auth';
 const server = fastify({
   logger: logger,
   requestIdLogLabel: 'requestId',
-  requestIdHeader: 'x-request-id'
+  requestIdHeader: 'x-request-id',
 });
 
 async function start() {
@@ -27,12 +27,12 @@ async function start() {
     await server.register(helmet);
     await server.register(cors, {
       origin: config.cors.origins,
-      credentials: true
+      credentials: true,
     });
 
     await server.register(rateLimit, {
       max: config.rateLimit.max,
-      timeWindow: config.rateLimit.timeWindow
+      timeWindow: config.rateLimit.timeWindow,
     });
 
     // Swagger documentation
@@ -41,7 +41,7 @@ async function start() {
         info: {
           title: 'SlotWise Business Service API',
           description: 'Business and user management service',
-          version: '1.0.0'
+          version: '1.0.0',
         },
         host: `localhost:${config.port}`,
         schemes: ['http', 'https'],
@@ -51,18 +51,18 @@ async function start() {
           Bearer: {
             type: 'apiKey',
             name: 'Authorization',
-            in: 'header'
-          }
-        }
-      }
+            in: 'header',
+          },
+        },
+      },
     });
 
     await server.register(swaggerUi, {
       routePrefix: '/docs',
       uiConfig: {
         docExpansion: 'full',
-        deepLinking: false
-      }
+        deepLinking: false,
+      },
     });
 
     // Global error handler
@@ -93,12 +93,11 @@ async function start() {
     // Start server
     const address = await server.listen({
       port: config.port,
-      host: config.host
+      host: config.host,
     });
 
     logger.info(`Business Service started on ${address}`);
     logger.info(`API Documentation available at ${address}/docs`);
-
   } catch (error) {
     logger.error('Failed to start Business Service', error);
     process.exit(1);
@@ -125,7 +124,7 @@ process.on('SIGTERM', async () => {
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception', error);
   process.exit(1);
 });

@@ -10,7 +10,7 @@ class NATSClient {
     try {
       this.connection = await connect({ servers: config.nats.url });
       logger.info('Connected to NATS');
-      
+
       // Set up event listeners
       this.setupEventListeners();
     } catch (error) {
@@ -65,29 +65,29 @@ class NATSClient {
     if (!this.connection) return;
 
     // Subscribe to booking events
-    this.subscribe('booking.created', async (data) => {
+    this.subscribe('booking.created', async data => {
       logger.info('Received booking.created event:', data);
       // Handle booking confirmation notification
     });
 
-    this.subscribe('booking.cancelled', async (data) => {
+    this.subscribe('booking.cancelled', async data => {
       logger.info('Received booking.cancelled event:', data);
       // Handle booking cancellation notification
     });
 
-    this.subscribe('booking.reminder', async (data) => {
+    this.subscribe('booking.reminder', async data => {
       logger.info('Received booking.reminder event:', data);
       // Handle booking reminder notification
     });
 
     // Subscribe to user events
-    this.subscribe('user.registered', async (data) => {
+    this.subscribe('user.registered', async data => {
       logger.info('Received user.registered event:', data);
       // Handle welcome email
     });
 
     // Subscribe to business events
-    this.subscribe('business.created', async (data) => {
+    this.subscribe('business.created', async data => {
       logger.info('Received business.created event:', data);
       // Handle business setup notification
     });

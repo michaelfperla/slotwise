@@ -11,7 +11,7 @@ export async function errorHandler(
     error: error.message,
     stack: error.stack,
     url: request.url,
-    method: request.method
+    method: request.method,
   });
 
   // Validation errors
@@ -21,9 +21,9 @@ export async function errorHandler(
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Invalid request data',
-        details: error.errors
+        details: error.errors,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -37,9 +37,9 @@ export async function errorHandler(
           error: {
             code: 'DUPLICATE_ENTRY',
             message: 'A record with this data already exists',
-            details: prismaError.meta || {}
+            details: prismaError.meta || {},
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       case 'P2025':
         return reply.status(404).send({
@@ -47,9 +47,9 @@ export async function errorHandler(
           error: {
             code: 'RECORD_NOT_FOUND',
             message: 'The requested record was not found',
-            details: prismaError.meta || {}
+            details: prismaError.meta || {},
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       default:
         return reply.status(400).send({
@@ -57,9 +57,9 @@ export async function errorHandler(
           error: {
             code: 'DATABASE_ERROR',
             message: 'Database operation failed',
-            details: error.message
+            details: error.message,
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
     }
   }
@@ -70,8 +70,8 @@ export async function errorHandler(
     success: false,
     error: {
       code: error.code || 'INTERNAL_SERVER_ERROR',
-      message: error.message || 'An unexpected error occurred'
+      message: error.message || 'An unexpected error occurred',
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }

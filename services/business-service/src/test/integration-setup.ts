@@ -38,7 +38,7 @@ export const createTestUser = async () => {
   return {
     id: 'test-user-id',
     email: 'test@example.com',
-    name: 'Test User'
+    name: 'Test User',
   };
 };
 

@@ -10,7 +10,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
       status: 'ok',
       service: 'notification-service',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   });
 
@@ -19,7 +19,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
     const checks = {
       database: false,
       redis: false,
-      nats: false
+      nats: false,
     };
 
     try {
@@ -52,7 +52,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
       status: isReady ? 'ready' : 'not ready',
       service: 'notification-service',
       checks,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -63,7 +63,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
       service: 'notification-service',
       timestamp: new Date().toISOString(),
       memory: process.memoryUsage(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   });
 }

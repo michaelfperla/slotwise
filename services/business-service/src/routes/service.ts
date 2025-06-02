@@ -15,7 +15,7 @@ const createServiceSchema = z.object({
   maxAdvanceBookingDays: z.number().min(1).default(30), // days
   minAdvanceBookingHours: z.number().min(0).default(1), // hours
   category: z.string().optional(),
-  requiresApproval: z.boolean().default(false)
+  requiresApproval: z.boolean().default(false),
 });
 
 const updateServiceSchema = createServiceSchema.partial();
@@ -35,245 +35,280 @@ const serviceQuerySchema = z.object({
 
 export async function serviceRoutes(fastify: FastifyInstance) {
   // Create service
-  fastify.post('/', {
-    schema: {
-      body: createServiceSchema,
-      response: {
-        201: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { type: 'object' },
-            message: { type: 'string' }
-          }
+  fastify.post(
+    '/',
+    {
+      schema: {
+        body: createServiceSchema,
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Body: z.infer<typeof createServiceSchema> }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.code(401).send({
+            success: false,
+            error: 'Unauthorized',
+            message: 'User ID not found in request',
+          });
         }
-      }
-    }
-  }, async (request: FastifyRequest<{ Body: z.infer<typeof createServiceSchema> }>, reply: FastifyReply) => {
-    try {
-      const userId = request.user?.id;
-      if (!userId) {
-        return reply.code(401).send({
+
+        const service = await serviceService.createService(userId, request.body);
+
+        return reply.code(201).send({
+          success: true,
+          data: service,
+          message: 'Service created successfully',
+        });
+      } catch (error) {
+        fastify.log.error('Error creating service:', error);
+        return reply.code(500).send({
           success: false,
-          error: 'Unauthorized',
-          message: 'User ID not found in request'
+          error: 'Internal Server Error',
+          message: 'Failed to create service',
         });
       }
-
-      const service = await serviceService.createService(userId, request.body);
-      
-      return reply.code(201).send({
-        success: true,
-        data: service,
-        message: 'Service created successfully'
-      });
-    } catch (error) {
-      fastify.log.error('Error creating service:', error);
-      return reply.code(500).send({
-        success: false,
-        error: 'Internal Server Error',
-        message: 'Failed to create service'
-      });
     }
-  });
+  );
 
   // Get services
-  fastify.get('/', {
-    schema: {
-      querystring: serviceQuerySchema,
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { type: 'array' },
-            pagination: { type: 'object' },
-            message: { type: 'string' }
-          }
+  fastify.get(
+    '/',
+    {
+      schema: {
+        querystring: serviceQuerySchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array' },
+              pagination: { type: 'object' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Querystring: z.infer<typeof serviceQuerySchema> }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.code(401).send({
+            success: false,
+            error: 'Unauthorized',
+            message: 'User ID not found in request',
+          });
         }
-      }
-    }
-  }, async (request: FastifyRequest<{ Querystring: z.infer<typeof serviceQuerySchema> }>, reply: FastifyReply) => {
-    try {
-      const userId = request.user?.id;
-      if (!userId) {
-        return reply.code(401).send({
+
+        const result = await serviceService.getServices(userId, request.query);
+
+        return reply.send({
+          success: true,
+          data: result.data,
+          pagination: result.pagination,
+          message: 'Services retrieved successfully',
+        });
+      } catch (error) {
+        fastify.log.error('Error retrieving services:', error);
+        return reply.code(500).send({
           success: false,
-          error: 'Unauthorized',
-          message: 'User ID not found in request'
+          error: 'Internal Server Error',
+          message: 'Failed to retrieve services',
         });
       }
-
-      const result = await serviceService.getServices(userId, request.query);
-      
-      return reply.send({
-        success: true,
-        data: result.data,
-        pagination: result.pagination,
-        message: 'Services retrieved successfully'
-      });
-    } catch (error) {
-      fastify.log.error('Error retrieving services:', error);
-      return reply.code(500).send({
-        success: false,
-        error: 'Internal Server Error',
-        message: 'Failed to retrieve services'
-      });
     }
-  });
+  );
 
   // Get service by ID
-  fastify.get('/:id', {
-    schema: {
-      params: serviceParamsSchema,
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { type: 'object' },
-            message: { type: 'string' }
-          }
+  fastify.get(
+    '/:id',
+    {
+      schema: {
+        params: serviceParamsSchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Params: z.infer<typeof serviceParamsSchema> }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.code(401).send({
+            success: false,
+            error: 'Unauthorized',
+            message: 'User ID not found in request',
+          });
         }
-      }
-    }
-  }, async (request: FastifyRequest<{ Params: z.infer<typeof serviceParamsSchema> }>, reply: FastifyReply) => {
-    try {
-      const userId = request.user?.id;
-      if (!userId) {
-        return reply.code(401).send({
+
+        const service = await serviceService.getServiceById(request.params.id, userId);
+
+        if (!service) {
+          return reply.code(404).send({
+            success: false,
+            error: 'Not Found',
+            message: 'Service not found',
+          });
+        }
+
+        return reply.send({
+          success: true,
+          data: service,
+          message: 'Service retrieved successfully',
+        });
+      } catch (error) {
+        fastify.log.error('Error retrieving service:', error);
+        return reply.code(500).send({
           success: false,
-          error: 'Unauthorized',
-          message: 'User ID not found in request'
+          error: 'Internal Server Error',
+          message: 'Failed to retrieve service',
         });
       }
-
-      const service = await serviceService.getServiceById(request.params.id, userId);
-      
-      if (!service) {
-        return reply.code(404).send({
-          success: false,
-          error: 'Not Found',
-          message: 'Service not found'
-        });
-      }
-
-      return reply.send({
-        success: true,
-        data: service,
-        message: 'Service retrieved successfully'
-      });
-    } catch (error) {
-      fastify.log.error('Error retrieving service:', error);
-      return reply.code(500).send({
-        success: false,
-        error: 'Internal Server Error',
-        message: 'Failed to retrieve service'
-      });
     }
-  });
+  );
 
   // Update service
-  fastify.put('/:id', {
-    schema: {
-      params: serviceParamsSchema,
-      body: updateServiceSchema,
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { type: 'object' },
-            message: { type: 'string' }
-          }
+  fastify.put(
+    '/:id',
+    {
+      schema: {
+        params: serviceParamsSchema,
+        body: updateServiceSchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{
+        Params: z.infer<typeof serviceParamsSchema>;
+        Body: z.infer<typeof updateServiceSchema>;
+      }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.code(401).send({
+            success: false,
+            error: 'Unauthorized',
+            message: 'User ID not found in request',
+          });
         }
-      }
-    }
-  }, async (request: FastifyRequest<{ 
-    Params: z.infer<typeof serviceParamsSchema>;
-    Body: z.infer<typeof updateServiceSchema>;
-  }>, reply: FastifyReply) => {
-    try {
-      const userId = request.user?.id;
-      if (!userId) {
-        return reply.code(401).send({
+
+        const service = await serviceService.updateService(request.params.id, userId, request.body);
+
+        if (!service) {
+          return reply.code(404).send({
+            success: false,
+            error: 'Not Found',
+            message: 'Service not found',
+          });
+        }
+
+        return reply.send({
+          success: true,
+          data: service,
+          message: 'Service updated successfully',
+        });
+      } catch (error) {
+        fastify.log.error('Error updating service:', error);
+        return reply.code(500).send({
           success: false,
-          error: 'Unauthorized',
-          message: 'User ID not found in request'
+          error: 'Internal Server Error',
+          message: 'Failed to update service',
         });
       }
-
-      const service = await serviceService.updateService(request.params.id, userId, request.body);
-      
-      if (!service) {
-        return reply.code(404).send({
-          success: false,
-          error: 'Not Found',
-          message: 'Service not found'
-        });
-      }
-
-      return reply.send({
-        success: true,
-        data: service,
-        message: 'Service updated successfully'
-      });
-    } catch (error) {
-      fastify.log.error('Error updating service:', error);
-      return reply.code(500).send({
-        success: false,
-        error: 'Internal Server Error',
-        message: 'Failed to update service'
-      });
     }
-  });
+  );
 
   // Delete service
-  fastify.delete('/:id', {
-    schema: {
-      params: serviceParamsSchema,
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' }
-          }
+  fastify.delete(
+    '/:id',
+    {
+      schema: {
+        params: serviceParamsSchema,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Params: z.infer<typeof serviceParamsSchema> }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.code(401).send({
+            success: false,
+            error: 'Unauthorized',
+            message: 'User ID not found in request',
+          });
         }
-      }
-    }
-  }, async (request: FastifyRequest<{ Params: z.infer<typeof serviceParamsSchema> }>, reply: FastifyReply) => {
-    try {
-      const userId = request.user?.id;
-      if (!userId) {
-        return reply.code(401).send({
+
+        const deleted = await serviceService.deleteService(request.params.id, userId);
+
+        if (!deleted) {
+          return reply.code(404).send({
+            success: false,
+            error: 'Not Found',
+            message: 'Service not found',
+          });
+        }
+
+        return reply.send({
+          success: true,
+          message: 'Service deleted successfully',
+        });
+      } catch (error) {
+        fastify.log.error('Error deleting service:', error);
+        return reply.code(500).send({
           success: false,
-          error: 'Unauthorized',
-          message: 'User ID not found in request'
+          error: 'Internal Server Error',
+          message: 'Failed to delete service',
         });
       }
-
-      const deleted = await serviceService.deleteService(request.params.id, userId);
-      
-      if (!deleted) {
-        return reply.code(404).send({
-          success: false,
-          error: 'Not Found',
-          message: 'Service not found'
-        });
-      }
-
-      return reply.send({
-        success: true,
-        message: 'Service deleted successfully'
-      });
-    } catch (error) {
-      fastify.log.error('Error deleting service:', error);
-      return reply.code(500).send({
-        success: false,
-        error: 'Internal Server Error',
-        message: 'Failed to delete service'
-      });
     }
-  });
+  );
 }

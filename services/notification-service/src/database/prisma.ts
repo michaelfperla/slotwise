@@ -4,10 +4,10 @@ import { config } from '../config/config';
 export const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: config.database.url
-    }
+      url: config.database.url,
+    },
   },
-  log: config.nodeEnv === 'development' ? ['query', 'info', 'warn', 'error'] : ['error']
+  log: config.nodeEnv === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
 });
 
 // Handle graceful shutdown

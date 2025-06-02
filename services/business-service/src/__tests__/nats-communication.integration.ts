@@ -77,7 +77,10 @@ describe('NATS Communication Integration', () => {
       try {
         expect(natsConnection.info).toBeDefined();
       } catch (error) {
-        console.log('NATS info test failed, but this is expected in CI without NATS server:', error);
+        console.log(
+          'NATS info test failed, but this is expected in CI without NATS server:',
+          error
+        );
         expect(true).toBe(true); // Pass the test when NATS operations fail
       }
 
