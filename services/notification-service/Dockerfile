@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY nx.json ./
 COPY tsconfig.json ./
+COPY jest.preset.js ./
 
 # Copy service-specific files
 COPY services/notification-service/package*.json ./services/notification-service/
@@ -16,8 +17,8 @@ COPY services/notification-service/project.json ./services/notification-service/
 # Copy shared dependencies
 COPY shared/ ./shared/
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including devDependencies for build)
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY services/notification-service/src ./services/notification-service/src
@@ -32,7 +33,7 @@ WORKDIR /app
 RUN npx nx build @slotwise/notification-service
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
