@@ -262,7 +262,7 @@ Content-Type: application/json
 
 {
   "serviceId": "svc_101",
-  "startTime": "2024-01-15T14:00:00Z",
+  "startTime": "2025-01-15T14:00:00Z",
   "client": {
     "firstName": "Alice",
     "lastName": "Johnson",
@@ -407,7 +407,7 @@ Content-Type: application/json
   "templateData": {
     "bookingId": "booking_202",
     "serviceName": "Strategy Consultation",
-    "startTime": "2024-01-15T14:00:00Z"
+    "startTime": "2025-01-15T14:00:00Z"
   },
   "priority": "normal"
 }
@@ -444,7 +444,7 @@ All API endpoints return consistent error responses:
       }
     ]
   },
-  "timestamp": "2024-01-01T00:00:00Z"
+  "timestamp": "2025-01-01T00:00:00Z"
 }
 ```
 

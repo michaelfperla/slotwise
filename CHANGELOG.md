@@ -12,7 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive documentation and development guides
 - GitHub repository preparation with CI/CD workflows
 
-## [1.0.0-alpha] - 2024-01-01
+### Changed
+- Updated Twilio dependency from v4.23.0 to v5.7.0 for enhanced security and features
+- Updated bcryptjs dependency from v2.4.3 to v3.0.2 for improved authentication security
+- Standardized date-fns dependency to v4.1.0 across all services for consistent timezone handling
+- Updated date-fns-tz dependency to v3.2.0 for improved timezone support
+
+### Fixed
+- Removed duplicate ioredis dependency entry in notification service
+- Corrected CHANGELOG.md dates from 2024 to 2025
+- Updated date-fns-tz function calls for v3 compatibility (zonedTimeToUtc → fromZonedTime, utcToZonedTime → toZonedTime)
+- Fixed shared/utils exports to only include existing modules
+
+## [1.0.0-alpha] - 2025-01-01
 
 ### Added
 - **Core Architecture**: Event-driven microservices architecture with NATS.io
@@ -84,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database**: Managed PostgreSQL support (RDS, Cloud SQL, etc.)
 - **Monitoring**: Prometheus and Grafana integration ready
 
-## [0.1.0] - 2024-01-01
+## [0.1.0] - 2025-01-01
 
 ### Added
 - Initial project structure and monorepo setup

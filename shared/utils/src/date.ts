@@ -1,26 +1,26 @@
 import { format, parseISO, addMinutes, subMinutes, isAfter, isBefore, isEqual, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
-import { zonedTimeToUtc, utcToZonedTime, format as formatTz } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime, format as formatTz } from 'date-fns-tz';
 
 export class DateUtils {
   /**
    * Convert a date to UTC from a specific timezone
    */
   static toUTC(date: Date, timezone: string): Date {
-    return zonedTimeToUtc(date, timezone);
+    return fromZonedTime(date, timezone);
   }
 
   /**
    * Convert a UTC date to a specific timezone
    */
   static fromUTC(date: Date, timezone: string): Date {
-    return utcToZonedTime(date, timezone);
+    return toZonedTime(date, timezone);
   }
 
   /**
    * Format a date in a specific timezone
    */
   static formatInTimezone(date: Date, timezone: string, formatString: string = 'yyyy-MM-dd HH:mm:ss'): string {
-    const zonedDate = utcToZonedTime(date, timezone);
+    const zonedDate = toZonedTime(date, timezone);
     return formatTz(zonedDate, formatString, { timeZone: timezone });
   }
 
@@ -30,28 +30,28 @@ export class DateUtils {
   static parseTimeString(timeString: string, timezone: string, baseDate?: Date): Date {
     const [hours, minutes] = timeString.split(':').map(Number);
     const base = baseDate || new Date();
-    const dateInTimezone = utcToZonedTime(base, timezone);
-    
+    const dateInTimezone = toZonedTime(base, timezone);
+
     dateInTimezone.setHours(hours, minutes, 0, 0);
-    return zonedTimeToUtc(dateInTimezone, timezone);
+    return fromZonedTime(dateInTimezone, timezone);
   }
 
   /**
    * Get the start of day in a specific timezone
    */
   static startOfDayInTimezone(date: Date, timezone: string): Date {
-    const zonedDate = utcToZonedTime(date, timezone);
+    const zonedDate = toZonedTime(date, timezone);
     const startOfDayZoned = startOfDay(zonedDate);
-    return zonedTimeToUtc(startOfDayZoned, timezone);
+    return fromZonedTime(startOfDayZoned, timezone);
   }
 
   /**
    * Get the end of day in a specific timezone
    */
   static endOfDayInTimezone(date: Date, timezone: string): Date {
-    const zonedDate = utcToZonedTime(date, timezone);
+    const zonedDate = toZonedTime(date, timezone);
     const endOfDayZoned = endOfDay(zonedDate);
-    return zonedTimeToUtc(endOfDayZoned, timezone);
+    return fromZonedTime(endOfDayZoned, timezone);
   }
 
   /**
@@ -103,10 +103,10 @@ export class DateUtils {
     endTime: string,
     timezone: string
   ): boolean {
-    const dateInTimezone = utcToZonedTime(date, timezone);
+    const dateInTimezone = toZonedTime(date, timezone);
     const dayStart = this.parseTimeString(startTime, timezone, dateInTimezone);
     const dayEnd = this.parseTimeString(endTime, timezone, dateInTimezone);
-    
+
     return !isBefore(date, dayStart) && !isAfter(date, dayEnd);
   }
 
@@ -128,7 +128,7 @@ export class DateUtils {
    * Get the day of week (0 = Sunday, 6 = Saturday)
    */
   static getDayOfWeek(date: Date, timezone: string): number {
-    const dateInTimezone = utcToZonedTime(date, timezone);
+    const dateInTimezone = toZonedTime(date, timezone);
     return dateInTimezone.getDay();
   }
 
@@ -170,12 +170,12 @@ export class DateUtils {
    * Get date range for a week
    */
   static getWeekRange(date: Date, timezone: string): { start: Date; end: Date } {
-    const dateInTimezone = utcToZonedTime(date, timezone);
+    const dateInTimezone = toZonedTime(date, timezone);
     const dayOfWeek = dateInTimezone.getDay();
-    
+
     const start = this.startOfDayInTimezone(subDays(dateInTimezone, dayOfWeek), timezone);
     const end = this.endOfDayInTimezone(addDays(start, 6), timezone);
-    
+
     return { start, end };
   }
 
@@ -183,13 +183,13 @@ export class DateUtils {
    * Get date range for a month
    */
   static getMonthRange(date: Date, timezone: string): { start: Date; end: Date } {
-    const dateInTimezone = utcToZonedTime(date, timezone);
+    const dateInTimezone = toZonedTime(date, timezone);
     const year = dateInTimezone.getFullYear();
     const month = dateInTimezone.getMonth();
-    
+
     const start = this.startOfDayInTimezone(new Date(year, month, 1), timezone);
     const end = this.endOfDayInTimezone(new Date(year, month + 1, 0), timezone);
-    
+
     return { start, end };
   }
 }

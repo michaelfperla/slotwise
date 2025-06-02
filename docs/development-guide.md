@@ -290,7 +290,7 @@ describe('BusinessService', () => {
    {
      "success": true,
      "data": { ... },
-     "timestamp": "2024-01-01T00:00:00Z"
+     "timestamp": "2025-01-01T00:00:00Z"
    }
    ```
 
@@ -303,7 +303,7 @@ describe('BusinessService', () => {
        "message": "Invalid input data",
        "details": [...]
      },
-     "timestamp": "2024-01-01T00:00:00Z"
+     "timestamp": "2025-01-01T00:00:00Z"
    }
    ```
 
