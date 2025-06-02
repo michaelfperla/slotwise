@@ -107,6 +107,13 @@
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
+  "overrides": {
+    "esbuild": "^0.25.0",
+    "koa": "^2.16.1",
+    "mjml": {
+      "html-minifier": "^4.0.0"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/michaelfperla/slotwise.git"
