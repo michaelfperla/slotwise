@@ -8,7 +8,7 @@ type BusinessStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_SETUP';
 interface Business {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   subdomain: string;
   ownerId: string;
   status: BusinessStatus;

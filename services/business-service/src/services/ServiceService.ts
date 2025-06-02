@@ -72,7 +72,7 @@ export class ServiceService {
           select: {
             id: true,
             name: true,
-            slug: true,
+            subdomain: true,
           },
         },
       },
