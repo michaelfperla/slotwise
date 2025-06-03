@@ -215,6 +215,10 @@ const (
 	UserLogoutEvent          = "user.logout"
 	UserSessionCreatedEvent  = "user.session.created"
 	UserSessionExpiredEvent  = "user.session.expired"
+
+	// Business events
+	BusinessRegisteredEvent = "business.registered"
+	// Add other business events like BusinessUpdatedEvent, BusinessDeletedEvent etc. as needed
 )
 
 // Helper functions for creating event data
@@ -260,6 +264,17 @@ func CreateUserLoginEventData(userID, email, ipAddress, userAgent string) map[st
 		"email":     email,
 		"ipAddress": ipAddress,
 		"userAgent": userAgent,
+	}
+}
+
+// CreateBusinessRegisteredEventData creates event data for business registration
+func CreateBusinessRegisteredEventData(businessID, ownerID, businessName string) map[string]interface{} {
+	return map[string]interface{}{
+		"businessId": businessID,
+		"ownerId":    ownerID,
+		"businessInfo": map[string]string{
+			"name": businessName,
+		},
 	}
 }
 

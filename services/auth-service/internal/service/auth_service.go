@@ -38,6 +38,7 @@ type RegisterRequest struct {
 	LastName  string `json:"lastName" validate:"required"`
 	Timezone  string `json:"timezone" validate:"required"`
 	Role      string `json:"role,omitempty"`
+	BusinessName *string `json:"businessName,omitempty"` // Added for business registration
 }
 
 type LoginRequest struct {
@@ -74,6 +75,7 @@ type AuthResponse struct {
 // authService implements AuthService interface
 type authService struct {
 	userRepo       repository.UserRepository
+	businessRepo   repository.BusinessRepository // Added
 	sessionRepo    repository.SessionRepository
 	passwordMgr    *password.Manager
 	jwtMgr         *jwt.Manager
@@ -85,6 +87,7 @@ type authService struct {
 // NewAuthService creates a new authentication service
 func NewAuthService(
 	userRepo repository.UserRepository,
+	businessRepo repository.BusinessRepository, // Added
 	sessionRepo repository.SessionRepository,
 	eventPublisher events.Publisher,
 	config config.JWT,
@@ -92,6 +95,7 @@ func NewAuthService(
 ) AuthService {
 	return &authService{
 		userRepo:       userRepo,
+		businessRepo:   businessRepo, // Added
 		sessionRepo:    sessionRepo,
 		passwordMgr:    password.NewManager(nil),
 		jwtMgr:         jwt.NewManager(config),
@@ -126,9 +130,9 @@ func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		}
 	}
 
-	// Create user
+	// Create user object (without BusinessID initially)
 	user := &models.User{
-		ID:           uuid.New().String(),
+		ID:           uuid.New().String(), // GORM BeforeCreate hook will also set this if empty
 		Email:        req.Email,
 		PasswordHash: passwordHash,
 		FirstName:    req.FirstName,
@@ -138,11 +142,54 @@ func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		Status:       models.StatusPendingVerification,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
+		// BusinessID will be set below if applicable
+	}
+
+	// Handle Business Creation if user role is BusinessOwner
+	if role == models.RoleBusinessOwner {
+		if req.BusinessName == nil || *req.BusinessName == "" {
+			return nil, errors.New("business name is required for business owner registration")
+		}
+		// Check if a business with this name already exists (optional, depends on product requirements)
+		// existingBusiness, _ := s.businessRepo.GetByName(*req.BusinessName)
+		// if existingBusiness != nil {
+		// 	return nil, errors.New("a business with this name already exists")
+		// }
+
+		business := &models.Business{
+			// ID will be set by BeforeCreate hook
+			OwnerID: user.ID, // Link to the user being created
+			Name:    *req.BusinessName,
+		}
+		if err := s.businessRepo.Create(business); err != nil {
+			return nil, fmt.Errorf("failed to create business: %w", err)
+		}
+		user.BusinessID = &business.ID // Assign the new business's ID to the user
+		s.logger.Info("Business created and linked to user", "businessId", business.ID, "userId", user.ID)
+
+		// Note: User is not created yet, so user.BusinessID will be part of the initial user creation.
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
+		// If business was created but user creation failed, we might want to roll back business creation.
+		// For now, we'll log and return. A transaction manager would be better here.
+		if user.BusinessID != nil {
+			s.logger.Error("User creation failed after business was created. Manual cleanup might be needed for business ID:", *user.BusinessID)
+		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
+
+	// Publish business registered event if applicable
+	if user.BusinessID != nil && role == models.RoleBusinessOwner && req.BusinessName != nil {
+		businessEventData := events.CreateBusinessRegisteredEventData(*user.BusinessID, user.ID, *req.BusinessName)
+		if err := s.eventPublisher.Publish(events.BusinessRegisteredEvent, businessEventData); err != nil {
+			s.logger.Error("Failed to publish business registered event", "error", err, "businessId", *user.BusinessID, "userId", user.ID)
+			// Continue even if event fails for now
+		} else {
+			s.logger.Info("Business registered event published", "businessId", *user.BusinessID, "userId", user.ID)
+		}
+	}
+
 
 	// Generate email verification token
 	verificationToken, err := s.generateToken()

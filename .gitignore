@@ -148,9 +148,17 @@ temp/
 # Generated files
 *.generated.*
 
+# TypeScript build info
+*.tsbuildinfo
+
 # Package files
 *.deb
 *.rpm
+
+# Temporary scripts and uploads
+upload-to-*.sh
+*-debug.log
+*.tmp
 
 # JetBrains IDEs
 .idea/

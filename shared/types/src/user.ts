@@ -16,14 +16,14 @@ export interface User extends BaseEntity {
 export enum UserRole {
   ADMIN = 'admin',
   BUSINESS_OWNER = 'business_owner',
-  CLIENT = 'client'
+  CLIENT = 'client',
 }
 
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
-  PENDING_VERIFICATION = 'pending_verification'
+  PENDING_VERIFICATION = 'pending_verification',
 }
 
 export interface UserPreferences {

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Cancellation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        .header { background-color: #dc3545; color: white; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; }
+        .footer { margin-top: 20px; text-align: center; font-size: 0.9em; color: #777; }
+        strong { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Booking Cancelled</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{customerName}},</p>
+            <p>This email is to confirm that your booking for <strong>{{serviceName}}</strong> with <strong>{{businessName}}</strong> has been cancelled.</p>
+            
+            <h2>Cancelled Booking Details:</h2>
+            <p><strong>Booking ID:</strong> {{bookingId}}</p>
+            <p><strong>Service:</strong> {{serviceName}}</p>
+            <p><strong>Original Date:</strong> {{bookingDate}}</p>
+            <p><strong>Original Time:</strong> {{bookingTime}}</p>
+            
+            {{#if cancellationReason}}
+            <p><strong>Reason for cancellation:</strong> {{cancellationReason}}</p>
+            {{/if}}
+
+            <p>If you did not request this cancellation or have any questions, please contact {{businessName}}{{#if businessPhone}} at {{businessPhone}}{{/if}}.</p>
+            <p>You can always <a href="{{bookingLink}}">book another appointment</a> with us.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{currentYear}} SlotWise. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

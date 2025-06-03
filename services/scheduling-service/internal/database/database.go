@@ -5,6 +5,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/slotwise/scheduling-service/internal/config"
+	"github.com/slotwise/scheduling-service/internal/models" // Added import for models
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -20,7 +21,19 @@ func Connect(cfg config.DatabaseConfig) (*gorm.DB, error) {
 
 // Migrate runs database migrations
 func Migrate(db *gorm.DB) error {
-	// TODO: Add actual migrations when models are defined
+	// Auto-migrate models
+	// Import models package: _ "github.com/slotwise/scheduling-service/internal/models"
+	// or ensure models are accessible. Assuming they are in current scope as 'models.ServiceDefinition' etc.
+	// For this tool, explicit import in the file being modified is not needed, but it is for Go compiler.
+	// The tool operates on file content directly.
+	err := db.AutoMigrate(
+		&models.ServiceDefinition{},
+		&models.AvailabilityRule{},
+		&models.Booking{}, // Add Booking model to migrations
+	)
+	if err != nil {
+		return fmt.Errorf("failed to run auto-migrations: %w", err)
+	}
 	return nil
 }
 

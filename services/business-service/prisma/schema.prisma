@@ -22,7 +22,7 @@ model Business {
   timezone    String
   currency    String   @default("USD")
   ownerId     String
-  status      BusinessStatus @default(PENDING_SETUP)
+  status      String @default("PENDING_SETUP")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -33,21 +33,22 @@ model Business {
   postalCode String
   country    String
 
-  // Settings (JSON fields)
-  bookingSettings     Json @default("{}")
-  paymentSettings     Json @default("{}")
-  notificationSettings Json @default("{}")
-  availabilitySettings Json @default("{}")
+  // Settings (JSON fields stored as String for SQLite compatibility)
+  bookingSettings     String @default("{}")
+  paymentSettings     String @default("{}")
+  notificationSettings String @default("{}")
+  availabilitySettings String @default("{}")
 
   // Subscription
-  subscriptionPlan   SubscriptionPlan   @default(FREE)
-  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  subscriptionPlan   String @default("FREE")
+  subscriptionStatus String @default("ACTIVE")
   currentPeriodStart DateTime           @default(now())
   currentPeriodEnd   DateTime           @default(now())
   cancelAtPeriodEnd  Boolean            @default(false)
 
   // Relations
-  services Service[]
+  services      Service[]
+  availabilities Availability[] // Added relation to Availability
 
   @@map("businesses")
 }
@@ -58,7 +59,7 @@ model Service {
   name                  String
   description           String?
   duration              Int     // minutes
-  price                 Decimal @db.Decimal(10, 2)
+  price                 Float
   currency              String  @default("USD")
   category              String?
   isActive              Boolean @default(true)
@@ -75,23 +76,34 @@ model Service {
   @@map("services")
 }
 
-enum BusinessStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-  PENDING_SETUP
+model Availability {
+  id          String    @id @default(cuid())
+  businessId  String
+  dayOfWeek   DayOfWeek // Use enum for days
+  startTime   String    // Store as HH:MM string in 24-hour format e.g., "09:00"
+  endTime     String    // Store as HH:MM string e.g., "17:00"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, dayOfWeek, startTime, endTime], name: "business_day_time_unique") // Prevent duplicate entries
+  @@map("availabilities")
 }
 
-enum SubscriptionPlan {
-  FREE
-  STARTER
-  PROFESSIONAL
-  ENTERPRISE
+// Enums
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
 }
 
-enum SubscriptionStatus {
-  ACTIVE
-  PAST_DUE
-  CANCELED
-  UNPAID
-}
+// String constants for other enums (keeping for compatibility)
+// BusinessStatus: "ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_SETUP"
+// SubscriptionPlan: "FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"
+// SubscriptionStatus: "ACTIVE", "PAST_DUE", "CANCELED", "UNPAID"

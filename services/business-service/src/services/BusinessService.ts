@@ -1,20 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { Business, PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid';
+import { natsConnection } from '../events/nats'; // Import natsConnection
 import { logger } from '../utils/logger';
-
-// Define types based on Prisma schema
-type BusinessStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_SETUP';
-
-interface Business {
-  id: string;
-  name: string;
-  description: string | null;
-  subdomain: string;
-  ownerId: string;
-  status: BusinessStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 interface CreateBusinessData {
   name: string;
@@ -66,7 +53,7 @@ interface PaginatedResult<T> {
 export class BusinessService {
   constructor(
     private prisma: PrismaClient,
-    private eventPublisher: any // NATS connection
+    private eventPublisher: typeof natsConnection // Changed from any
   ) {}
 
   async createBusiness(data: CreateBusinessData): Promise<Business> {
@@ -80,10 +67,9 @@ export class BusinessService {
         throw new Error('Subdomain already exists');
       }
 
-      // Create business
+      // Create business (let Prisma auto-generate the ID)
       const business = await this.prisma.business.create({
         data: {
-          id: nanoid(),
           name: data.name,
           description: data.description,
           subdomain: data.subdomain,
@@ -302,7 +288,8 @@ export class BusinessService {
     }
   }
 
-  private async publishEvent(eventType: string, data: any): Promise<void> {
+  private async publishEvent(eventType: string, data: Record<string, unknown>): Promise<void> {
+    // Changed data from any
     try {
       const event = {
         id: nanoid(),

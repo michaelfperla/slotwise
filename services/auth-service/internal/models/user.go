@@ -41,6 +41,10 @@ type User struct {
 	Role            UserRole   `gorm:"type:varchar(20);not null;default:'client'" json:"role"`
 	Status          UserStatus `gorm:"type:varchar(30);not null;default:'pending_verification'" json:"status"`
 
+	// Business association
+	BusinessID *string   `gorm:"type:uuid;index" json:"businessId,omitempty"` // Foreign key to Business table
+	Business   *Business `gorm:"foreignKey:BusinessID" json:"business,omitempty"` // Belongs to Business
+
 	// Preferences stored as JSONB
 	Language   string `gorm:"default:'en'" json:"language"`
 	DateFormat string `gorm:"default:'MM/DD/YYYY'" json:"dateFormat"`
@@ -119,16 +123,21 @@ func (u *User) IsClient() bool {
 
 // ToAuthUser converts User to AuthUser for JWT claims
 func (u *User) ToAuthUser() *AuthUser {
-	return &AuthUser{
+	authUser := &AuthUser{
 		ID:        u.ID,
 		Email:     u.Email,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Role:      string(u.Role),
 	}
+	if u.BusinessID != nil {
+		authUser.BusinessID = *u.BusinessID
+	}
+	return authUser
 }
 
 // AuthUser represents the user data stored in JWT tokens
+// Note: BusinessID is already here, which is good.
 type AuthUser struct {
 	ID         string `json:"id"`
 	Email      string `json:"email"`

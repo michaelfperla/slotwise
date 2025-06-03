@@ -1,15 +1,45 @@
 # SlotWise API Documentation
 
-## Overview
+## 🎯 Overview
 
-SlotWise provides a comprehensive REST API for managing scheduling and booking operations. The API is organized into four main services, each handling specific domain responsibilities.
+SlotWise provides a comprehensive REST API for managing scheduling and booking
+operations. The API follows RESTful principles and is organized into
+microservices, each handling specific domain responsibilities with consistent
+response formats and error handling.
 
-## Base URLs
+## 🌐 Base URLs
 
-- **Development**: `http://localhost:8080/api/v1`
+**Note**: Currently, services run on individual ports in development. API
+Gateway is planned for future implementation.
+
+### Development Service URLs
+
+- **Auth Service**: `http://localhost:8001/api/v1`
+- **Business Service**: `http://localhost:8003/api/v1`
+- **Scheduling Service**: `http://localhost:8002/api/v1`
+- **Notification Service**: `http://localhost:8004/api/v1`
+
+### Future Production URLs (when API Gateway is implemented)
+
+- **Staging**: `https://staging-api.slotwise.com/api/v1`
 - **Production**: `https://api.slotwise.com/api/v1`
 
-## Authentication
+## 📋 Table of Contents
+
+- [Authentication](#authentication)
+- [Response Format](#response-format)
+- [Error Handling](#error-handling)
+- [Auth Service API](#auth-service-api)
+- [Business Service API](#business-service-api)
+- [Scheduling Service API](#scheduling-service-api)
+- [Notification Service API](#notification-service-api)
+- [Rate Limiting](#rate-limiting)
+- [Webhooks](#webhooks)
+
+**Note**: Payment Service API documentation will be added when the service is
+implemented.
+
+## 🔐 Authentication
 
 All protected endpoints require a Bearer token in the Authorization header:
 
@@ -20,7 +50,7 @@ Authorization: Bearer <your-jwt-token>
 ### Getting an Access Token
 
 ```http
-POST /auth/login
+POST /api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -30,26 +60,92 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
-    "user": {
-      "id": "user_123",
-      "email": "user@example.com",
-      "firstName": "John",
-      "lastName": "Doe",
-      "role": "business_owner"
-    },
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "refresh_token_here",
-    "expiresIn": 900
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": 3600,
+    "user": {
+      "id": "user-123",
+      "email": "user@example.com",
+      "role": "BUSINESS_OWNER"
+    }
   },
-  "timestamp": "2024-01-01T00:00:00Z"
+  "timestamp": "2025-01-01T00:00:00Z"
 }
 ```
 
-## Auth Service API
+## 📄 Response Format
+
+All API responses follow a consistent format:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "message": "Optional success message",
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 100,
+      "totalPages": 5
+    },
+    "timestamp": "2025-01-01T00:00:00Z"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": "ERROR_CODE",
+  "message": "Human-readable error message",
+  "details": {
+    // Additional error details
+  },
+  "timestamp": "2025-01-01T00:00:00Z"
+}
+```
+
+## ⚠️ Error Handling
+
+### HTTP Status Codes
+
+- **200 OK** - Successful GET, PUT, PATCH requests
+- **201 Created** - Successful POST requests
+- **204 No Content** - Successful DELETE requests
+- **400 Bad Request** - Invalid request data
+- **401 Unauthorized** - Authentication required
+- **403 Forbidden** - Insufficient permissions
+- **404 Not Found** - Resource not found
+- **409 Conflict** - Resource already exists
+- **422 Unprocessable Entity** - Validation errors
+- **429 Too Many Requests** - Rate limit exceeded
+- **500 Internal Server Error** - Server error
+
+### Common Error Codes
+
+- `VALIDATION_ERROR`: Input validation failed
+- `UNAUTHORIZED`: Authentication required
+- `FORBIDDEN`: Insufficient permissions
+- `RESOURCE_NOT_FOUND`: Requested resource doesn't exist
+- `RESOURCE_ALREADY_EXISTS`: Resource already exists
+- `BOOKING_CONFLICT`: Time slot not available
+- `PAYMENT_REQUIRED`: Payment needed to complete action
+- `RATE_LIMIT_EXCEEDED`: Too many requests
+- `INTERNAL_SERVER_ERROR`: Server error
+
+## 🔐 Auth Service API
 
 ### Register User
 
@@ -67,6 +163,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -109,7 +206,7 @@ GET /auth/me
 Authorization: Bearer <token>
 ```
 
-## Business Service API
+## 🏢 Business Service API
 
 ### Create Business
 
@@ -136,6 +233,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -178,6 +276,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -235,6 +334,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -251,7 +351,7 @@ Content-Type: application/json
 }
 ```
 
-## Scheduling Service API
+## 📅 Scheduling Service API
 
 ### Create Booking
 
@@ -276,6 +376,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -347,6 +448,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -390,7 +492,7 @@ Content-Type: application/json
 }
 ```
 
-## Notification Service API
+## 📧 Notification Service API
 
 ### Send Notification
 
@@ -427,53 +529,22 @@ GET /notifications?recipientId=user_123&type=booking_confirmation&status=sent
 Authorization: Bearer <token>
 ```
 
-## Error Responses
-
-All API endpoints return consistent error responses:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid input data",
-    "details": [
-      {
-        "field": "email",
-        "message": "Invalid email format"
-      }
-    ]
-  },
-  "timestamp": "2025-01-01T00:00:00Z"
-}
-```
-
-### Common Error Codes
-
-- `VALIDATION_ERROR`: Input validation failed
-- `UNAUTHORIZED`: Authentication required
-- `FORBIDDEN`: Insufficient permissions
-- `RESOURCE_NOT_FOUND`: Requested resource doesn't exist
-- `RESOURCE_ALREADY_EXISTS`: Resource already exists
-- `BOOKING_CONFLICT`: Time slot not available
-- `PAYMENT_REQUIRED`: Payment needed to complete action
-- `RATE_LIMIT_EXCEEDED`: Too many requests
-- `INTERNAL_SERVER_ERROR`: Server error
-
-## Rate Limiting
+## 🚦 Rate Limiting
 
 API requests are rate limited:
+
 - **Authentication endpoints**: 5 requests per minute
 - **General API endpoints**: 100 requests per minute
 
 Rate limit headers are included in responses:
+
 ```http
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1640995200
 ```
 
-## Webhooks
+## 🔗 Webhooks
 
 SlotWise supports webhooks for real-time event notifications:
 
@@ -501,16 +572,15 @@ SlotWise supports webhooks for real-time event notifications:
 }
 ```
 
-## SDKs and Libraries
+## 📦 SDKs and Libraries
 
-Official SDKs are available for:
-- **JavaScript/TypeScript**: `@slotwise/sdk-js`
-- **Go**: `github.com/slotwise/sdk-go`
-- **Python**: `slotwise-python`
+**Note**: Official SDKs are planned for future development. Currently, use
+direct HTTP requests to interact with the APIs.
 
-## Support
+## 🆘 Support
 
 For API support:
+
 - **Documentation**: https://docs.slotwise.com
 - **Support Email**: api-support@slotwise.com
 - **GitHub Issues**: https://github.com/slotwise/slotwise/issues

@@ -12,10 +12,7 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: [
-    '**/__tests__/**/*.{ts,tsx}',
-    '**/?(*.)+(spec|test).{ts,tsx}',
-  ],
+  testMatch: ['**/__tests__/**/*.{ts,tsx}', '**/?(*.)+(spec|test).{ts,tsx}'],
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
@@ -34,11 +31,7 @@ module.exports = {
     '^@slotwise/(.*)$': '<rootDir>/shared/$1/src',
   },
   // Ignore patterns
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-    '/build/',
-  ],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/build/'],
   // Coverage thresholds
   coverageThreshold: {
     global: {

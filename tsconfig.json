@@ -24,16 +24,6 @@
       "@slotwise/utils": ["./shared/utils/src"]
     }
   },
-  "include": [
-    "shared/**/*",
-    "services/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "frontend",
-    "e2e",
-    "**/*.spec.ts",
-    "**/*.test.ts"
-  ]
+  "include": ["shared/**/*", "services/**/*"],
+  "exclude": ["node_modules", "dist", "frontend", "e2e", "**/*.spec.ts", "**/*.test.ts"]
 }

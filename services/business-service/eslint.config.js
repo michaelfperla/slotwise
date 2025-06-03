@@ -46,7 +46,13 @@ export default [
     },
   },
   {
-    files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts', '**/setup.ts', '**/*.integration.ts'],
+    files: [
+      '**/*.test.ts',
+      '**/*.spec.ts',
+      '**/test/**/*.ts',
+      '**/setup.ts',
+      '**/*.integration.ts',
+    ],
     languageOptions: {
       globals: {
         jest: 'readonly',
@@ -66,6 +72,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'src/generated/**'],
   },
 ];

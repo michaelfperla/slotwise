@@ -76,3 +76,12 @@ func (s *Subscriber) Subscribe(subject string, handler func([]byte) error) error
 	s.logger.Debug("Subscribed to subject", "subject", subject)
 	return nil
 }
+
+// Event Subjects
+const (
+	BookingRequestedEvent = "booking.requested"
+	BookingConfirmedEvent = "booking.confirmed"
+	BookingCancelledEvent = "booking.cancelled"
+	SlotReservedEvent     = "slot.reserved"
+	// Add other event subjects as needed
+)

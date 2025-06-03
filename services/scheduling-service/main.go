@@ -17,6 +17,7 @@ import (
 	"github.com/slotwise/scheduling-service/internal/middleware"
 	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/internal/service"
+	"github.com/slotwise/scheduling-service/internal/subscribers" // Added import
 	"github.com/slotwise/scheduling-service/pkg/events"
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/slotwise/scheduling-service/pkg/scheduler"
@@ -65,8 +66,10 @@ func main() {
 	cacheRepo := repository.NewCacheRepository(redisClient)
 
 	// Initialize services
-	availabilityService := service.NewAvailabilityService(availabilityRepo, cacheRepo, eventPublisher, logger)
-	bookingService := service.NewBookingService(bookingRepo, availabilityService, eventPublisher, logger)
+	// AvailabilityService now needs BookingRepository
+	availabilityService := service.NewAvailabilityService(availabilityRepo, bookingRepo, cacheRepo, eventPublisher, logger)
+	// BookingService now needs AvailabilityRepository for service definitions
+	bookingService := service.NewBookingService(bookingRepo, availabilityService, availabilityRepo, eventPublisher, logger)
 	
 	// Initialize background scheduler
 	cronScheduler := scheduler.New(bookingService, logger)
@@ -78,9 +81,12 @@ func main() {
 	availabilityHandler := handlers.NewAvailabilityHandler(availabilityService, logger)
 	healthHandler := handlers.NewHealthHandler(db, redisClient, natsConn, logger)
 
+	// Initialize NATS event handlers (from subscribers package)
+	natsEventHandlers := subscribers.NewNatsEventHandlers(db, logger)
+
 	// Setup event subscribers
 	eventSubscriber := events.NewSubscriber(natsConn, logger)
-	if err := setupEventSubscribers(eventSubscriber, bookingService, availabilityService); err != nil {
+	if err := setupEventSubscribers(eventSubscriber, bookingService, availabilityService, natsEventHandlers); err != nil { // Pass natsEventHandlers
 		logger.Fatal("Failed to setup event subscribers", "error", err)
 	}
 
@@ -103,29 +109,48 @@ func main() {
 	// API routes
 	v1 := router.Group("/api/v1")
 	{
-		// Booking routes
+		// Booking routes (ensure these use the new methods from booking_handler.go)
 		bookings := v1.Group("/bookings")
+		// TODO: Add appropriate auth middleware for these routes.
+		// Example: bookings.Use(middleware.RequireAuth())
 		{
-			bookings.POST("/", bookingHandler.CreateBooking)
-			bookings.GET("/:id", bookingHandler.GetBooking)
-			bookings.PUT("/:id", bookingHandler.UpdateBooking)
-			bookings.DELETE("/:id", bookingHandler.CancelBooking)
-			bookings.GET("/", bookingHandler.ListBookings)
-			bookings.POST("/:id/confirm", bookingHandler.ConfirmBooking)
-			bookings.POST("/:id/reschedule", bookingHandler.RescheduleBooking)
+			bookings.POST("", bookingHandler.CreateBooking)          // POST /api/v1/bookings
+			bookings.GET("/:bookingId", bookingHandler.GetBookingByID) // GET /api/v1/bookings/:bookingId
+			bookings.GET("", bookingHandler.ListBookings)             // GET /api/v1/bookings?customerId=... or ?businessId=...
+			bookings.PUT("/:bookingId/status", bookingHandler.UpdateBookingStatus) // PUT /api/v1/bookings/:bookingId/status
+
+			// Remove or update old stubbed routes if they are different:
+			// bookings.GET("/:id", bookingHandler.GetBooking) // This was likely the old GetBookingByID
+			// bookings.PUT("/:id", bookingHandler.UpdateBooking) // This was likely the old UpdateBookingStatus or a general update
+			// bookings.DELETE("/:id", bookingHandler.CancelBooking) // This might map to UpdateBookingStatus with "CANCELLED"
+			// bookings.POST("/:id/confirm", bookingHandler.ConfirmBooking) // This might map to UpdateBookingStatus with "CONFIRMED"
+			// bookings.POST("/:id/reschedule", bookingHandler.RescheduleBooking) // Future feature
 		}
 
 		// Availability routes
 		availability := v1.Group("/availability")
 		{
-			availability.GET("/", availabilityHandler.GetAvailability)
-			availability.POST("/rules", availabilityHandler.CreateAvailabilityRule)
-			availability.PUT("/rules/:id", availabilityHandler.UpdateAvailabilityRule)
-			availability.DELETE("/rules/:id", availabilityHandler.DeleteAvailabilityRule)
-			availability.POST("/exceptions", availabilityHandler.CreateAvailabilityException)
-			availability.PUT("/exceptions/:id", availabilityHandler.UpdateAvailabilityException)
-			availability.DELETE("/exceptions/:id", availabilityHandler.DeleteAvailabilityException)
+			availability.GET("/", availabilityHandler.GetAvailability) // Existing general availability endpoint
+			// Add other existing availability rule/exception routes if they are still relevant
+			// For example:
+			// availability.POST("/rules", availabilityHandler.CreateAvailabilityRule)
+			// availability.PUT("/rules/:id", availabilityHandler.UpdateAvailabilityRule)
+			// ...
 		}
+
+		// Internal API for scheduling service (e.g. for slot generation)
+		internal := v1.Group("/internal")
+		// Add auth middleware if needed for internal APIs, e.g. service-to-service auth
+		{
+			internalAvailability := internal.Group("/availability")
+			{
+				internalAvailability.GET("/:businessId/slots", availabilityHandler.GetSlotsForBusinessServiceDate)
+			}
+		}
+
+		// Publicly accessible slots endpoint for a specific service
+		// GET /api/v1/services/:serviceId/slots?date=YYYY-MM-DD&businessId=...
+		v1.GET("/services/:serviceId/slots", availabilityHandler.GetPublicSlotsForService)
 	}
 
 	// Create HTTP server
@@ -163,8 +188,14 @@ func main() {
 	logger.Info("Scheduling Service stopped")
 }
 
-func setupEventSubscribers(subscriber *events.Subscriber, bookingService *service.BookingService, availabilityService *service.AvailabilityService) error {
-	// Subscribe to payment events
+// Updated function signature to include NatsEventHandlers
+func setupEventSubscribers(
+	subscriber *events.Subscriber,
+	bookingService *service.BookingService,
+	availabilityService *service.AvailabilityService,
+	natsEventHandlers *subscribers.NatsEventHandlers, // Added
+) error {
+	// Subscribe to payment events (existing)
 	if err := subscriber.Subscribe("payment.succeeded", bookingService.HandlePaymentSucceeded); err != nil {
 		return fmt.Errorf("failed to subscribe to payment.succeeded: %w", err)
 	}
@@ -173,9 +204,19 @@ func setupEventSubscribers(subscriber *events.Subscriber, bookingService *servic
 		return fmt.Errorf("failed to subscribe to payment.failed: %w", err)
 	}
 
-	// Subscribe to business events
-	if err := subscriber.Subscribe("service.updated", availabilityService.HandleServiceUpdated); err != nil {
+	// Subscribe to business events (existing - related to availability service)
+	// Assuming availabilityService.HandleServiceUpdated is different from natsEventHandlers.HandleBusinessServiceCreated
+	if err := subscriber.Subscribe("service.updated", availabilityService.HandleServiceUpdated); err != nil { // Keep if distinct
 		return fmt.Errorf("failed to subscribe to service.updated: %w", err)
+	}
+
+	// Add new subscriptions for business events from Business Service
+	if err := subscriber.Subscribe("business.service.created", natsEventHandlers.HandleBusinessServiceCreated); err != nil {
+		return fmt.Errorf("failed to subscribe to business.service.created: %w", err)
+	}
+
+	if err := subscriber.Subscribe("business.availability.updated", natsEventHandlers.HandleBusinessAvailabilityUpdated); err != nil {
+		return fmt.Errorf("failed to subscribe to business.availability.updated: %w", err)
 	}
 
 	return nil

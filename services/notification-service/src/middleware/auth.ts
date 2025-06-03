@@ -31,9 +31,11 @@ export async function authMiddleware(fastify: FastifyInstance) {
     const token = authHeader.substring(7);
 
     try {
-      const decoded = jwt.verify(token, config.jwt.secret) as any;
+      // Define a type for the expected JWT payload structure
+      type JwtPayload = { sub?: string; id?: string; email: string; role?: string };
+      const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
       request.user = {
-        id: decoded.sub || decoded.id,
+        id: decoded.sub || decoded.id || '', // Ensure id is always string
         email: decoded.email,
         role: decoded.role,
       };

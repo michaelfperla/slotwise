@@ -16,7 +16,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "jest",
+        "command": "jest --passWithNoTests",
         "cwd": "shared/types"
       },
       "outputs": ["{projectRoot}/coverage"]

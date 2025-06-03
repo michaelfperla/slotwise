@@ -11,6 +11,15 @@ interface AuthUser {
   businessId?: string;
 }
 
+interface JWTPayload {
+  sub: string; // Subject (user ID)
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  businessId?: string;
+}
+
 declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthUser;
@@ -36,7 +45,7 @@ export async function authMiddleware(fastify: FastifyInstance) {
       const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
       try {
-        const decoded = jwt.verify(token, config.jwt.secret) as any;
+        const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
 
         // Attach user to request
         request.user = {

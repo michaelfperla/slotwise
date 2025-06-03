@@ -31,7 +31,8 @@ class NATSClient {
     return this.connection !== null && !this.connection.isClosed();
   }
 
-  async publish(subject: string, data: any): Promise<void> {
+  async publish(subject: string, data: Record<string, unknown>): Promise<void> {
+    // data: any -> Record<string, unknown>
     if (!this.connection) {
       throw new Error('NATS connection not established');
     }
@@ -41,7 +42,11 @@ class NATSClient {
     logger.debug(`Published message to ${subject}:`, data);
   }
 
-  async subscribe(subject: string, handler: (data: any) => Promise<void>): Promise<void> {
+  async subscribe(
+    subject: string,
+    handler: (data: Record<string, unknown>) => Promise<void>
+  ): Promise<void> {
+    // data: any -> Record<string, unknown>
     if (!this.connection) {
       throw new Error('NATS connection not established');
     }

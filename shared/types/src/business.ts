@@ -57,7 +57,7 @@ export enum BusinessStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
-  PENDING_SETUP = 'pending_setup'
+  PENDING_SETUP = 'pending_setup',
 }
 
 export interface BusinessSubscription {
@@ -72,14 +72,14 @@ export enum SubscriptionPlan {
   FREE = 'free',
   STARTER = 'starter',
   PROFESSIONAL = 'professional',
-  ENTERPRISE = 'enterprise'
+  ENTERPRISE = 'enterprise',
 }
 
 export enum SubscriptionStatus {
   ACTIVE = 'active',
   PAST_DUE = 'past_due',
   CANCELED = 'canceled',
-  UNPAID = 'unpaid'
+  UNPAID = 'unpaid',
 }
 
 export interface Service extends BaseEntity {

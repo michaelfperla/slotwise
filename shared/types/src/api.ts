@@ -4,21 +4,21 @@ export interface ApiRequest {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
   headers?: Record<string, string>;
-  params?: Record<string, any>;
-  body?: any;
+  params?: Record<string, string | number | boolean>; // Changed from any
+  body?: unknown; // Changed from any
 }
 
 export interface ApiError {
   code: string;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>; // Changed from any
   statusCode: number;
 }
 
 export interface ValidationError {
   field: string;
   message: string;
-  value?: any;
+  value?: unknown; // Changed from any
 }
 
 export interface ApiValidationError extends ApiError {
@@ -35,31 +35,31 @@ export enum ApiErrorCode {
   FORBIDDEN = 'FORBIDDEN',
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
   INVALID_TOKEN = 'INVALID_TOKEN',
-  
+
   // Validation
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   INVALID_INPUT = 'INVALID_INPUT',
   MISSING_REQUIRED_FIELD = 'MISSING_REQUIRED_FIELD',
-  
+
   // Resource Management
   RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND',
   RESOURCE_ALREADY_EXISTS = 'RESOURCE_ALREADY_EXISTS',
   RESOURCE_CONFLICT = 'RESOURCE_CONFLICT',
-  
+
   // Business Logic
   BOOKING_CONFLICT = 'BOOKING_CONFLICT',
   INSUFFICIENT_AVAILABILITY = 'INSUFFICIENT_AVAILABILITY',
   PAYMENT_REQUIRED = 'PAYMENT_REQUIRED',
   PAYMENT_FAILED = 'PAYMENT_FAILED',
-  
+
   // Rate Limiting
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-  
+
   // Server Errors
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
   DATABASE_ERROR = 'DATABASE_ERROR',
-  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR'
+  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
 }
 
 // Health check interfaces
@@ -99,7 +99,7 @@ export interface WebhookPayload {
   id: string;
   event: string;
   timestamp: Date;
-  data: any;
+  data: Record<string, unknown>; // Changed from any
   signature: string;
 }
 
@@ -144,14 +144,15 @@ export interface ServiceRegistry {
 // GraphQL specific types
 export interface GraphQLRequest {
   query: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>; // Changed from any
   operationName?: string;
 }
 
-export interface GraphQLResponse<T = any> {
+export interface GraphQLResponse<T = Record<string, unknown>> {
+  // Changed default for T
   data?: T;
   errors?: GraphQLError[];
-  extensions?: Record<string, any>;
+  extensions?: Record<string, unknown>; // Changed from any
 }
 
 export interface GraphQLError {
@@ -161,7 +162,7 @@ export interface GraphQLError {
     column: number;
   }>;
   path?: Array<string | number>;
-  extensions?: Record<string, any>;
+  extensions?: Record<string, unknown>; // Changed from any
 }
 
 // OpenAPI/Swagger interfaces
@@ -176,10 +177,10 @@ export interface OpenAPISpec {
     url: string;
     description?: string;
   }>;
-  paths: Record<string, any>;
+  paths: Record<string, unknown>; // Changed from any
   components?: {
-    schemas?: Record<string, any>;
-    securitySchemes?: Record<string, any>;
+    schemas?: Record<string, unknown>; // Changed from any
+    securitySchemes?: Record<string, unknown>; // Changed from any
   };
 }
 
@@ -207,7 +208,8 @@ export interface CacheConfig {
   invalidateOn?: string[]; // event types that should invalidate this cache
 }
 
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
+  // Changed default for T
   key: string;
   value: T;
   ttl: number;

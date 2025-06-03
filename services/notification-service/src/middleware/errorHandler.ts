@@ -2,6 +2,12 @@ import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import { logger } from '../utils/logger';
 
+// Define a more specific type for Prisma known request errors
+interface PrismaKnownError extends FastifyError {
+  code: string;
+  meta?: Record<string, unknown>;
+}
+
 export async function errorHandler(
   error: FastifyError,
   request: FastifyRequest,
@@ -29,7 +35,7 @@ export async function errorHandler(
 
   // Prisma errors
   if (error.name === 'PrismaClientKnownRequestError') {
-    const prismaError = error as any;
+    const prismaError = error as PrismaKnownError; // Use defined interface
     switch (prismaError.code) {
       case 'P2002':
         return reply.status(409).send({
@@ -57,7 +63,7 @@ export async function errorHandler(
           error: {
             code: 'DATABASE_ERROR',
             message: 'Database operation failed',
-            details: error.message,
+            details: error.message, // For default case, error.message is from FastifyError
           },
           timestamp: new Date().toISOString(),
         });

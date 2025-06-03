@@ -32,13 +32,14 @@ export interface PaginatedResponse<T> {
   };
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
+  // Changed default for T from any to unknown
   success: boolean;
   data?: T;
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: Record<string, unknown>; // Changed from any
   };
   timestamp: string;
 }
@@ -48,7 +49,7 @@ export interface ErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: Record<string, unknown>; // Changed from any
   };
   timestamp: string;
 }

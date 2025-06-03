@@ -1,4 +1,14 @@
-import { addMinutes, subMinutes, isAfter, isBefore, isEqual, startOfDay, endOfDay, addDays, subDays } from 'date-fns';
+import {
+  addMinutes,
+  subMinutes,
+  isAfter,
+  isBefore,
+  isEqual,
+  startOfDay,
+  endOfDay,
+  addDays,
+  subDays,
+} from 'date-fns';
 import { fromZonedTime, toZonedTime, format as formatTz } from 'date-fns-tz';
 
 export class DateUtils {
@@ -19,7 +29,11 @@ export class DateUtils {
   /**
    * Format a date in a specific timezone
    */
-  static formatInTimezone(date: Date, timezone: string, formatString: string = 'yyyy-MM-dd HH:mm:ss'): string {
+  static formatInTimezone(
+    date: Date,
+    timezone: string,
+    formatString: string = 'yyyy-MM-dd HH:mm:ss'
+  ): string {
     const zonedDate = toZonedTime(date, timezone);
     return formatTz(zonedDate, formatString, { timeZone: timezone });
   }
@@ -57,12 +71,7 @@ export class DateUtils {
   /**
    * Check if two time slots overlap
    */
-  static doTimeSlotsOverlap(
-    start1: Date,
-    end1: Date,
-    start2: Date,
-    end2: Date
-  ): boolean {
+  static doTimeSlotsOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
     return isBefore(start1, end2) && isAfter(end1, start2);
   }
 
@@ -77,12 +86,12 @@ export class DateUtils {
     date: Date = new Date()
   ): Date[] {
     const slots: Date[] = [];
-    
+
     const start = this.parseTimeString(startTime, timezone, date);
     const end = this.parseTimeString(endTime, timezone, date);
-    
+
     let current = start;
-    
+
     while (isBefore(current, end)) {
       const slotEnd = addMinutes(current, duration);
       if (isBefore(slotEnd, end) || isEqual(slotEnd, end)) {
@@ -90,7 +99,7 @@ export class DateUtils {
       }
       current = addMinutes(current, duration);
     }
-    
+
     return slots;
   }
 
@@ -144,7 +153,7 @@ export class DateUtils {
     const now = new Date();
     const minTime = addMinutes(now, minAdvanceHours * 60);
     const maxTime = addDays(now, maxAdvanceDays);
-    
+
     return !isBefore(bookingTime, minTime) && !isAfter(bookingTime, maxTime);
   }
 
@@ -155,14 +164,14 @@ export class DateUtils {
     if (minutes < 60) {
       return `${minutes}m`;
     }
-    
+
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    
+
     if (remainingMinutes === 0) {
       return `${hours}h`;
     }
-    
+
     return `${hours}h ${remainingMinutes}m`;
   }
 

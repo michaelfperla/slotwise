@@ -62,6 +62,7 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	sessionRepo := repository.NewSessionRepository(redis)
+	businessRepo := repository.NewBusinessRepository(db, appLogger) // Initialize BusinessRepository
 	appLogger.Info("Repositories initialized")
 
 	// Initialize event publisher
@@ -73,7 +74,7 @@ func main() {
 	appLogger.Info("JWT manager initialized")
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo, sessionRepo, eventPublisher, cfg.JWT, appLogger)
+	authService := service.NewAuthService(userRepo, businessRepo, sessionRepo, eventPublisher, cfg.JWT, appLogger) // Pass BusinessRepository
 	appLogger.Info("Services initialized")
 
 	// Setup router with all components

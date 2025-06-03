@@ -3,10 +3,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
-  testMatch: [
-    '**/__tests__/**/*.e2e.ts',
-    '**/?(*.)+(e2e).ts'
-  ],
+  testMatch: ['**/__tests__/**/*.e2e.ts', '**/?(*.)+(e2e).ts'],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
@@ -17,5 +14,5 @@ module.exports = {
   // Global setup and teardown for services
   globalSetup: '<rootDir>/global-setup.ts',
   globalTeardown: '<rootDir>/global-teardown.ts',
-  passWithNoTests: true
+  passWithNoTests: true,
 };

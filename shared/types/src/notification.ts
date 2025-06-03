@@ -7,7 +7,7 @@ export interface Notification extends BaseEntity {
   subject?: string;
   content: string;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>; // Changed from any
   status: NotificationStatus;
   sentAt?: Date;
   deliveredAt?: Date;
@@ -29,14 +29,14 @@ export enum NotificationType {
   PASSWORD_RESET = 'password_reset',
   EMAIL_VERIFICATION = 'email_verification',
   WELCOME = 'welcome',
-  MARKETING = 'marketing'
+  MARKETING = 'marketing',
 }
 
 export enum NotificationChannel {
   EMAIL = 'email',
   SMS = 'sms',
   PUSH = 'push',
-  IN_APP = 'in_app'
+  IN_APP = 'in_app',
 }
 
 export enum NotificationStatus {
@@ -44,14 +44,14 @@ export enum NotificationStatus {
   SENT = 'sent',
   DELIVERED = 'delivered',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export enum NotificationPriority {
   LOW = 'low',
   NORMAL = 'normal',
   HIGH = 'high',
-  URGENT = 'urgent'
+  URGENT = 'urgent',
 }
 
 export interface NotificationTemplate extends BaseEntity {
@@ -72,7 +72,7 @@ export interface CreateNotificationRequest {
   subject?: string;
   content?: string;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>; // Ensure only one line remains
   priority?: NotificationPriority;
   scheduledFor?: Date;
 }
@@ -84,7 +84,7 @@ export interface BulkNotificationRequest {
   subject?: string;
   content?: string;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>; // Changed from any
   priority?: NotificationPriority;
   scheduledFor?: Date;
 }
@@ -116,17 +116,23 @@ export interface NotificationStats {
   totalFailed: number;
   deliveryRate: number;
   averageDeliveryTime: number; // in seconds
-  byChannel: Record<NotificationChannel, {
-    sent: number;
-    delivered: number;
-    failed: number;
-    deliveryRate: number;
-  }>;
-  byType: Record<NotificationType, {
-    sent: number;
-    delivered: number;
-    failed: number;
-  }>;
+  byChannel: Record<
+    NotificationChannel,
+    {
+      sent: number;
+      delivered: number;
+      failed: number;
+      deliveryRate: number;
+    }
+  >;
+  byType: Record<
+    NotificationType,
+    {
+      sent: number;
+      delivered: number;
+      failed: number;
+    }
+  >;
 }
 
 export interface EmailNotificationData {
@@ -156,5 +162,5 @@ export interface NotificationWebhook {
   type: 'delivery' | 'bounce' | 'complaint' | 'click' | 'open';
   notificationId: string;
   timestamp: Date;
-  data: Record<string, any>;
+  data: Record<string, unknown>; // Changed from any
 }
