@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ServiceService } from '../services/ServiceService';
 import { zodToJsonSchema } from '../utils/schema';
@@ -69,11 +69,24 @@ export async function serviceRoutes(fastify: FastifyInstance) {
 
         const service = await serviceService.createService(userId, request.body);
 
-        return reply.code(201).send({
+        // Convert dates to strings to ensure proper JSON serialization
+        const serializedService = {
+          ...service,
+          createdAt: service.createdAt.toISOString(),
+          updatedAt: service.updatedAt.toISOString(),
+        };
+
+        const responseData = {
           success: true,
-          data: service,
+          data: serializedService,
           message: 'Service created successfully',
-        });
+        };
+
+        // Bypass Fastify serialization by manually stringifying
+        return reply
+          .code(201)
+          .header('content-type', 'application/json')
+          .send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error creating service:', error);
         return reply.code(500).send({
@@ -120,12 +133,24 @@ export async function serviceRoutes(fastify: FastifyInstance) {
 
         const result = await serviceService.getServices(userId, request.query);
 
-        return reply.send({
+        // Convert dates to strings for all services
+        const serializedServices = result.data.map(service => ({
+          ...service,
+          createdAt: service.createdAt.toISOString(),
+          updatedAt: service.updatedAt.toISOString(),
+        }));
+
+        const responseData = {
           success: true,
-          data: result.data,
+          data: serializedServices,
           pagination: result.pagination,
           message: 'Services retrieved successfully',
-        });
+        };
+
+        // Bypass Fastify serialization by manually stringifying
+        return reply
+          .header('content-type', 'application/json')
+          .send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error retrieving services:', error);
         return reply.code(500).send({
@@ -179,11 +204,23 @@ export async function serviceRoutes(fastify: FastifyInstance) {
           });
         }
 
-        return reply.send({
+        // Convert dates to strings to ensure proper JSON serialization
+        const serializedService = {
+          ...service,
+          createdAt: service.createdAt.toISOString(),
+          updatedAt: service.updatedAt.toISOString(),
+        };
+
+        const responseData = {
           success: true,
-          data: service,
+          data: serializedService,
           message: 'Service retrieved successfully',
-        });
+        };
+
+        // Bypass Fastify serialization by manually stringifying
+        return reply
+          .header('content-type', 'application/json')
+          .send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error retrieving service:', error);
         return reply.code(500).send({
@@ -241,11 +278,23 @@ export async function serviceRoutes(fastify: FastifyInstance) {
           });
         }
 
-        return reply.send({
+        // Convert dates to strings to ensure proper JSON serialization
+        const serializedService = {
+          ...service,
+          createdAt: service.createdAt.toISOString(),
+          updatedAt: service.updatedAt.toISOString(),
+        };
+
+        const responseData = {
           success: true,
-          data: service,
+          data: serializedService,
           message: 'Service updated successfully',
-        });
+        };
+
+        // Bypass Fastify serialization by manually stringifying
+        return reply
+          .header('content-type', 'application/json')
+          .send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error updating service:', error);
         return reply.code(500).send({

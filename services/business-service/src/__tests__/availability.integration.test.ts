@@ -3,8 +3,8 @@ import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats'; // Will use the Jest mock
 import { businessRoutes } from '../routes/business';
 // import { serviceRoutes } from '../routes/service'; // Unused import removed
-import { errorHandler } from '../middleware/errorHandler';
 import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
+import { errorHandler } from '../middleware/errorHandler';
 
 // Define a simple User interface for testing
 interface User {
@@ -80,15 +80,25 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
       headers: { Authorization: 'Bearer testtoken' },
     });
     expect(response.statusCode).toBe(201);
-    testBusiness = JSON.parse(response.payload).data;
+    const responseData = JSON.parse(response.payload);
+    expect(responseData.success).toBe(true);
+    testBusiness = responseData.data;
     expect(testBusiness.id).toBeDefined();
+
+    // Activate the business for testing (services require ACTIVE status)
+    if (testBusiness && testBusiness.id) {
+      await prisma.business.update({
+        where: { id: testBusiness.id },
+        data: { status: 'ACTIVE' }
+      });
+    }
   });
 
   afterAll(async () => {
     if (app) {
       await app.close();
     }
-    if (testBusiness) {
+    if (testBusiness && testBusiness.id) {
       try {
         await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
         await prisma.business.delete({ where: { id: testBusiness.id } });
@@ -109,7 +119,9 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
       (natsConnection.publish as jest.Mock).mockClear();
     }
     // Clear existing availability rules for the test business before each test
-    await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
+    if (testBusiness && testBusiness.id) {
+      await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
+    }
   });
 
   describe('POST /api/v1/businesses/:businessId/availability (Set/Update Availability)', () => {

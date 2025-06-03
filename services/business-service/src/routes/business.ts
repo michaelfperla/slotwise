@@ -1,10 +1,10 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { z } from 'zod';
-import { BusinessService } from '../services/BusinessService';
-import { AvailabilityService } from '../services/AvailabilityService'; // Import AvailabilityService
 import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats';
+import { AvailabilityService } from '../services/AvailabilityService'; // Import AvailabilityService
+import { BusinessService } from '../services/BusinessService';
 import { zodToJsonSchema } from '../utils/schema';
 
 const businessService = new BusinessService(prisma, natsConnection);
@@ -64,16 +64,17 @@ export async function businessRoutes(fastify: FastifyInstance) {
         tags: ['Business'],
         summary: 'Create a new business',
         body: zodToJsonSchema(createBusinessSchema),
-        response: {
-          201: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              data: { type: 'object' },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
+        // Remove restrictive response schema that was stripping business data
+        // response: {
+        //   201: {
+        //     type: 'object',
+        //     properties: {
+        //       success: { type: 'boolean' },
+        //       data: { type: 'object' },
+        //       timestamp: { type: 'string' },
+        //     },
+        //   },
+        // },
       },
     },
     async (
@@ -98,12 +99,22 @@ export async function businessRoutes(fastify: FastifyInstance) {
           ownerId: userId,
         });
 
+        // Convert dates to strings to ensure proper JSON serialization
+        const businessData = {
+          ...business,
+          createdAt: business.createdAt.toISOString(),
+          updatedAt: business.updatedAt.toISOString(),
+          currentPeriodStart: business.currentPeriodStart.toISOString(),
+          currentPeriodEnd: business.currentPeriodEnd.toISOString(),
+        };
+
         return reply.status(201).send({
           success: true,
-          data: business,
+          data: businessData,
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
+
         if (error instanceof z.ZodError) {
           return reply.status(400).send({
             success: false,
@@ -112,7 +123,13 @@ export async function businessRoutes(fastify: FastifyInstance) {
             timestamp: new Date().toISOString(),
           });
         }
-        throw error;
+
+        console.error('Failed to create business', { error });
+        return reply.status(500).send({
+          success: false,
+          error: 'Internal server error',
+          timestamp: new Date().toISOString(),
+        });
       }
     }
   );
@@ -356,7 +373,8 @@ export async function businessRoutes(fastify: FastifyInstance) {
         tags: ['Business', 'Availability'],
         summary: 'Set or update availability for a business',
         params: zodToJsonSchema(businessIdParamsSchema),
-        body: zodToJsonSchema(setAvailabilitySchema),
+        // Temporarily remove schema validation to test if the issue is with zodToJsonSchema
+        // body: zodToJsonSchema(setAvailabilitySchema),
         response: {
           200: {
             type: 'object',
@@ -378,6 +396,9 @@ export async function businessRoutes(fastify: FastifyInstance) {
       reply: FastifyReply
     ) => {
       try {
+        // Manually validate with Zod since we removed Fastify schema validation
+        const validatedBody = setAvailabilitySchema.parse(request.body);
+
         const userId = request.user?.id;
         if (!userId) {
           return reply.status(401).send({
@@ -389,15 +410,39 @@ export async function businessRoutes(fastify: FastifyInstance) {
         const newAvailability = await availabilityService.setAvailability(
           request.params.businessId,
           userId, // Authorize by owner
-          request.body
+          validatedBody
         );
-        return reply.send({
+
+        // Convert dates to strings to ensure proper JSON serialization
+        const serializedAvailability = newAvailability.map(rule => ({
+          ...rule,
+          createdAt: rule.createdAt.toISOString(),
+          updatedAt: rule.updatedAt.toISOString(),
+        }));
+
+        const responseData = {
           success: true,
-          data: newAvailability,
+          data: serializedAvailability,
           message: 'Availability updated successfully.',
           timestamp: new Date().toISOString(),
-        });
+        };
+
+        // Bypass Fastify serialization by manually stringifying
+        return reply
+          .status(200)
+          .header('content-type', 'application/json')
+          .send(JSON.stringify(responseData));
       } catch (error: unknown) {
+        // Handle Zod validation errors
+        if (error instanceof z.ZodError) {
+          return reply.status(400).send({
+            success: false,
+            message: 'Validation error',
+            errors: error.errors,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
         // Changed from any to unknown
         fastify.log.error('Error setting availability:', error);
         // More specific error handling can be added here (e.g., validation errors, not found)
@@ -430,16 +475,17 @@ export async function businessRoutes(fastify: FastifyInstance) {
         tags: ['Business', 'Availability'],
         summary: 'Get availability for a business',
         params: zodToJsonSchema(businessIdParamsSchema),
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              data: { type: 'array', items: { type: 'object' } },
-              timestamp: { type: 'string' },
-            },
-          },
-        },
+        // Remove restrictive response schema that was stripping availability data
+        // response: {
+        //   200: {
+        //     type: 'object',
+        //     properties: {
+        //       success: { type: 'boolean' },
+        //       data: { type: 'array', items: { type: 'object' } },
+        //       timestamp: { type: 'string' },
+        //     },
+        //   },
+        // },
       },
     },
     async (
@@ -457,9 +503,16 @@ export async function businessRoutes(fastify: FastifyInstance) {
           userId
         );
 
+        // Convert dates to strings to ensure proper JSON serialization
+        const serializedAvailability = availability.map(rule => ({
+          ...rule,
+          createdAt: rule.createdAt.toISOString(),
+          updatedAt: rule.updatedAt.toISOString(),
+        }));
+
         return reply.send({
           success: true,
-          data: availability,
+          data: serializedAvailability,
           timestamp: new Date().toISOString(),
         });
       } catch (error: unknown) {

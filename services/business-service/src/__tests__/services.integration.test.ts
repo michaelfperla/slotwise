@@ -1,9 +1,9 @@
 import Fastify, { FastifyInstance } from 'fastify'; // Updated import
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats'; // Will use the Jest mock due to setup.ts
+import { errorHandler } from '../middleware/errorHandler';
 import { businessRoutes } from '../routes/business'; // For potential business creation prerequisite
 import { serviceRoutes } from '../routes/service';
-import { errorHandler } from '../middleware/errorHandler';
 // Define a simple User interface for testing
 interface User {
   id: string;
@@ -121,8 +121,18 @@ describe('Service Management API (/api/v1/services)', () => {
     });
 
     expect(response.statusCode).toBe(201); // Ensure business created
-    testBusiness = JSON.parse(response.payload).data;
+    const responseData = JSON.parse(response.payload);
+    expect(responseData.success).toBe(true);
+    testBusiness = responseData.data;
     expect(testBusiness.id).toBeDefined();
+
+    // Activate the business for testing (services require ACTIVE status)
+    if (testBusiness && testBusiness.id) {
+      await prisma.business.update({
+        where: { id: testBusiness.id },
+        data: { status: 'ACTIVE' }
+      });
+    }
   });
 
   afterAll(async () => {
@@ -130,9 +140,13 @@ describe('Service Management API (/api/v1/services)', () => {
       await app.close();
     }
     // Clean up database (e.g., delete the test business and its services)
-    if (testBusiness) {
-      await prisma.service.deleteMany({ where: { businessId: testBusiness.id } });
-      await prisma.business.delete({ where: { id: testBusiness.id } });
+    if (testBusiness && testBusiness.id) {
+      try {
+        await prisma.service.deleteMany({ where: { businessId: testBusiness.id } });
+        await prisma.business.delete({ where: { id: testBusiness.id } });
+      } catch (error) {
+        console.warn('Cleanup error (ignored):', error);
+      }
     }
     mockUser = null;
     if (natsConnection.isConnected()) {
@@ -245,7 +259,17 @@ describe('GET /api/v1/services (List Services)', () => {
       },
       headers: { Authorization: 'Bearer testtoken' },
     });
-    testBusiness = JSON.parse(bizResponse.payload).data;
+    const bizResponseData = JSON.parse(bizResponse.payload);
+    expect(bizResponseData.success).toBe(true);
+    testBusiness = bizResponseData.data;
+
+    // Activate the business for testing (services require ACTIVE status)
+    if (testBusiness && testBusiness.id) {
+      await prisma.business.update({
+        where: { id: testBusiness.id },
+        data: { status: 'ACTIVE' }
+      });
+    }
 
     const servicePayload1 = {
       name: 'Service A',
@@ -278,8 +302,14 @@ describe('GET /api/v1/services (List Services)', () => {
   });
 
   afterAll(async () => {
-    await prisma.service.deleteMany({ where: { businessId: testBusiness.id } });
-    await prisma.business.delete({ where: { id: testBusiness.id } });
+    if (testBusiness && testBusiness.id) {
+      try {
+        await prisma.service.deleteMany({ where: { businessId: testBusiness.id } });
+        await prisma.business.delete({ where: { id: testBusiness.id } });
+      } catch (error) {
+        console.warn('Cleanup error (ignored):', error);
+      }
+    }
     if (app) await app.close();
     mockUser = null;
   });
@@ -326,7 +356,17 @@ describe('GET /api/v1/services/:serviceId (Get Service by ID)', () => {
       },
       headers: { Authorization: 'Bearer testtoken' },
     });
-    testBusiness = JSON.parse(bizResponse.payload).data;
+    const bizResponseData = JSON.parse(bizResponse.payload);
+    expect(bizResponseData.success).toBe(true);
+    testBusiness = bizResponseData.data;
+
+    // Activate the business for testing (services require ACTIVE status)
+    if (testBusiness && testBusiness.id) {
+      await prisma.business.update({
+        where: { id: testBusiness.id },
+        data: { status: 'ACTIVE' }
+      });
+    }
 
     const servicePayload = { name: 'Specific Service', duration: 45, price: 450 };
     const servResponse = await app.inject({
@@ -339,8 +379,20 @@ describe('GET /api/v1/services/:serviceId (Get Service by ID)', () => {
   });
 
   afterAll(async () => {
-    if (testService) await prisma.service.delete({ where: { id: testService.id } });
-    if (testBusiness) await prisma.business.delete({ where: { id: testBusiness.id } });
+    if (testService && testService.id) {
+      try {
+        await prisma.service.delete({ where: { id: testService.id } });
+      } catch (error) {
+        console.warn('Service cleanup error (ignored):', error);
+      }
+    }
+    if (testBusiness && testBusiness.id) {
+      try {
+        await prisma.business.delete({ where: { id: testBusiness.id } });
+      } catch (error) {
+        console.warn('Business cleanup error (ignored):', error);
+      }
+    }
     if (app) await app.close();
     mockUser = null;
   });
@@ -401,7 +453,17 @@ describe('PUT /api/v1/services/:serviceId (Update Service)', () => {
       },
       headers: { Authorization: 'Bearer testtoken' },
     });
-    testBusiness = JSON.parse(bizResponse.payload).data;
+    const bizResponseData = JSON.parse(bizResponse.payload);
+    expect(bizResponseData.success).toBe(true);
+    testBusiness = bizResponseData.data;
+
+    // Activate the business for testing (services require ACTIVE status)
+    if (testBusiness && testBusiness.id) {
+      await prisma.business.update({
+        where: { id: testBusiness.id },
+        data: { status: 'ACTIVE' }
+      });
+    }
 
     const servicePayload = { name: 'Service to Update', duration: 50, price: 500 };
     const servResponse = await app.inject({
@@ -414,8 +476,14 @@ describe('PUT /api/v1/services/:serviceId (Update Service)', () => {
   });
 
   afterAll(async () => {
-    if (testService) await prisma.service.deleteMany({ where: { businessId: testBusiness.id } }); // Clean all from this business
-    if (testBusiness) await prisma.business.delete({ where: { id: testBusiness.id } });
+    if (testBusiness && testBusiness.id) {
+      try {
+        await prisma.service.deleteMany({ where: { businessId: testBusiness.id } }); // Clean all from this business
+        await prisma.business.delete({ where: { id: testBusiness.id } });
+      } catch (error) {
+        console.warn('Cleanup error (ignored):', error);
+      }
+    }
     if (app) await app.close();
     mockUser = null;
   });
@@ -467,7 +535,17 @@ describe('DELETE /api/v1/services/:serviceId (Delete Service)', () => {
       },
       headers: { Authorization: 'Bearer testtoken' },
     });
-    testBusiness = JSON.parse(bizResponse.payload).data;
+    const bizResponseData = JSON.parse(bizResponse.payload);
+    expect(bizResponseData.success).toBe(true);
+    testBusiness = bizResponseData.data;
+
+    // Activate the business for testing (services require ACTIVE status)
+    if (testBusiness && testBusiness.id) {
+      await prisma.business.update({
+        where: { id: testBusiness.id },
+        data: { status: 'ACTIVE' }
+      });
+    }
 
     const servicePayload = { name: 'Service to Delete', duration: 10, price: 100 };
     const servResponse = await app.inject({
@@ -481,8 +559,14 @@ describe('DELETE /api/v1/services/:serviceId (Delete Service)', () => {
 
   afterAll(async () => {
     // serviceToDelete might be null if it was deleted, so check DB by businessId or ensure cleanup in test
-    await prisma.service.deleteMany({ where: { businessId: testBusiness.id } });
-    await prisma.business.delete({ where: { id: testBusiness.id } });
+    if (testBusiness && testBusiness.id) {
+      try {
+        await prisma.service.deleteMany({ where: { businessId: testBusiness.id } });
+        await prisma.business.delete({ where: { id: testBusiness.id } });
+      } catch (error) {
+        console.warn('Cleanup error (ignored):', error);
+      }
+    }
     if (app) await app.close();
     mockUser = null;
   });

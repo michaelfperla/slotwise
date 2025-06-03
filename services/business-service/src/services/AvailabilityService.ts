@@ -1,4 +1,4 @@
-import { PrismaClient, Availability, DayOfWeek, Prisma } from '@prisma/client';
+import { Availability, DayOfWeek, Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats';
 import { logger } from '../utils/logger';
@@ -66,26 +66,28 @@ export class AvailabilityService {
         where: { businessId: businessId },
       });
 
-      if (data.rules.length === 0) {
-        return []; // Return empty if all rules are cleared
+      if (data.rules.length > 0) {
+        await tx.availability.createMany({
+          data: data.rules.map((rule: AvailabilityRuleData) => ({
+            businessId: businessId,
+            dayOfWeek: rule.dayOfWeek,
+            startTime: rule.startTime,
+            endTime: rule.endTime,
+          })),
+        });
       }
-
-      const createdRules = await tx.availability.createManyAndReturn({
-        // Prisma 5.1+ feature
-        data: data.rules.map((rule: AvailabilityRuleData) => ({
-          businessId: businessId,
-          dayOfWeek: rule.dayOfWeek,
-          startTime: rule.startTime,
-          endTime: rule.endTime,
-        })),
-      });
-      return createdRules;
     });
 
-    // Fetch the created rules with all fields (createManyAndReturn might not return relations)
+    // Fetch the created rules with all fields
     const fullNewRules = await this.prisma.availability.findMany({
       where: { businessId: businessId },
+      orderBy: [
+        { dayOfWeek: 'asc' },
+        { startTime: 'asc' },
+      ],
     });
+
+
 
     // Publish NATS event
     try {

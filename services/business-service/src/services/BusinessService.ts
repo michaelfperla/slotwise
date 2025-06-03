@@ -1,7 +1,7 @@
-import { PrismaClient, Business } from '@prisma/client';
+import { Business, PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid';
-import { logger } from '../utils/logger';
 import { natsConnection } from '../events/nats'; // Import natsConnection
+import { logger } from '../utils/logger';
 
 interface CreateBusinessData {
   name: string;
@@ -67,10 +67,9 @@ export class BusinessService {
         throw new Error('Subdomain already exists');
       }
 
-      // Create business
+      // Create business (let Prisma auto-generate the ID)
       const business = await this.prisma.business.create({
         data: {
-          id: nanoid(),
           name: data.name,
           description: data.description,
           subdomain: data.subdomain,
