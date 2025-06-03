@@ -32,7 +32,7 @@ class NATSConnection {
     }
   }
 
-  async publish(subject: string, data: any): Promise<void> {
+  async publish(subject: string, data: Record<string, unknown>): Promise<void> {
     if (!this.connection) {
       throw new Error('NATS connection not established');
     }
@@ -46,7 +46,10 @@ class NATSConnection {
     }
   }
 
-  async subscribe(subject: string, handler: (data: any) => Promise<void>): Promise<void> {
+  async subscribe(
+    subject: string,
+    handler: (data: Record<string, unknown>) => Promise<void>
+  ): Promise<void> {
     if (!this.connection) {
       throw new Error('NATS connection not established');
     }

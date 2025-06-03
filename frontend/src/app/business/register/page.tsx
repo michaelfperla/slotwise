@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,13 +29,15 @@ export default function BusinessRegisterPage() {
       setError('Invalid email format.');
       return;
     }
-    if (password.length < 6) { // Align with user registration password length
-        setError('Password must be at least 6 characters long.');
-        return;
+    if (password.length < 6) {
+      // Align with user registration password length
+      setError('Password must be at least 6 characters long.');
+      return;
     }
 
     try {
-      const res = await fetch('http://localhost:8001/api/v1/auth/register', { // Updated endpoint
+      const res = await fetch('http://localhost:8001/api/v1/auth/register', {
+        // Updated endpoint
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,34 +69,96 @@ export default function BusinessRegisterPage() {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: 'auto', marginTop: '50px', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
+    <div
+      style={{
+        maxWidth: '500px',
+        margin: 'auto',
+        marginTop: '50px',
+        padding: '20px',
+        border: '1px solid #ccc',
+        borderRadius: '8px',
+      }}
+    >
       <h1>Register as a Business Owner</h1>
       <p>Create your user account and register your first business.</p>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="firstName" style={{ display: 'block', marginBottom: '5px' }}>Your First Name:</label>
-          <input type="text" id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+          <label htmlFor="firstName" style={{ display: 'block', marginBottom: '5px' }}>
+            Your First Name:
+          </label>
+          <input
+            type="text"
+            id="firstName"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            required
+            style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+          />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="lastName" style={{ display: 'block', marginBottom: '5px' }}>Your Last Name:</label>
-          <input type="text" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+          <label htmlFor="lastName" style={{ display: 'block', marginBottom: '5px' }}>
+            Your Last Name:
+          </label>
+          <input
+            type="text"
+            id="lastName"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            required
+            style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+          />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>Your Email:</label>
-          <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>
+            Your Email:
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+          />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>Create Password:</label>
-          <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
+            Create Password:
+          </label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            minLength={6}
+            style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+          />
         </div>
-        <hr style={{margin: "20px 0"}} />
+        <hr style={{ margin: '20px 0' }} />
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="businessName" style={{ display: 'block', marginBottom: '5px' }}>Business Name:</label>
-          <input type="text" id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+          <label htmlFor="businessName" style={{ display: 'block', marginBottom: '5px' }}>
+            Business Name:
+          </label>
+          <input
+            type="text"
+            id="businessName"
+            value={businessName}
+            onChange={e => setBusinessName(e.target.value)}
+            required
+            style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+          />
         </div>
-         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="timezone" style={{ display: 'block', marginBottom: '5px' }}>Timezone:</label>
-          <select id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}>
+        <div style={{ marginBottom: '15px' }}>
+          <label htmlFor="timezone" style={{ display: 'block', marginBottom: '5px' }}>
+            Timezone:
+          </label>
+          <select
+            id="timezone"
+            value={timezone}
+            onChange={e => setTimezone(e.target.value)}
+            style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+          >
             {/* Add more timezones as needed */}
             <option value="UTC">UTC</option>
             <option value="America/New_York">America/New_York</option>
@@ -108,15 +172,32 @@ export default function BusinessRegisterPage() {
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {success && <p style={{ color: 'green' }}>{success}</p>}
-        <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <button
+          type="submit"
+          style={{
+            width: '100%',
+            padding: '10px',
+            backgroundColor: '#0070f3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
+        >
           Register User and Business
         </button>
       </form>
       <p style={{ marginTop: '15px', textAlign: 'center' }}>
-        Already have an account? <a href="/login" style={{ color: '#0070f3', textDecoration: 'none' }}>Login here</a>
+        Already have an account?{' '}
+        <a href="/login" style={{ color: '#0070f3', textDecoration: 'none' }}>
+          Login here
+        </a>
       </p>
       <p style={{ marginTop: '10px', textAlign: 'center' }}>
-        Just want a regular user account? <a href="/register" style={{ color: '#0070f3', textDecoration: 'none' }}>Register here</a>
+        Just want a regular user account?{' '}
+        <a href="/register" style={{ color: '#0070f3', textDecoration: 'none' }}>
+          Register here
+        </a>
       </p>
     </div>
   );

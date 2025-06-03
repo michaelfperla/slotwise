@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   displayName: 'business-service',
   preset: 'ts-jest',
   testEnvironment: 'node',

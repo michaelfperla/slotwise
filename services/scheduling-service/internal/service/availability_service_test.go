@@ -38,7 +38,8 @@ func (suite *AvailabilityServiceTestSuite) SetupSuite() {
 	// For AvailabilityService, eventPublisher and cacheRepo are currently nil.
 	// GetAvailableSlots now uses BookingRepo.
 	bookingRepo := repository.NewBookingRepository(suite.DB) // Create BookingRepo for AvailabilityService
-	suite.AvailabilityService = service.NewAvailabilityService(suite.AvailabilityRepo, bookingRepo, nil, suite.TestLogger)
+	// Provide nil for CacheRepository and events.Publisher as per constructor
+	suite.AvailabilityService = service.NewAvailabilityService(suite.AvailabilityRepo, bookingRepo, nil, nil, suite.TestLogger)
 }
 
 func (suite *AvailabilityServiceTestSuite) TearDownSuite() {

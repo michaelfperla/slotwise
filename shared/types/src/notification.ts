@@ -7,7 +7,7 @@ export interface Notification extends BaseEntity {
   subject?: string;
   content: string;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>; // Changed from any
   status: NotificationStatus;
   sentAt?: Date;
   deliveredAt?: Date;
@@ -72,7 +72,7 @@ export interface CreateNotificationRequest {
   subject?: string;
   content?: string;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>; // Ensure only one line remains
   priority?: NotificationPriority;
   scheduledFor?: Date;
 }
@@ -84,7 +84,7 @@ export interface BulkNotificationRequest {
   subject?: string;
   content?: string;
   templateId?: string;
-  templateData?: Record<string, any>;
+  templateData?: Record<string, unknown>; // Changed from any
   priority?: NotificationPriority;
   scheduledFor?: Date;
 }
@@ -156,5 +156,5 @@ export interface NotificationWebhook {
   type: 'delivery' | 'bounce' | 'complaint' | 'click' | 'open';
   notificationId: string;
   timestamp: Date;
-  data: Record<string, any>;
+  data: Record<string, unknown>; // Changed from any
 }

@@ -37,11 +37,13 @@ func (suite *AvailabilityHandlerTestSuite) SetupSuite() {
 	}
 	suite.DB = db
 
-	err = suite.DB.AutoMigrate(&models.ServiceDefinition{}, &models.AvailabilityRule{})
+	err = suite.DB.AutoMigrate(&models.ServiceDefinition{}, &models.AvailabilityRule{}, &models.Booking{}) // Added Booking for bookingRepo
 	assert.NoError(suite.T(), err)
 
 	suite.AvailabilityRepo = repository.NewAvailabilityRepository(suite.DB)
-	suite.AvailabilityService = service.NewAvailabilityService(suite.AvailabilityRepo, nil, nil, suite.TestLogger) // Mock cache & publisher
+	bookingRepo := repository.NewBookingRepository(suite.DB) // Create BookingRepo
+	// Pass bookingRepo, and nil for CacheRepository and EventPublisher
+	suite.AvailabilityService = service.NewAvailabilityService(suite.AvailabilityRepo, bookingRepo, nil, nil, suite.TestLogger)
 
 	// Setup router
 	gin.SetMode(gin.TestMode)

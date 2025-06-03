@@ -16,7 +16,7 @@ export interface Payment extends BaseEntity {
   netAmount: number;
   processedAt?: Date;
   refundedAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>; // Changed from any
 }
 
 export enum PaymentStatus {
@@ -48,7 +48,7 @@ export interface PaymentIntent {
   clientId: string;
   createdAt: Date;
   expiresAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>; // Changed from any
 }
 
 export enum PaymentIntentStatus {
@@ -65,7 +65,7 @@ export interface CreatePaymentIntentRequest {
   amount: number;
   currency: string;
   paymentMethods?: PaymentMethodDetails[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>; // Changed from any
 }
 
 export interface ConfirmPaymentRequest {
@@ -158,7 +158,7 @@ export interface StripeWebhookEvent {
   id: string;
   type: string;
   data: {
-    object: any;
+    object: Record<string, unknown>; // Changed from any
   };
   created: number;
   livemode: boolean;

@@ -16,12 +16,15 @@ class EmailService {
       }
       this.fromEmail = config.email.sendgrid.fromEmail || 'noreply@slotwise.com';
     } else if (this.emailProvider === 'ses') {
-        // AWS SES setup would go here using aws-sdk v3
-        // e.g. import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-        // this.sesClient = new SESClient({ region: config.email.ses.region, credentials: {...} });
-        logger.warn("SES email provider is configured but not fully implemented in this MVP EmailService example.");
-        this.fromEmail = config.email.ses.fromEmail || 'noreply@slotwise.com';
-    } else { // Default to console
+      // AWS SES setup would go here using aws-sdk v3
+      // e.g. import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+      // this.sesClient = new SESClient({ region: config.email.ses.region, credentials: {...} });
+      logger.warn(
+        'SES email provider is configured but not fully implemented in this MVP EmailService example.'
+      );
+      this.fromEmail = config.email.ses.fromEmail || 'noreply@slotwise.com';
+    } else {
+      // Default to console
       this.fromEmail = 'console-sender@slotwise.com'; // From address for console logs
       logger.info(`Email provider set to 'console'. Emails will be logged to the console.`);
     }
@@ -32,14 +35,14 @@ class EmailService {
 
     if (this.emailProvider === 'sendgrid') {
       if (!config.email.sendgrid.apiKey) {
-        logger.error("Cannot send email via SendGrid: API key not configured.");
+        logger.error('Cannot send email via SendGrid: API key not configured.');
         // Fallback to console to ensure notification is not lost in dev if key is missing
         this.logToConsole(to, subject, htmlBody, textBody);
         return;
       }
       const msg = {
         to: to,
-        from: this.fromEmail, 
+        from: this.fromEmail,
         subject: subject,
         text: textBody, // Optional plain text version
         html: htmlBody,
@@ -47,16 +50,41 @@ class EmailService {
       try {
         await sgMail.send(msg);
         logger.info(`Email sent successfully via SendGrid to ${to}`, { subject });
-      } catch (error: any) {
-        logger.error('Error sending email via SendGrid', { error: error.response?.body || error.message });
+      } catch (error: unknown) {
+        // Changed from any to unknown
+        let errorMessage = 'An unknown error occurred';
+        if (error instanceof Error) {
+          // Standard Error object
+          errorMessage = error.message;
+          // Check if it's a SendGrid specific error structure
+          interface SendGridError {
+            // Define interface for SendGrid error shape
+            response?: {
+              body?: unknown; // Body can be complex, stringify it
+            };
+          }
+          // Check if error has SendGrid-like properties before asserting
+          if (typeof error === 'object' && error !== null && 'response' in error) {
+            const sgError = error as SendGridError;
+            if (sgError.response?.body) {
+              errorMessage = JSON.stringify(sgError.response.body);
+            }
+          }
+        } else {
+          errorMessage = JSON.stringify(error);
+        }
+        logger.error('Error sending email via SendGrid', { error: errorMessage });
         // Optionally, implement a fallback or re-queue mechanism here
-        throw error; // Re-throw to indicate failure
+        throw error; // Re-throw to indicate failure, or throw new Error(errorMessage)
       }
     } else if (this.emailProvider === 'ses') {
-        // TODO: Implement AWS SES sending logic
-        logger.warn(`SES provider selected, but sending not implemented. Logging to console instead.`);
-        this.logToConsole(to, subject, htmlBody, textBody);
-    } else { // 'console' or any other provider falls back to console
+      // TODO: Implement AWS SES sending logic
+      logger.warn(
+        `SES provider selected, but sending not implemented. Logging to console instead.`
+      );
+      this.logToConsole(to, subject, htmlBody, textBody);
+    } else {
+      // 'console' or any other provider falls back to console
       this.logToConsole(to, subject, htmlBody, textBody);
     }
   }
@@ -69,7 +97,10 @@ class EmailService {
     if (textBody) {
       logger.info('Text Body:\n', textBody);
     }
-    logger.info('HTML Body (first 200 chars):\n', htmlBody.substring(0, Math.min(htmlBody.length, 200)) + "...");
+    logger.info(
+      'HTML Body (first 200 chars):\n',
+      htmlBody.substring(0, Math.min(htmlBody.length, 200)) + '...'
+    );
     // In a real console logger, you might write the HTML to a temp file or avoid logging very large bodies.
     logger.info('--- END CONSOLE EMAIL ---');
   }

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,14 +29,16 @@ export default function NewServicePage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
-    
+
     let processedValue: string | number | boolean = value;
     if (type === 'checkbox') {
-        processedValue = (e.target as HTMLInputElement).checked;
+      processedValue = (e.target as HTMLInputElement).checked;
     } else if (type === 'number') {
-        processedValue = value === '' ? '' : Number(value); // Allow empty string for number inputs initially
+      processedValue = value === '' ? '' : Number(value); // Allow empty string for number inputs initially
     }
 
     setFormData(prev => ({ ...prev, [name]: processedValue }));
@@ -48,43 +50,43 @@ export default function NewServicePage() {
 
     // Basic Validation
     if (!formData.name.trim()) {
-      setError("Service name is required.");
+      setError('Service name is required.');
       return;
     }
     if (formData.duration <= 0) {
-      setError("Duration must be a positive number.");
+      setError('Duration must be a positive number.');
       return;
     }
     if (formData.price < 0) {
-      setError("Price cannot be negative.");
+      setError('Price cannot be negative.');
       return;
     }
     if (formData.currency && formData.currency.length !== 3) {
-        setError("Currency code must be 3 characters (e.g., USD).");
-        return;
+      setError('Currency code must be 3 characters (e.g., USD).');
+      return;
     }
-
 
     setIsSubmitting(true);
     const token = localStorage.getItem('authToken');
     if (!token) {
-      setError("Authentication token not found. Please login again.");
+      setError('Authentication token not found. Please login again.');
       setIsSubmitting(false);
       router.push('/login');
       return;
     }
 
     try {
-      const response = await fetch('/api/v1/services', { // Business Service POST endpoint
+      const response = await fetch('/api/v1/services', {
+        // Business Service POST endpoint
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            ...formData,
-            price: Number(formData.price), // Ensure price is number
-            duration: Number(formData.duration), // Ensure duration is number
+          ...formData,
+          price: Number(formData.price), // Ensure price is number
+          duration: Number(formData.duration), // Ensure duration is number
         }),
       });
 
@@ -94,12 +96,17 @@ export default function NewServicePage() {
       }
 
       // On success
-      alert("Service created successfully!");
+      alert('Service created successfully!');
       router.push('/business/dashboard/services'); // Redirect back to services list
       // Optionally, invalidate TanStack Query cache for services list here
-
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : 'An unexpected error occurred.';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -108,38 +115,106 @@ export default function NewServicePage() {
   return (
     <div style={{ maxWidth: '600px', margin: 'auto', padding: '20px' }}>
       <h1>Add New Service</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
+      >
         <div>
-          <label htmlFor="name" style={labelStyle}>Service Name:</label>
-          <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
+          <label htmlFor="name" style={labelStyle}>
+            Service Name:
+          </label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          />
         </div>
         <div>
-          <label htmlFor="description" style={labelStyle}>Description (Optional):</label>
-          <textarea name="description" id="description" value={formData.description} onChange={handleChange} style={{...inputStyle, height: '80px'}} />
+          <label htmlFor="description" style={labelStyle}>
+            Description (Optional):
+          </label>
+          <textarea
+            name="description"
+            id="description"
+            value={formData.description}
+            onChange={handleChange}
+            style={{ ...inputStyle, height: '80px' }}
+          />
         </div>
         <div>
-          <label htmlFor="duration" style={labelStyle}>Duration (minutes):</label>
-          <input type="number" name="duration" id="duration" value={formData.duration} onChange={handleChange} required min="1" style={inputStyle} />
+          <label htmlFor="duration" style={labelStyle}>
+            Duration (minutes):
+          </label>
+          <input
+            type="number"
+            name="duration"
+            id="duration"
+            value={formData.duration}
+            onChange={handleChange}
+            required
+            min="1"
+            style={inputStyle}
+          />
         </div>
         <div>
-          <label htmlFor="price" style={labelStyle}>Price:</label>
-          <input type="number" name="price" id="price" value={formData.price} onChange={handleChange} required min="0" step="0.01" style={inputStyle} />
+          <label htmlFor="price" style={labelStyle}>
+            Price:
+          </label>
+          <input
+            type="number"
+            name="price"
+            id="price"
+            value={formData.price}
+            onChange={handleChange}
+            required
+            min="0"
+            step="0.01"
+            style={inputStyle}
+          />
         </div>
         <div>
-          <label htmlFor="currency" style={labelStyle}>Currency (e.g., USD):</label>
-          <input type="text" name="currency" id="currency" value={formData.currency} onChange={handleChange} maxLength={3} style={inputStyle} />
+          <label htmlFor="currency" style={labelStyle}>
+            Currency (e.g., USD):
+          </label>
+          <input
+            type="text"
+            name="currency"
+            id="currency"
+            value={formData.currency}
+            onChange={handleChange}
+            maxLength={3}
+            style={inputStyle}
+          />
         </div>
         <div>
           <label htmlFor="isActive" style={labelStyle}>
-            <input type="checkbox" name="isActive" id="isActive" checked={formData.isActive} onChange={handleChange} style={{ marginRight: '5px' }} />
+            <input
+              type="checkbox"
+              name="isActive"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={handleChange}
+              style={{ marginRight: '5px' }}
+            />
             Service is Active
           </label>
         </div>
 
         {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-          <button type="button" onClick={() => router.back()} disabled={isSubmitting} style={{ ...buttonStyle, backgroundColor: '#ccc' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}
+        >
+          <button
+            type="button"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+            style={{ ...buttonStyle, backgroundColor: '#ccc' }}
+          >
             Cancel
           </button>
           <button type="submit" disabled={isSubmitting} style={buttonStyle}>

@@ -5,6 +5,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/slotwise/scheduling-service/internal/config"
+	"github.com/slotwise/scheduling-service/internal/models" // Added import for models
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

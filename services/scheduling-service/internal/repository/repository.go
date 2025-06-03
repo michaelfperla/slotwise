@@ -21,35 +21,6 @@ type CacheRepository struct {
 	client *redis.Client
 }
 
-// Booking represents a booking entity (stub)
-type Booking struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	ServiceID string    `json:"service_id"`
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// NewBookingRepository creates a new booking repository
-func NewBookingRepository(db *gorm.DB) *BookingRepository {
-	return &BookingRepository{db: db}
-}
-
-// Create creates a new booking (stub)
-func (r *BookingRepository) Create(ctx context.Context, booking *Booking) error {
-	// TODO: Implement actual database operations
-	return nil
-}
-
-// GetByID gets a booking by ID (stub)
-func (r *BookingRepository) GetByID(ctx context.Context, id string) (*Booking, error) {
-	// TODO: Implement actual database operations
-	return &Booking{ID: id}, nil
-}
-
 // NewAvailabilityRepository creates a new availability repository
 func NewAvailabilityRepository(db *gorm.DB) *AvailabilityRepository {
 	return &AvailabilityRepository{db: db}

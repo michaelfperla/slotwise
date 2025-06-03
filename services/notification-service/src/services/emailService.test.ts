@@ -8,7 +8,6 @@ jest.spyOn(logger, 'info');
 // Spy on logger.error for error cases
 jest.spyOn(logger, 'error');
 
-
 describe('EmailService', () => {
   const originalEmailProvider = config.email.provider;
   const originalSendgridApiKey = config.email.sendgrid.apiKey;
@@ -18,7 +17,7 @@ describe('EmailService', () => {
     (sgMail.send as jest.Mock).mockClear();
     (logger.info as jest.Mock).mockClear();
     (logger.error as jest.Mock).mockClear();
-    
+
     // Ensure a default state for config if tests modify it
     config.email.provider = originalEmailProvider;
     config.email.sendgrid.apiKey = originalSendgridApiKey;
@@ -46,23 +45,32 @@ describe('EmailService', () => {
       textBody: 'Hello World',
     };
 
-    await testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody, testMail.textBody);
+    await testEmailService.sendEmail(
+      testMail.to,
+      testMail.subject,
+      testMail.htmlBody,
+      testMail.textBody
+    );
 
     expect(sgMail.send).toHaveBeenCalledTimes(1);
-    expect(sgMail.send).toHaveBeenCalledWith(expect.objectContaining({
-      to: testMail.to,
-      from: config.email.sendgrid.fromEmail, // or the default
-      subject: testMail.subject,
-      html: testMail.htmlBody,
-      text: testMail.textBody,
-    }));
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Email sent successfully via SendGrid'), expect.anything());
+    expect(sgMail.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: testMail.to,
+        from: config.email.sendgrid.fromEmail, // or the default
+        subject: testMail.subject,
+        html: testMail.htmlBody,
+        text: testMail.textBody,
+      })
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining('Email sent successfully via SendGrid'),
+      expect.anything()
+    );
   });
 
   it('should log to console if provider is "console"', async () => {
     config.email.provider = 'console';
     const testEmailService = new (emailService as any).constructor();
-
 
     const testMail = {
       to: 'console@example.com',
@@ -71,12 +79,15 @@ describe('EmailService', () => {
     };
 
     await testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody);
-    
+
     expect(sgMail.send).not.toHaveBeenCalled();
     expect(logger.info).toHaveBeenCalledWith('--- CONSOLE EMAIL ---');
     expect(logger.info).toHaveBeenCalledWith(`To: ${testMail.to}`);
     expect(logger.info).toHaveBeenCalledWith(`Subject: ${testMail.subject}`);
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('HTML Body'), expect.stringContaining(testMail.htmlBody.substring(0,10)));
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining('HTML Body'),
+      expect.stringContaining(testMail.htmlBody.substring(0, 10))
+    );
     expect(logger.info).toHaveBeenCalledWith('--- END CONSOLE EMAIL ---');
   });
 
@@ -84,7 +95,6 @@ describe('EmailService', () => {
     config.email.provider = 'sendgrid';
     config.email.sendgrid.apiKey = undefined; // Simulate missing API key
     const testEmailService = new (emailService as any).constructor();
-
 
     const testMail = {
       to: 'fallback@example.com',
@@ -95,11 +105,13 @@ describe('EmailService', () => {
     await testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody);
 
     expect(sgMail.send).not.toHaveBeenCalled(); // SendGrid send should not be called
-    expect(logger.error).toHaveBeenCalledWith("Cannot send email via SendGrid: API key not configured.");
+    expect(logger.error).toHaveBeenCalledWith(
+      'Cannot send email via SendGrid: API key not configured.'
+    );
     expect(logger.info).toHaveBeenCalledWith('--- CONSOLE EMAIL ---'); // Check if it falls back to console
     expect(logger.info).toHaveBeenCalledWith(`To: ${testMail.to}`);
   });
-  
+
   it('should handle SendGrid send errors', async () => {
     config.email.provider = 'sendgrid';
     config.email.sendgrid.apiKey = 'test-api-key';
@@ -112,12 +124,15 @@ describe('EmailService', () => {
       subject: 'Error Test',
       htmlBody: '<p>Error Hello</p>',
     };
-    
-    await expect(testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody))
-      .rejects.toThrow('SendGrid API Error');
-    
-    expect(sgMail.send).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith('Error sending email via SendGrid', expect.objectContaining({ error: 'SendGrid API Error' }));
-  });
 
+    await expect(
+      testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody)
+    ).rejects.toThrow('SendGrid API Error');
+
+    expect(sgMail.send).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      'Error sending email via SendGrid',
+      expect.objectContaining({ error: 'SendGrid API Error' })
+    );
+  });
 });

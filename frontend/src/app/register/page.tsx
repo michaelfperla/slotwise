@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,8 @@ export default function RegisterPage() {
     }
 
     try {
-      const res = await fetch('http://localhost:8001/api/v1/auth/register', { // Added /api/v1
+      const res = await fetch('http://localhost:8001/api/v1/auth/register', {
+        // Added /api/v1
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,27 +52,40 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: 'auto', marginTop: '50px', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
+    <div
+      style={{
+        maxWidth: '400px',
+        margin: 'auto',
+        marginTop: '50px',
+        padding: '20px',
+        border: '1px solid #ccc',
+        borderRadius: '8px',
+      }}
+    >
       <h1>Register</h1>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>Email:</label>
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>
+            Email:
+          </label>
           <input
             type="email"
             id="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             required
             style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
           />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>Password:</label>
+          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
+            Password:
+          </label>
           <input
             type="password"
             id="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             required
             minLength={6} // Basic password length validation
             style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
@@ -79,7 +93,18 @@ export default function RegisterPage() {
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {success && <p style={{ color: 'green' }}>{success}</p>}
-        <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <button
+          type="submit"
+          style={{
+            width: '100%',
+            padding: '10px',
+            backgroundColor: '#0070f3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
+        >
           Register
         </button>
       </form>

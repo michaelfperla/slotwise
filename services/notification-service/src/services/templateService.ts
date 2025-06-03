@@ -4,10 +4,10 @@ import path from 'path';
 import { logger } from '../utils/logger';
 
 // Define a type for the template names for better type safety
-export type TemplateName = 
-  | 'booking-confirmation' 
-  | 'new-booking-to-business' 
-  | 'booking-cancellation-customer' 
+export type TemplateName =
+  | 'booking-confirmation'
+  | 'new-booking-to-business'
+  | 'booking-cancellation-customer'
   | 'booking-cancellation-business';
 
 interface TemplateCache {
@@ -20,8 +20,8 @@ class TemplateService {
 
   constructor() {
     this.preloadTemplates().catch(err => {
-        logger.error("Failed to preload templates", { error: err });
-        // Depending on strategy, might want to throw or exit if critical templates fail
+      logger.error('Failed to preload templates', { error: err });
+      // Depending on strategy, might want to throw or exit if critical templates fail
     });
   }
 
@@ -40,10 +40,13 @@ class TemplateService {
         logger.error(`Failed to load template ${name} from ${file}`, { error });
       }
     }
-    logger.info("Templates preloaded (or attempted).");
+    logger.info('Templates preloaded (or attempted).');
   }
 
-  private async loadTemplate(name: TemplateName, filename: string): Promise<handlebars.HandlebarsTemplateDelegate> {
+  private async loadTemplate(
+    name: TemplateName,
+    filename: string
+  ): Promise<handlebars.HandlebarsTemplateDelegate> {
     if (this.templateCache[name]) {
       return this.templateCache[name];
     }
@@ -61,23 +64,25 @@ class TemplateService {
     }
   }
 
-  public async render(templateName: TemplateName, data: any): Promise<string> {
+  public async render(templateName: TemplateName, data: Record<string, unknown>): Promise<string> {
+    // data: any -> Record<string, unknown>
     let template = this.templateCache[templateName];
     if (!template) {
       // Attempt to load on-demand if not preloaded or if preloading failed for this specific template
       logger.warn(`Template ${templateName} not found in cache, attempting to load on-demand.`);
       // Construct filename based on templateName, assuming a convention like 'templateName.hbs'
-      const filename = `${templateName}.hbs`; 
+      const filename = `${templateName}.hbs`;
       template = await this.loadTemplate(templateName, filename);
     }
 
     // Add current year for footer automatically if not provided
-    if (!data.currentYear) {
-        data.currentYear = new Date().getFullYear();
+    const renderData = { ...data }; // Clone data to avoid modifying original
+    if (!renderData.currentYear) {
+      renderData.currentYear = new Date().getFullYear();
     }
 
     try {
-      return template(data);
+      return template(renderData);
     } catch (error) {
       logger.error(`Error rendering template ${templateName}:`, { error, templateData: data });
       throw new Error(`Could not render template ${templateName}`);

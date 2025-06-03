@@ -2,8 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt" // Added import
+	"strconv" // Added import
+	"strings" // Added import
 	"time"
 
+	"github.com/slotwise/scheduling-service/internal/models" // Added import
 	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/pkg/events"
 	"github.com/slotwise/scheduling-service/pkg/logger"
@@ -14,7 +18,7 @@ type BookingService struct {
 	bookingRepo         *repository.BookingRepository      // Changed field name for clarity
 	availabilityService *AvailabilityService
 	serviceDefRepo      *repository.AvailabilityRepository // To get service definitions (duration)
-	eventPublisher      *events.Publisher
+	eventPublisher      EventPublisher // Interface
 	logger              *logger.Logger
 }
 
@@ -23,8 +27,14 @@ type AvailabilityService struct {
 	availabilityRepo *repository.AvailabilityRepository // Renamed from 'repo'
 	bookingRepo      *repository.BookingRepository      // Added for conflict checking in GetAvailableSlots
 	cacheRepo        *repository.CacheRepository
-	eventPublisher   *events.Publisher
+	eventPublisher   EventPublisher // Interface
 	logger           *logger.Logger
+}
+
+// EventPublisher defines the interface for publishing events.
+// This allows for pkg/events.Publisher or a mock to be used.
+type EventPublisher interface {
+	Publish(subject string, data interface{}) error
 }
 
 // NewBookingService creates a new booking service
@@ -32,7 +42,7 @@ func NewBookingService(
 	bookingRepo *repository.BookingRepository,
 	availabilityService *AvailabilityService,
 	serviceDefRepo *repository.AvailabilityRepository, // For fetching service definitions
-	eventPublisher *events.Publisher,
+	eventPublisher EventPublisher, // Interface
 	logger *logger.Logger,
 ) *BookingService {
 	return &BookingService{
@@ -269,7 +279,7 @@ func NewAvailabilityService(
 	availabilityRepo *repository.AvailabilityRepository,
 	bookingRepo *repository.BookingRepository, // Added
 	cacheRepo *repository.CacheRepository,
-	eventPublisher *events.Publisher,
+	eventPublisher EventPublisher, // Interface
 	logger *logger.Logger,
 ) *AvailabilityService {
 	return &AvailabilityService{
@@ -373,11 +383,11 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 	// Fetch relevant bookings for the entire day to minimize DB calls.
 	// Bookings could potentially span across the start/end of the day if they are long.
 	// For simplicity, fetching bookings that overlap with the dateToSchedule's full day range.
-	dayStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), 0, 0, 0, 0, dateToSchedule.Location())
-	dayEnd := dayStart.Add(24 * time.Hour)
+	// dayStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), 0, 0, 0, 0, dateToSchedule.Location()) // Unused
+	// dayEnd := dayStart.Add(24 * time.Hour) // Unused
 
 	// FindConflictingBookings needs to be adjusted or a new method in bookingRepo created
-	// to fetch bookings for a business in a given time range (dayStart to dayEnd)
+	// to fetch bookings for a business in a given time range (e.g., dayStart to dayEnd)
 	// that are 'CONFIRMED' or 'PENDING_PAYMENT'.
 	// Let's assume bookingRepo.FindBookingsInTimeRangeForBusiness(ctx, businessID, dayStart, dayEnd)
 	// For now, I'll use the existing FindConflictingBookings and iterate, which is less efficient.

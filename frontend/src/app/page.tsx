@@ -16,11 +16,37 @@ export default function Home() {
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Welcome to the Application</h1>
           <p>Navigate to:</p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li><a href="/login" style={{ color: '#0070f3', textDecoration: 'underline' }}>Login</a></li>
-            <li><a href="/register" style={{ color: '#0070f3', textDecoration: 'underline' }}>Register</a></li>
-            <li><a href="/dashboard" style={{ color: '#0070f3', textDecoration: 'underline' }}>User Dashboard (Login Required)</a></li>
-            <li><a href="/business/register" style={{ color: '#0070f3', textDecoration: 'underline' }}>Register Business (Login Required)</a></li>
-            <li><a href="/business/dashboard" style={{ color: '#0070f3', textDecoration: 'underline' }}>Business Dashboard (Login Required)</a></li>
+            <li>
+              <a href="/login" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+                Login
+              </a>
+            </li>
+            <li>
+              <a href="/register" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+                Register
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+                User Dashboard (Login Required)
+              </a>
+            </li>
+            <li>
+              <a
+                href="/business/register"
+                style={{ color: '#0070f3', textDecoration: 'underline' }}
+              >
+                Register Business (Login Required)
+              </a>
+            </li>
+            <li>
+              <a
+                href="/business/dashboard"
+                style={{ color: '#0070f3', textDecoration: 'underline' }}
+              >
+                Business Dashboard (Login Required)
+              </a>
+            </li>
           </ul>
         </div>
 

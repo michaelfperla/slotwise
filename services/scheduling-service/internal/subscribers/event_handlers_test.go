@@ -3,7 +3,6 @@ package subscribers_test
 import (
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/slotwise/scheduling-service/internal/models"
 	"github.com/slotwise/scheduling-service/internal/subscribers"
@@ -163,7 +162,7 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_Repla
 	businessID := "biz-avail-2"
 	// Initial rules
 	initialRules := []models.AvailabilityRule{
-		{BusinessID: businessID, DayOfWeek: models.WEDNESDAY, StartTime: "08:00", EndTime: "12:00"},
+		{BusinessID: businessID, DayOfWeek: models.Wednesday, StartTime: "08:00", EndTime: "12:00"},
 	}
 	suite.DB.Create(&initialRules)
 
@@ -171,7 +170,7 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_Repla
 	payload := subscribers.BusinessAvailabilityUpdatedPayload{
 		BusinessID: businessID,
 		Rules: []subscribers.AvailabilityRulePayload{
-			{DayOfWeek: "FRIDAY", StartTime: "14:00", EndTime: "18:00"},
+			{DayOfWeek: "FRIDAY", StartTime: "14:00", EndTime: "18:00"}, // Note: Payload uses strings, DB uses models.DayOfWeekString
 		},
 	}
 	eventData, _ := json.Marshal(payload)
@@ -181,7 +180,7 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_Repla
 	var rules []models.AvailabilityRule
 	suite.DB.Where("business_id = ?", businessID).Find(&rules)
 	assert.Len(t, rules, 1)
-	assert.Equal(t, models.Friday, rules[0].DayOfWeek)
+	assert.Equal(t, models.Friday, rules[0].DayOfWeek) // Corrected from FRIDAY
 	assert.Equal(t, "14:00", rules[0].StartTime)
 }
 
@@ -190,7 +189,7 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_Clear
 	businessID := "biz-avail-3"
 	// Initial rules
 	initialRules := []models.AvailabilityRule{
-		{BusinessID: businessID, DayOfWeek: models.THURSDAY, StartTime: "09:00", EndTime: "17:00"},
+		{BusinessID: businessID, DayOfWeek: models.Thursday, StartTime: "09:00", EndTime: "17:00"},
 	}
 	suite.DB.Create(&initialRules)
 

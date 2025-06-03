@@ -17,6 +17,7 @@ import (
 	"github.com/slotwise/scheduling-service/internal/middleware"
 	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/internal/service"
+	"github.com/slotwise/scheduling-service/internal/subscribers" // Added import
 	"github.com/slotwise/scheduling-service/pkg/events"
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/slotwise/scheduling-service/pkg/scheduler"

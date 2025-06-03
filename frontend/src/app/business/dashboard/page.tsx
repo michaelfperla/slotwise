@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,17 +29,15 @@ export default function BusinessDashboardPage() {
         // If not an owner or no business associated, redirect to user dashboard or an error page
         // For now, just a console warning and let them see a generic page.
         // In a stricter setup, you might redirect: router.push('/dashboard');
-        console.warn("User may not be a business owner or no businessId in token.");
+        console.warn('User may not be a business owner or no businessId in token.');
       }
       // For display, try to get a business name if available, otherwise a generic welcome.
-      setBusinessName(payload.businessName || "Your Business");
-
+      setBusinessName(payload.businessName || 'Your Business');
     } catch (e) {
-      console.error("Failed to parse token or invalid token:", e);
+      console.error('Failed to parse token or invalid token:', e);
       localStorage.removeItem('authToken');
       router.push('/login');
     }
-
   }, [router]);
 
   const handleLogout = () => {
@@ -56,22 +54,52 @@ export default function BusinessDashboardPage() {
     <div style={{ padding: '20px' }}>
       <h1>Business Dashboard</h1>
       <p>Welcome, {businessName}!</p>
-      <p>This is your business management dashboard. More features for business owners are coming soon.</p>
+      <p>
+        This is your business management dashboard. More features for business owners are coming
+        soon.
+      </p>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        <li style={{ marginBottom: '10px' }}><a href="/services/manage" style={{ color: '#0070f3', textDecoration: 'none' }}>Manage Services</a></li>
-        <li style={{ marginBottom: '10px' }}><a href="/bookings/view" style={{ color: '#0070f3', textDecoration: 'none' }}>View Bookings</a></li>
-        <li style={{ marginBottom: '10px' }}><a href="/staff/manage" style={{ color: '#0070f3', textDecoration: 'none' }}>Manage Staff</a></li>
+        <li style={{ marginBottom: '10px' }}>
+          <a href="/services/manage" style={{ color: '#0070f3', textDecoration: 'none' }}>
+            Manage Services
+          </a>
+        </li>
+        <li style={{ marginBottom: '10px' }}>
+          <a href="/bookings/view" style={{ color: '#0070f3', textDecoration: 'none' }}>
+            View Bookings
+          </a>
+        </li>
+        <li style={{ marginBottom: '10px' }}>
+          <a href="/staff/manage" style={{ color: '#0070f3', textDecoration: 'none' }}>
+            Manage Staff
+          </a>
+        </li>
       </ul>
       <div style={{ marginTop: '30px' }}>
-        <button 
+        <button
           onClick={() => router.push('/dashboard')}
-          style={{ marginRight: '10px', padding: '10px', backgroundColor: 'grey', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          style={{
+            marginRight: '10px',
+            padding: '10px',
+            backgroundColor: 'grey',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
         >
           Back to User Dashboard
         </button>
-        <button 
-          onClick={handleLogout} 
-          style={{ padding: '10px', backgroundColor: 'red', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: '10px',
+            backgroundColor: 'red',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+          }}
         >
           Logout
         </button>

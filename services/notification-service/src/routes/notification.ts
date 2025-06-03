@@ -3,10 +3,12 @@ import { z } from 'zod';
 
 // Simple notification service placeholder
 const notificationService = {
-  async sendNotification(_userId: string, data: any) {
+  async sendNotification(_userId: string, data: z.infer<typeof sendNotificationSchema>) {
+    // Changed data type
     return { id: 'temp-id', status: 'queued', ...data };
   },
-  async getNotifications(_userId: string, _query: any) {
+  async getNotifications(_userId: string, _query: z.infer<typeof notificationQuerySchema>) {
+    // Changed _query type
     return {
       data: [],
       pagination: { page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false },

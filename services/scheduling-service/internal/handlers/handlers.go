@@ -2,22 +2,16 @@ package handlers
 
 import (
 	"net/http"
+	"strings" // Added import
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
-	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/internal/service"
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"gorm.io/gorm"
 )
-
-// BookingHandler handles booking HTTP requests
-type BookingHandler struct {
-	service *service.BookingService
-	logger  *logger.Logger
-}
 
 // AvailabilityHandler handles availability HTTP requests
 type AvailabilityHandler struct {
@@ -31,18 +25,6 @@ type HealthHandler struct {
 	redis  *redis.Client
 	nats   *nats.Conn
 	logger *logger.Logger
-}
-
-// NewBookingHandler creates a new booking handler
-func NewBookingHandler(service *service.BookingService, logger *logger.Logger) *BookingHandler {
-	return &BookingHandler{service: service, logger: logger}
-}
-
-// CreateBooking handles POST /bookings
-func (h *BookingHandler) CreateBooking(c *gin.Context) {
-	// TODO: Implement booking creation
-	h.logger.Info("Creating booking")
-	c.JSON(http.StatusCreated, gin.H{"message": "Booking created (stub)"})
 }
 
 // GetBooking handles GET /bookings/:id
@@ -64,12 +46,6 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	id := c.Param("id")
 	h.logger.Info("Canceling booking", "id", id)
 	c.JSON(http.StatusOK, gin.H{"message": "Booking canceled (stub)"})
-}
-
-// ListBookings handles GET /bookings
-func (h *BookingHandler) ListBookings(c *gin.Context) {
-	h.logger.Info("Listing bookings")
-	c.JSON(http.StatusOK, gin.H{"bookings": []repository.Booking{}})
 }
 
 // ConfirmBooking handles POST /bookings/:id/confirm
@@ -126,7 +102,7 @@ func (h *AvailabilityHandler) GetSlotsForBusinessServiceDate(c *gin.Context) {
 	slots, err := h.service.GetAvailableSlots(c.Request.Context(), businessID, serviceID, date)
 	if err != nil {
 		// Error logging is done in the service, here we just map to HTTP response
-		if err.Error().Contains("not found") { // Basic error checking, could be more robust
+		if strings.Contains(err.Error(), "not found") { // Basic error checking, could be more robust
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve slots: " + err.Error()})
@@ -167,7 +143,7 @@ func (h *AvailabilityHandler) GetPublicSlotsForService(c *gin.Context) {
 	// Note: AvailabilityService.GetAvailableSlots takes businessID, serviceID, date
 	slots, err := h.service.GetAvailableSlots(c.Request.Context(), businessID, serviceID, date)
 	if err != nil {
-		if err.Error().Contains("not found") || err.Error().Contains("does not belong") || err.Error().Contains("not active") {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "does not belong") || strings.Contains(err.Error(), "not active") {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve slots: " + err.Error()})

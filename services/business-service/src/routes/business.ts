@@ -41,18 +41,18 @@ const businessIdParamsSchema = z.object({
   businessId: z.string().cuid(),
 });
 
-
 // Availability Schemas
 const availabilityRuleSchema = z.object({
   dayOfWeek: z.nativeEnum(DayOfWeek),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid start time format, use HH:MM"),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid end time format, use HH:MM"),
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid start time format, use HH:MM'),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid end time format, use HH:MM'),
 });
 
 const setAvailabilitySchema = z.object({
   rules: z.array(availabilityRuleSchema),
 });
-
 
 export async function businessRoutes(fastify: FastifyInstance) {
   // Create business
@@ -79,9 +79,17 @@ export async function businessRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Body: z.infer<typeof createBusinessSchema> }>,
       reply: FastifyReply
     ) => {
+      const userId = request.user?.id;
+      if (!userId) {
+        return reply.status(401).send({
+          success: false,
+          message: 'User not authenticated',
+          timestamp: new Date().toISOString(),
+        });
+      }
       const business = await businessService.createBusiness({
         ...request.body,
-        ownerId: request.user!.id,
+        ownerId: userId,
       });
 
       return reply.status(201).send({
@@ -116,7 +124,19 @@ export async function businessRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Params: z.infer<typeof businessParamsSchema> }>,
       reply: FastifyReply
     ) => {
-      const business = await businessService.getBusinessById(request.params.id, request.user!.id);
+      const userId = request.user?.id;
+      if (!userId) {
+        // For GET, if it's sometimes public, this check might differ.
+        // Assuming for now it requires auth if user object might be checked by service.
+        // If service handles userId being undefined for public view, this can be removed.
+        // Given service takes userId, it implies it's used for auth/scoping.
+        return reply.status(401).send({
+          success: false,
+          message: 'User not authenticated for this resource',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const business = await businessService.getBusinessById(request.params.id, userId);
 
       return reply.send({
         success: true,
@@ -154,10 +174,18 @@ export async function businessRoutes(fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
+      const userId = request.user?.id;
+      if (!userId) {
+        return reply.status(401).send({
+          success: false,
+          message: 'User not authenticated',
+          timestamp: new Date().toISOString(),
+        });
+      }
       const business = await businessService.updateBusiness(
         request.params.id,
         request.body,
-        request.user!.id
+        userId
       );
 
       return reply.send({
@@ -201,8 +229,16 @@ export async function businessRoutes(fastify: FastifyInstance) {
       }>,
       reply: FastifyReply
     ) => {
+      const userId = request.user?.id;
+      if (!userId) {
+        return reply.status(401).send({
+          success: false,
+          message: 'User not authenticated',
+          timestamp: new Date().toISOString(),
+        });
+      }
       const { page = 1, limit = 20 } = request.query;
-      const result = await businessService.getUserBusinesses(request.user!.id, { page, limit });
+      const result = await businessService.getUserBusinesses(userId, { page, limit });
 
       return reply.send({
         success: true,
@@ -237,7 +273,15 @@ export async function businessRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Params: z.infer<typeof businessParamsSchema> }>,
       reply: FastifyReply
     ) => {
-      await businessService.deleteBusiness(request.params.id, request.user!.id);
+      const userId = request.user?.id;
+      if (!userId) {
+        return reply.status(401).send({
+          success: false,
+          message: 'User not authenticated',
+          timestamp: new Date().toISOString(),
+        });
+      }
+      await businessService.deleteBusiness(request.params.id, userId);
 
       return reply.send({
         success: true,
@@ -310,16 +354,24 @@ export async function businessRoutes(fastify: FastifyInstance) {
       },
     },
     async (
-      request: FastifyRequest<{ 
-        Params: z.infer<typeof businessIdParamsSchema>; 
-        Body: z.infer<typeof setAvailabilitySchema> 
+      request: FastifyRequest<{
+        Params: z.infer<typeof businessIdParamsSchema>;
+        Body: z.infer<typeof setAvailabilitySchema>;
       }>,
       reply: FastifyReply
     ) => {
       try {
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.status(401).send({
+            success: false,
+            message: 'User not authenticated',
+            timestamp: new Date().toISOString(),
+          });
+        }
         const newAvailability = await availabilityService.setAvailability(
           request.params.businessId,
-          request.user!.id, // Authorize by owner
+          userId, // Authorize by owner
           request.body
         );
         return reply.send({
@@ -328,16 +380,27 @@ export async function businessRoutes(fastify: FastifyInstance) {
           message: 'Availability updated successfully.',
           timestamp: new Date().toISOString(),
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // Changed from any to unknown
         fastify.log.error('Error setting availability:', error);
         // More specific error handling can be added here (e.g., validation errors, not found)
-        if (error.message.includes('Business not found') || error.message.includes('not the owner')) {
-          return reply.status(404).send({ success: false, message: error.message, timestamp: new Date().toISOString() });
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        if (errorMessage.includes('Business not found') || errorMessage.includes('not the owner')) {
+          return reply
+            .status(404)
+            .send({ success: false, message: errorMessage, timestamp: new Date().toISOString() });
         }
-        if (error.message.includes('Invalid availability rule')) {
-            return reply.status(400).send({ success: false, message: error.message, timestamp: new Date().toISOString() });
+        if (errorMessage.includes('Invalid availability rule')) {
+          return reply
+            .status(400)
+            .send({ success: false, message: errorMessage, timestamp: new Date().toISOString() });
         }
-        return reply.status(500).send({ success: false, message: 'Failed to update availability.', error: error.message, timestamp: new Date().toISOString() });
+        return reply.status(500).send({
+          success: false,
+          message: 'Failed to update availability.',
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        });
       }
     }
   );
@@ -371,20 +434,32 @@ export async function businessRoutes(fastify: FastifyInstance) {
         // For now, let's use ownerId for consistency, but it could be made public or role-based.
         // The service method getAvailability has an optional userId for ownership check.
         // If request.user is available, pass it. Otherwise, it's a more public query.
-        const userId = request.user?.id; 
-        const availability = await availabilityService.getAvailability(request.params.businessId, userId);
-        
+        const userId = request.user?.id;
+        const availability = await availabilityService.getAvailability(
+          request.params.businessId,
+          userId
+        );
+
         return reply.send({
           success: true,
           data: availability,
           timestamp: new Date().toISOString(),
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // Changed from any to unknown
         fastify.log.error('Error getting availability:', error);
-         if (error.message.includes('Business not found')) {
-          return reply.status(404).send({ success: false, message: error.message, timestamp: new Date().toISOString() });
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        if (errorMessage.includes('Business not found')) {
+          return reply
+            .status(404)
+            .send({ success: false, message: errorMessage, timestamp: new Date().toISOString() });
         }
-        return reply.status(500).send({ success: false, message: 'Failed to retrieve availability.', error: error.message, timestamp: new Date().toISOString() });
+        return reply.status(500).send({
+          success: false,
+          message: 'Failed to retrieve availability.',
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        });
       }
     }
   );

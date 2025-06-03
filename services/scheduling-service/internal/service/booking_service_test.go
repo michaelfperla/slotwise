@@ -7,7 +7,7 @@ import (
 
 	"github.com/slotwise/scheduling-service/internal/models"
 	"github.com/slotwise/scheduling-service/internal/repository"
-	"github.comcom/slotwise/scheduling-service/internal/service"
+	"github.com/slotwise/scheduling-service/internal/service"
 	"github.com/slotwise/scheduling-service/pkg/events"
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/stretchr/testify/assert"

@@ -1,4 +1,4 @@
-import { PrismaClient, Availability, DayOfWeek, Business } from '@prisma/client';
+import { PrismaClient, Availability, DayOfWeek } from '@prisma/client'; // Removed Business
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats';
 import { logger } from '../utils/logger';
@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 export interface AvailabilityRuleData {
   dayOfWeek: DayOfWeek; // Make sure DayOfWeek enum is correctly imported/available
   startTime: string; // "HH:MM"
-  endTime: string;   // "HH:MM"
+  endTime: string; // "HH:MM"
 }
 
 export interface SetAvailabilityData {
@@ -23,7 +23,7 @@ export class AvailabilityService {
   // Helper to validate a single rule
   private isValidRule(rule: AvailabilityRuleData): boolean {
     if (!Object.values(DayOfWeek).includes(rule.dayOfWeek)) {
-        return false;
+      return false;
     }
     // Basic time format validation (HH:MM)
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -37,7 +37,11 @@ export class AvailabilityService {
     return true;
   }
 
-  async setAvailability(businessId: string, userId: string, data: SetAvailabilityData): Promise<Availability[]> {
+  async setAvailability(
+    businessId: string,
+    userId: string,
+    data: SetAvailabilityData
+  ): Promise<Availability[]> {
     // Verify business ownership
     const business = await this.prisma.business.findFirst({
       where: { id: businessId, ownerId: userId },
@@ -50,12 +54,15 @@ export class AvailabilityService {
     // Validate all rules
     for (const rule of data.rules) {
       if (!this.isValidRule(rule)) {
-        throw new Error(`Invalid availability rule: ${rule.dayOfWeek} ${rule.startTime}-${rule.endTime}`);
+        throw new Error(
+          `Invalid availability rule: ${rule.dayOfWeek} ${rule.startTime}-${rule.endTime}`
+        );
       }
     }
-    
+
     // Atomically update availability: delete all existing rules for the business and create new ones
-    const newAvailabilityRules = await this.prisma.$transaction(async (tx) => {
+    const _newAvailabilityRules = await this.prisma.$transaction(async tx => {
+      // Prefixed with _
       await tx.availability.deleteMany({
         where: { businessId: businessId },
       });
@@ -64,7 +71,8 @@ export class AvailabilityService {
         return []; // Return empty if all rules are cleared
       }
 
-      const createdRules = await tx.availability.createManyAndReturn({ // Prisma 5.1+ feature
+      const createdRules = await tx.availability.createManyAndReturn({
+        // Prisma 5.1+ feature
         data: data.rules.map(rule => ({
           businessId: businessId,
           dayOfWeek: rule.dayOfWeek,
@@ -74,12 +82,11 @@ export class AvailabilityService {
       });
       return createdRules;
     });
-    
+
     // Fetch the created rules with all fields (createManyAndReturn might not return relations)
     const fullNewRules = await this.prisma.availability.findMany({
-        where: { businessId: businessId }
+      where: { businessId: businessId },
     });
-
 
     // Publish NATS event
     try {
@@ -112,17 +119,17 @@ export class AvailabilityService {
         throw new Error('Business not found or user is not the owner.');
       }
     } else {
-        // Check if business exists even for public access
-        const business = await this.prisma.business.findUnique({ where: {id: businessId}});
-        if (!business) {
-            throw new Error('Business not found.');
-        }
+      // Check if business exists even for public access
+      const business = await this.prisma.business.findUnique({ where: { id: businessId } });
+      if (!business) {
+        throw new Error('Business not found.');
+      }
     }
-
 
     return this.prisma.availability.findMany({
       where: { businessId: businessId },
-      orderBy: [ // Sort by day of week (requires mapping enum to sort order or handling in client)
+      orderBy: [
+        // Sort by day of week (requires mapping enum to sort order or handling in client)
         { dayOfWeek: 'asc' }, // This will sort alphabetically by enum name. Custom sort order might be needed.
         { startTime: 'asc' },
       ],

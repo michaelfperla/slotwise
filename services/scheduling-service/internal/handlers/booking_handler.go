@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,11 +13,18 @@ import (
 	// "github.com/slotwise/scheduling-service/internal/middleware" // For CustomerID from context
 )
 
-// BookingHandler handles booking HTTP requests.
-// (This was already defined in handlers.go, this file effectively extends or replaces it for booking specifics)
-// For now, assuming this is the primary definition for booking handlers related to this phase.
+// BookingHandler handles booking HTTP requests
+type BookingHandler struct {
+	service *service.BookingService
+	logger  *logger.Logger
+}
 
-// CreateBookingRequest an DTO for POST /bookings
+// NewBookingHandler creates a new booking handler
+func NewBookingHandler(service *service.BookingService, logger *logger.Logger) *BookingHandler {
+	return &BookingHandler{service: service, logger: logger}
+}
+
+// CreateBookingRequestDTO an DTO for POST /bookings (renamed from CreateBookingRequest to avoid conflict if any)
 type CreateBookingRequestDTO struct {
 	BusinessID string    `json:"businessId" binding:"required"`
 	ServiceID  string    `json:"serviceId" binding:"required"`
@@ -28,7 +36,6 @@ type CreateBookingRequestDTO struct {
 type UpdateBookingStatusRequestDTO struct {
 	Status models.BookingStatus `json:"status" binding:"required"`
 }
-
 
 // CreateBooking handles POST /api/v1/bookings
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
@@ -44,7 +51,6 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	// For MVP, we are taking it from request body but this is not secure / ideal.
 	// If req.CustomerID != customerIDFromAuth { return c.Status(http.StatusForbidden) }
 
-
 	serviceReq := service.CreateBookingRequest{
 		BusinessID: req.BusinessID,
 		ServiceID:  req.ServiceID,
@@ -55,9 +61,9 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	booking, err := h.service.CreateBooking(c.Request.Context(), serviceReq)
 	if err != nil {
 		h.logger.Error("Failed to create booking", "error", err, "request", serviceReq)
-		if err.Error().Contains("not available due to a conflict") {
+		if strings.Contains(err.Error(), "not available due to a conflict") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		} else if err.Error().Contains("not found") || err.Error().Contains("does not belong") || err.Error().Contains("not active") {
+		} else if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "does not belong") || strings.Contains(err.Error(), "not active") {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create booking: " + err.Error()})
@@ -153,7 +159,7 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 	updatedBooking, err := h.service.UpdateBookingStatus(c.Request.Context(), bookingID, req.Status)
 	if err != nil {
 		h.logger.Error("Failed to update booking status", "bookingId", bookingID, "error", err)
-		if err.Error().Contains("not found") {
+		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update booking status: " + err.Error()})
@@ -163,7 +169,6 @@ func (h *BookingHandler) UpdateBookingStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, updatedBooking)
 }
-
 
 // The placeholder BookingRepo_INTERNAL_... helper methods are no longer needed and should be removed.
 // They were illustrative and have been replaced by actual methods on BookingService.

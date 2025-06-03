@@ -1,4 +1,4 @@
-import { PrismaClient, Service } from '@prisma/client'; // Import Service type
+import { PrismaClient, Service, Prisma } from '@prisma/client'; // Import Service type and Prisma
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats'; // Import NATS connection
 import { logger } from '../utils/logger'; // Optional: for logging event publishing
@@ -46,7 +46,8 @@ export class ServiceService {
     this.prisma = prisma;
   }
 
-  async createService(userId: string, data: CreateServiceData): Promise<Service> { // Added return type
+  async createService(userId: string, data: CreateServiceData): Promise<Service> {
+    // Added return type
     // First, get the user's business
     const business = await this.prisma.business.findFirst({
       where: {
@@ -97,22 +98,29 @@ export class ServiceService {
         },
       };
       await natsConnection.publish('business.service.created', eventPayload);
-      logger.info('Published business.service.created event to NATS', { serviceId: service.id, businessId: service.businessId });
+      logger.info('Published business.service.created event to NATS', {
+        serviceId: service.id,
+        businessId: service.businessId,
+      });
     } catch (error) {
       // Log error but don't let NATS failure block core operation
-      logger.error('Failed to publish business.service.created event to NATS', { serviceId: service.id, error });
+      logger.error('Failed to publish business.service.created event to NATS', {
+        serviceId: service.id,
+        error,
+      });
     }
 
     return service;
   }
 
-  async getServices(userId: string, params: ServiceQueryParams): Promise<PaginatedResult<Service>> { // Changed any to Service
+  async getServices(userId: string, params: ServiceQueryParams): Promise<PaginatedResult<Service>> {
+    // Changed any to Service
     const page = params.page || 1;
     const limit = params.limit || 20;
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.ServiceWhereInput = {}; // Changed from any
 
     // If businessId is provided, use it; otherwise get user's businesses
     if (params.businessId) {
@@ -142,7 +150,8 @@ export class ServiceService {
     }
 
     const [services, total] = await Promise.all([
-      this.prisma.service.findMany({ // Prisma returns typed results
+      this.prisma.service.findMany({
+        // Prisma returns typed results
         where,
         skip,
         take: limit,
@@ -175,7 +184,8 @@ export class ServiceService {
     };
   }
 
-  async getServiceById(serviceId: string, userId: string): Promise<Service | null> { // Added return type
+  async getServiceById(serviceId: string, userId: string): Promise<Service | null> {
+    // Added return type
     const service = await this.prisma.service.findFirst({
       where: {
         id: serviceId,
@@ -197,7 +207,12 @@ export class ServiceService {
     return service;
   }
 
-  async updateService(serviceId: string, userId: string, data: UpdateServiceData): Promise<Service | null> { // Added return type
+  async updateService(
+    serviceId: string,
+    userId: string,
+    data: UpdateServiceData
+  ): Promise<Service | null> {
+    // Added return type
     // First verify the service belongs to the user
     const existingService = await this.getServiceById(serviceId, userId);
     if (!existingService) {
@@ -239,7 +254,7 @@ export class ServiceService {
   }
 
   async getServicesByBusiness(businessId: string, isActive?: boolean) {
-    const where: any = { businessId };
+    const where: Prisma.ServiceWhereInput = { businessId }; // Changed from any
     if (isActive !== undefined) {
       where.isActive = isActive;
     }

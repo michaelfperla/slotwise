@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/slotwise/auth-service/internal/config"
@@ -19,6 +18,7 @@ import (
 	"github.com/slotwise/auth-service/pkg/events"
 	"github.com/slotwise/auth-service/pkg/jwt"
 	"github.com/slotwise/auth-service/pkg/logger"
+	pkgPassword "github.com/slotwise/auth-service/pkg/password" // Added for password hashing
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
@@ -297,7 +297,9 @@ func (suite *AuthHandlerTestSuite) TestRegisterUserBusinessOwner() {
 // TestLoginUser tests user login
 func (suite *AuthHandlerTestSuite) TestLoginUser() {
 	// Pre-requisite: Create a user to login with
-	hashedPassword, _ := service.NewAuthService(nil, nil, nil, nil, suite.cfg.JWT, nil).(*service.authService_INTERNAL_NewPasswordManagerForTestOnly().Hash("Password123!")) // Access internal for hash for test only
+	// Corrected password hashing for test user setup:
+	passMgr := pkgPassword.NewManager(pkgPassword.DefaultConfig())
+	hashedPassword, _ := passMgr.Hash("Password123!")
 	
 	testUser := models.User{
 		ID: "test-login-user", // Fixed ID for predictability if needed
@@ -343,38 +345,13 @@ func (suite *AuthHandlerTestSuite) TestLoginUser() {
 		_, tokenOk := data["accessToken"].(string)
 		assert.True(t, tokenOk, "Access token should be present in response")
 
-
-		// Verify NATS event (UserSessionCreatedEvent for user.authenticated)
-		assert.Len(t, suite.mockPublisher.PublishedEvents, 1, "Should publish 1 event on successful login (UserSessionCreated)")
-		if len(suite.mockPublisher.PublishedEvents) == 1 {
-			event := suite.mockPublisher.PublishedEvents[0]
-			// The service actually publishes UserLoginEvent and UserSessionCreatedEvent.
-			// For the purpose of "user.authenticated" carrying userId and sessionId, UserSessionCreatedEvent is the one.
-			// Let's adjust test to expect 2 events and check UserSessionCreatedEvent specifically if it's the one matching requirements.
-			// The prompt mentioned: "user.session.created (or user.authenticated) NATS event published."
-			// The existing code publishes UserLoginEvent and UserSessionCreatedEvent.
-			// UserSessionCreatedEvent contains UserID and SessionID.
-			
-			// Re-checking service/auth_service.go Login method:
-			// It publishes `events.UserLoginEvent`
-			// It publishes `events.UserSessionCreatedEvent`
-			// So, 2 events are expected.
-			// Let's refine the assertion to check for UserSessionCreatedEvent
-			
-			// This test will be adjusted after running and seeing actual published events or by re-verifying service logic.
-			// For now, assuming the test wants to verify the "session created" aspect.
-			
-			// assert.Equal(t, events.UserSessionCreatedEvent, event.EventType)
-			// assert.Equal(t, testUser.ID, event.Data["userId"])
-			// assert.NotEmpty(t, event.Data["sessionId"], "Session ID should be in event data")
-		}
-		// TODO: Refine NATS event check for login based on exact events published by service.
-		// Expecting 2 events: UserLoginEvent and UserSessionCreatedEvent
-		// The one that matches `user.authenticated: { userId, sessionId }` is UserSessionCreatedEvent
+		// Verify NATS events. Expecting 2 events: UserLoginEvent and UserSessionCreatedEvent.
+		// UserSessionCreatedEvent is the one that matches `user.authenticated: { userId, sessionId }`.
+		assert.Len(t, suite.mockPublisher.PublishedEvents, 2, "Should publish 2 events on successful login")
 		
-		 foundSessionCreated := false
-		 for _, e := range suite.mockPublisher.PublishedEvents {
-		 	if e.EventType == events.UserSessionCreatedEvent {
+		foundSessionCreated := false
+		for _, e := range suite.mockPublisher.PublishedEvents {
+			if e.EventType == events.UserSessionCreatedEvent {
 		 		foundSessionCreated = true
 		 		assert.Equal(t, testUser.ID, e.Data["userId"])
 		 		assert.NotEmpty(t, e.Data["sessionId"])
@@ -425,82 +402,4 @@ func TestAuthHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthHandlerTestSuite))
 }
 
-// Helper to access internal password manager for setting up test users.
-// This is a bit of a hack. Ideally, test setup would not rely on internal service details.
-// A better way would be to register a user via the endpoint and then use that user for login tests.
-// However, to hash a password for direct DB insertion for testing login:
-func (s *service.authService) authService_INTERNAL_NewPasswordManagerForTestOnly() *service.PasswordManager_INTERNAL {
-    // Assuming PasswordManager_INTERNAL is the actual type of s.passwordMgr.
-    // This requires s.passwordMgr to be exported or have a getter, or this helper to be in the service package.
-    // For now, this won't compile as is. It's a placeholder for the concept.
-    // The actual password.Manager is from pkg/password.
-    // Let's assume direct use of pkg/password.Manager for test setup.
-    // This function will be removed and password hashing done directly in test setup.
-	return nil 
-}
-
-// This shows we need a way to get password.Manager or hash passwords for test setup.
-// Let's refine the TestLoginUser setup.
-// We'll use the actual password.NewManager() for creating test user password hashes.
-// The previous TestLoginUser setup for hashedPassword was incorrect.
-// Corrected approach in TestLoginUser:
-// import "github.com/slotwise/auth-service/pkg/password"
-// passMgr := password.NewManager(nil) // Use default config for test hashing
-// hashedPassword, _ := passMgr.Hash("Password123!")
-// This will be used directly in the TestLoginUser setup.
-// The authService_INTERNAL_NewPasswordManagerForTestOnly and its call will be removed.
-// The actual fix will be applied in the TestLoginUser method itself.
-// The TestLoginUser method has been updated to reflect this, by removing the problematic internal call.
-// The actual password hashing for setup:
-// passMgr := password.NewManager(password.DefaultConfig())
-// hashedPassword, _ := passMgr.Hash("Password123!")
-// This pattern is used in the TestLoginUser method.
-
-// The placeholder internal access method will be removed.
-// TestLoginUser has been updated already to use `password.NewManager(nil).Hash(...)`
-// which is not quite right because `authService` uses `password.NewManager(nil)` but
-// `password.Manager` itself takes a `*Config`.
-// The `authService` does `s.passwordMgr = password.NewManager(nil)`,
-// which internally calls `DefaultConfig()`. So `password.NewManager(password.DefaultConfig())` is correct for tests.
-// The TestLoginUser setup needs to be:
-// suite.T().Run("Successful Login", func(t *testing.T) { ...
-//   passMgr := password.NewManager(password.DefaultConfig())
-//   hashedPassword, _ := passMgr.Hash("Password123!")
-//   testUser := models.User{... PasswordHash: hashedPassword ...}
-//   suite.DB.Create(&testUser)
-// ...
-// This is now implemented in the actual TestLoginUser.
-
-```
-**Note on `TestLoginUser`'s password hashing:**
-The placeholder `authService_INTERNAL_NewPasswordManagerForTestOnly` was conceptual and has been removed. The actual `TestLoginUser` method in the code block above has been written to correctly use `password.NewManager(password.DefaultConfig()).Hash("Password123!")` for setting up the test user's hashed password, which aligns with how the `authService` initializes its password manager.
-
-This file structure includes:
--   `MockEventPublisher`
--   `AuthHandlerTestSuite` using `testify/suite`
--   `SetupSuite` for one-time setup (config, DB, services with mock publisher)
--   `TearDownSuite` for cleanup
--   `SetupTest` for per-test setup (resetting mock, cleaning DB tables)
--   Test cases for client registration, business owner registration, and various login scenarios.
-
-I need to ensure:
--   Test DB configuration is handled properly (e.g., via environment variables or a test-specific config file). The current code has a placeholder comment for this. For now, it will use the default config's DB.
--   Redis connection for `SessionRepository`: The current setup attempts to connect to Redis. If unavailable, `sessionRepo` related tests might fail or need adjustment. For the specified tests, direct session repo interaction isn't the primary focus, but the service layer uses it.
-
-This is a substantial first step. I will now proceed with filling in the details of the test cases if this initial structure is acceptable.
-However, I can't run `go test` myself. I will submit this file. The user running the tests will need to manage the test database and Redis setup.
-The `TestLoginUser` setup for `hashedPassword` was tricky. The current test code uses:
-```go
-import pkgPassword "github.com/slotwise/auth-service/pkg/password" // Alias to avoid conflict
-// ... in TestLoginUser:
-passMgr := pkgPassword.NewManager(pkgPassword.DefaultConfig())
-hashedPassword, _ := passMgr.Hash("Password123!")
-```
-This should correctly hash the password for test user creation.
-Final check of the test logic:
-- Client registration: OK.
-- Business owner registration: OK.
-- Login success: Checks for token, and NATS event (refined to expect `UserSessionCreatedEvent`).
-- Login failed (wrong password, user not found): OK.
-
-The NATS event check for login success has been refined to expect `UserSessionCreatedEvent` as it carries the `sessionId` and `userId` which matches the `user.authenticated` requirement. The service actually publishes two events on login (`UserLoginEvent` and `UserSessionCreatedEvent`). The test asserts that `UserSessionCreatedEvent` is among them.
+// All comments related to the removed helper function are now also removed.

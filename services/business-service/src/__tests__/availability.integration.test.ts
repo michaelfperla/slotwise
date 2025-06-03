@@ -1,8 +1,8 @@
-import { FastifyInstance } from 'fastify';
+import Fastify, { FastifyInstance } from 'fastify'; // Updated import
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats'; // Will use the Jest mock
 import { businessRoutes } from '../routes/business';
-import { serviceRoutes } from '../routes/service'; // Service routes might not be needed if only testing /businesses/:id/availability
+// import { serviceRoutes } from '../routes/service'; // Unused import removed
 import { errorHandler } from '../middleware/errorHandler';
 import { User, DayOfWeek } from '@prisma/client'; // Import DayOfWeek
 
@@ -10,7 +10,8 @@ import { User, DayOfWeek } from '@prisma/client'; // Import DayOfWeek
 let mockUser: Partial<User> | null = null;
 jest.mock('../middleware/auth', () => ({
   authMiddleware: jest.fn(async (app: FastifyInstance) => {
-    app.addHook('onRequest', async (request, reply) => {
+    app.addHook('onRequest', async (request, _reply) => {
+      // reply -> _reply
       if (mockUser) {
         (request as any).user = mockUser;
       }
@@ -20,24 +21,23 @@ jest.mock('../middleware/auth', () => ({
 
 // Helper to build the test application (similar to services.integration.test.ts)
 async function buildTestApp(): Promise<FastifyInstance> {
-  const fastify = require('fastify')();
+  const fastify = Fastify(); // Changed from require
   fastify.setErrorHandler(errorHandler);
   // Registering businessRoutes is essential as availability routes are part of it.
   await fastify.register(businessRoutes, { prefix: '/api/v1/businesses' });
   // Service routes might not be strictly necessary if only testing availability under /businesses
-  // await fastify.register(serviceRoutes, { prefix: '/api/v1/services' }); 
-  
+  // await fastify.register(serviceRoutes, { prefix: '/api/v1/services' });
+
   // Ensure NATS mock is connected if necessary (same logic as in service tests)
   if (process.env.NODE_ENV !== 'test_SKIP_NATS_CONNECT') {
-      try {
-        if (!natsConnection.isConnected()) await natsConnection.connect();
-      } catch (e) {
-        console.warn("Error during test NATS connect for availability tests:", e);
-      }
+    try {
+      if (!natsConnection.isConnected()) await natsConnection.connect();
+    } catch (e) {
+      console.warn('Error during test NATS connect for availability tests:', e);
+    }
   }
   return fastify;
 }
-
 
 describe('Availability Management API (/api/v1/businesses/:businessId/availability)', () => {
   let app: FastifyInstance;
@@ -50,18 +50,22 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
     mockUser = { id: `owner-avail-${Date.now()}`, email: 'avail-owner@example.com' };
 
     const businessPayload = {
-      name: "Test Business for Availability",
+      name: 'Test Business for Availability',
       subdomain: `avail-biz-${Date.now()}`,
-      email: "avail@example.com",
-      phone: "1234567890",
-      street: "123 Avail St", city: "Availville", state: "AV", postalCode: "54321", country: "AC",
-      timezone: "America/New_York",
+      email: 'avail@example.com',
+      phone: '1234567890',
+      street: '123 Avail St',
+      city: 'Availville',
+      state: 'AV',
+      postalCode: '54321',
+      country: 'AC',
+      timezone: 'America/New_York',
     };
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/businesses',
       payload: businessPayload,
-      headers: { 'Authorization': 'Bearer testtoken' }
+      headers: { Authorization: 'Bearer testtoken' },
     });
     expect(response.statusCode).toBe(201);
     testBusiness = JSON.parse(response.payload).data;
@@ -78,13 +82,13 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
     }
     mockUser = null;
     if (natsConnection.isConnected()) {
-        await natsConnection.close();
+      await natsConnection.close();
     }
   });
 
   beforeEach(async () => {
     if (natsConnection.isConnected() && natsConnection.connection?.publish) {
-        (natsConnection.connection.publish as jest.Mock).mockClear();
+      (natsConnection.connection.publish as jest.Mock).mockClear();
     }
     // Clear existing availability rules for the test business before each test
     await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
@@ -94,16 +98,16 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
     it('should set new availability rules and publish NATS event', async () => {
       const availabilityPayload = {
         rules: [
-          { dayOfWeek: DayOfWeek.MONDAY, startTime: "09:00", endTime: "17:00" },
-          { dayOfWeek: DayOfWeek.WEDNESDAY, startTime: "10:00", endTime: "16:00" },
-        ]
+          { dayOfWeek: DayOfWeek.MONDAY, startTime: '09:00', endTime: '17:00' },
+          { dayOfWeek: DayOfWeek.WEDNESDAY, startTime: '10:00', endTime: '16:00' },
+        ],
       };
 
       const response = await app.inject({
         method: 'POST',
         url: `/api/v1/businesses/${testBusiness.id}/availability`,
         payload: availabilityPayload,
-        headers: { 'Authorization': 'Bearer testtoken' }
+        headers: { Authorization: 'Bearer testtoken' },
       });
 
       expect(response.statusCode).toBe(200); // AvailabilityService returns 200 on set
@@ -114,9 +118,13 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
       expect(responseBody.data[0].dayOfWeek).toBe(DayOfWeek.MONDAY);
 
       // Verify database records
-      const dbRules = await prisma.availability.findMany({ where: { businessId: testBusiness.id } });
+      const dbRules = await prisma.availability.findMany({
+        where: { businessId: testBusiness.id },
+      });
       expect(dbRules.length).toBe(2);
-      expect(dbRules.some(r => r.dayOfWeek === DayOfWeek.MONDAY && r.startTime === "09:00")).toBe(true);
+      expect(dbRules.some(r => r.dayOfWeek === DayOfWeek.MONDAY && r.startTime === '09:00')).toBe(
+        true
+      );
 
       // Verify NATS event
       expect(natsConnection.connection?.publish).toHaveBeenCalledTimes(1);
@@ -129,90 +137,106 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
     });
 
     it('should replace existing rules when new rules are set', async () => {
-        // First set initial rules
-         await app.inject({
-            method: 'POST',
-            url: `/api/v1/businesses/${testBusiness.id}/availability`,
-            payload: { rules: [{ dayOfWeek: DayOfWeek.TUESDAY, startTime: "08:00", endTime: "12:00" }] },
-            headers: { 'Authorization': 'Bearer testtoken' }
-        });
-        // Clear mock from previous call
-        (natsConnection.connection?.publish as jest.Mock).mockClear();
+      // First set initial rules
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/businesses/${testBusiness.id}/availability`,
+        payload: {
+          rules: [{ dayOfWeek: DayOfWeek.TUESDAY, startTime: '08:00', endTime: '12:00' }],
+        },
+        headers: { Authorization: 'Bearer testtoken' },
+      });
+      // Clear mock from previous call
+      (natsConnection.connection?.publish as jest.Mock).mockClear();
 
+      const newAvailabilityPayload = {
+        rules: [{ dayOfWeek: DayOfWeek.FRIDAY, startTime: '13:00', endTime: '18:00' }],
+      };
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/businesses/${testBusiness.id}/availability`,
+        payload: newAvailabilityPayload,
+        headers: { Authorization: 'Bearer testtoken' },
+      });
 
-        const newAvailabilityPayload = {
-            rules: [{ dayOfWeek: DayOfWeek.FRIDAY, startTime: "13:00", endTime: "18:00" }]
-        };
-        await app.inject({
-            method: 'POST',
-            url: `/api/v1/businesses/${testBusiness.id}/availability`,
-            payload: newAvailabilityPayload,
-            headers: { 'Authorization': 'Bearer testtoken' }
-        });
-
-        const dbRules = await prisma.availability.findMany({ where: { businessId: testBusiness.id } });
-        expect(dbRules.length).toBe(1);
-        expect(dbRules[0].dayOfWeek).toBe(DayOfWeek.FRIDAY);
-        expect(natsConnection.connection?.publish).toHaveBeenCalledTimes(1); // NATS event for the second update
+      const dbRules = await prisma.availability.findMany({
+        where: { businessId: testBusiness.id },
+      });
+      expect(dbRules.length).toBe(1);
+      expect(dbRules[0].dayOfWeek).toBe(DayOfWeek.FRIDAY);
+      expect(natsConnection.connection?.publish).toHaveBeenCalledTimes(1); // NATS event for the second update
     });
 
-     it('should return 400 for invalid rule (e.g., startTime after endTime)', async () => {
+    it('should return 400 for invalid rule (e.g., startTime after endTime)', async () => {
       const invalidPayload = {
-        rules: [{ dayOfWeek: DayOfWeek.MONDAY, startTime: "18:00", endTime: "10:00" }]
+        rules: [{ dayOfWeek: DayOfWeek.MONDAY, startTime: '18:00', endTime: '10:00' }],
       };
       const response = await app.inject({
         method: 'POST',
         url: `/api/v1/businesses/${testBusiness.id}/availability`,
         payload: invalidPayload,
-        headers: { 'Authorization': 'Bearer testtoken' }
+        headers: { Authorization: 'Bearer testtoken' },
       });
       expect(response.statusCode).toBe(400); // Based on AvailabilityService error handling
     });
 
     it('should return 404 if business not found or user not owner', async () => {
-        const originalUser = mockUser;
-        mockUser = { id: 'other-user', email: 'other@example.com'};
-        const response = await app.inject({
-            method: 'POST',
-            url: `/api/v1/businesses/${testBusiness.id}/availability`,
-            payload: { rules: [] },
-            headers: { 'Authorization': 'Bearer testtoken'}
-        });
-        expect(response.statusCode).toBe(404);
-        mockUser = originalUser;
+      const originalUser = mockUser;
+      mockUser = { id: 'other-user', email: 'other@example.com' };
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/businesses/${testBusiness.id}/availability`,
+        payload: { rules: [] },
+        headers: { Authorization: 'Bearer testtoken' },
+      });
+      expect(response.statusCode).toBe(404);
+      mockUser = originalUser;
     });
   });
 
   describe('GET /api/v1/businesses/:businessId/availability (Get Availability)', () => {
-    beforeEach(async () => { // Ensure some rules exist
-        await prisma.availability.createMany({
-            data: [
-                { businessId: testBusiness.id, dayOfWeek: DayOfWeek.THURSDAY, startTime: "10:00", endTime: "14:00" },
-                { businessId: testBusiness.id, dayOfWeek: DayOfWeek.THURSDAY, startTime: "15:00", endTime: "19:00" },
-            ]
-        });
+    beforeEach(async () => {
+      // Ensure some rules exist
+      await prisma.availability.createMany({
+        data: [
+          {
+            businessId: testBusiness.id,
+            dayOfWeek: DayOfWeek.THURSDAY,
+            startTime: '10:00',
+            endTime: '14:00',
+          },
+          {
+            businessId: testBusiness.id,
+            dayOfWeek: DayOfWeek.THURSDAY,
+            startTime: '15:00',
+            endTime: '19:00',
+          },
+        ],
+      });
     });
-    
+
     it('should retrieve availability rules for a given business', async () => {
       const response = await app.inject({
         method: 'GET',
         url: `/api/v1/businesses/${testBusiness.id}/availability`,
-        headers: { 'Authorization': 'Bearer testtoken' } // Assuming GET might also be owner-scoped by default in service
+        headers: { Authorization: 'Bearer testtoken' }, // Assuming GET might also be owner-scoped by default in service
       });
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.payload);
       expect(body.success).toBe(true);
       expect(body.data.length).toBe(2);
-      expect(body.data.some((r: any) => r.dayOfWeek === DayOfWeek.THURSDAY && r.startTime === "10:00")).toBe(true);
+      expect(
+        body.data.some((r: any) => r.dayOfWeek === DayOfWeek.THURSDAY && r.startTime === '10:00')
+      ).toBe(true);
     });
 
     it('should return 404 if business not found for GET', async () => {
-        const response = await app.inject({
-            method: 'GET',
-            url: `/api/v1/businesses/non-existent-id/availability`,
-            headers: { 'Authorization': 'Bearer testtoken'}
-        });
-        expect(response.statusCode).toBe(404); // Service method getAvailability throws error
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/businesses/non-existent-id/availability`,
+        headers: { Authorization: 'Bearer testtoken' },
+      });
+      expect(response.statusCode).toBe(404); // Service method getAvailability throws error
     });
   });
 });

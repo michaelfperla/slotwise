@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +19,7 @@ export default function DashboardPage() {
         const payload = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
         setUserEmail(payload.email || 'User'); // Adjust 'email' if your JWT payload uses a different key
       } catch (e) {
-        console.error("Failed to parse token:", e);
+        console.error('Failed to parse token:', e);
         // If token is malformed, treat as unauthenticated
         localStorage.removeItem('authToken');
         router.push('/login');
@@ -42,9 +42,17 @@ export default function DashboardPage() {
       <h1>User Dashboard</h1>
       <p>Welcome, {userEmail}!</p>
       <p>This is your personal dashboard. More features coming soon.</p>
-      <button 
-        onClick={handleLogout} 
-        style={{ marginTop: '20px', padding: '10px', backgroundColor: 'red', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+      <button
+        onClick={handleLogout}
+        style={{
+          marginTop: '20px',
+          padding: '10px',
+          backgroundColor: 'red',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+        }}
       >
         Logout
       </button>

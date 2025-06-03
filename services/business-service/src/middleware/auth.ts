@@ -36,7 +36,7 @@ export async function authMiddleware(fastify: FastifyInstance) {
       const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
       try {
-        const decoded = jwt.verify(token, config.jwt.secret) as any;
+        const decoded = jwt.verify(token, config.jwt.secret) as AuthUser; // Changed from any to AuthUser
 
         // Attach user to request
         request.user = {
