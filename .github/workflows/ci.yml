@@ -35,9 +35,17 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/auth-service/go.sum
+            services/scheduling-service/go.sum
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Prisma clients
+        run: |
+          cd services/business-service && npx prisma generate
+          cd ../notification-service && npx prisma generate
 
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         id: set-shas
@@ -64,9 +72,17 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/auth-service/go.sum
+            services/scheduling-service/go.sum
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Prisma clients
+        run: |
+          cd services/business-service && npx prisma generate
+          cd ../notification-service && npx prisma generate
 
       - name: Lint affected projects
         run: |
@@ -115,6 +131,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma clients
+        run: |
+          cd services/business-service && npx prisma generate
+          cd ../notification-service && npx prisma generate
+
       - name: TypeScript type check
         run: |
           echo "Running TypeScript type checking..."
@@ -146,9 +167,17 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/auth-service/go.sum
+            services/scheduling-service/go.sum
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate Prisma clients
+        run: |
+          cd services/business-service && npx prisma generate
+          cd ../notification-service && npx prisma generate
 
       - name: Run affected tests
         run: |
