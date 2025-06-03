@@ -1,7 +1,14 @@
 import { config } from 'dotenv';
+import { existsSync } from 'fs';
 
-// Load integration test environment variables
-config({ path: '.env.integration' });
+// Load integration test environment variables if file exists
+const integrationEnvPath = '.env.integration';
+if (existsSync(integrationEnvPath)) {
+  config({ path: integrationEnvPath });
+} else {
+  // Use default environment variables for CI
+  config();
+}
 
 // Global integration test setup
 beforeAll(async () => {

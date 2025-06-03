@@ -3,10 +3,19 @@ import { execSync } from 'child_process';
 import { config } from 'dotenv';
 
 // Load test environment variables
-config({ path: '.env.test' });
+import { existsSync } from 'fs';
+
+const testEnvPath = '.env.test';
+if (existsSync(testEnvPath)) {
+  config({ path: testEnvPath });
+} else {
+  // Use default environment variables for CI
+  config();
+}
 
 // Set up test database URL for PostgreSQL
-const TEST_DATABASE_URL =
+const TEST_DATABASE_URL = process.env.NOTIFICATION_TEST_DATABASE_URL ||
+  process.env.DATABASE_URL ||
   'postgresql://postgres:postgres@localhost:5432/slotwise_notification_test';
 process.env.DATABASE_URL = TEST_DATABASE_URL;
 
