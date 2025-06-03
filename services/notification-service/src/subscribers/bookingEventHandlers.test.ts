@@ -12,10 +12,11 @@ jest.mock('../services/templateService');
 jest.mock('../services/emailService');
 jest.mock('../utils/logger'); // Mock logger to check reminder log
 
-// Mock natsConnection for initializeBookingEventSubscribers
+// Mock natsClient for initializeBookingEventSubscribers
 // We only need to test if subscribe is called correctly by initializeBookingEventSubscribers
 // The actual callback execution (handleBookingConfirmed, handleBookingCancelled) will be tested directly.
 const mockNatsSubscribe = jest.fn().mockResolvedValue(undefined); // .mockResolvedValue for async subscribe if it returns Promise
+
 jest.mock('../events/natsClient', () => ({
   natsClient: {
     isConnected: jest.fn().mockReturnValue(true),
@@ -26,6 +27,9 @@ jest.mock('../events/natsClient', () => ({
     }),
   },
 }));
+
+// Import the mocked natsClient
+import { natsClient } from '../events/natsClient';
 
 describe('Booking Event Handlers', () => {
   // Define mock payloads based on interfaces in bookingEventHandlers.ts
@@ -107,20 +111,18 @@ describe('Booking Event Handlers', () => {
 
       // Check reminder log
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Reminder scheduling (MVP): Logged for booking'),
-        expect.any(String)
+        expect.stringContaining('Reminder scheduling (MVP): Logged for booking')
       );
     });
 
     it('should handle errors during template rendering or email sending gracefully', async () => {
-      (templateService.render as jest.Mock).mockImplementationOnce(async templateName => {
-        if (templateName === 'booking-confirmation') throw new Error('Customer template error');
-        return `<html>OK ${templateName}</html>`;
-      });
-      (emailService.sendEmail as jest.Mock).mockImplementationOnce(async to => {
-        if (to === mockConfirmedPayload.business.ownerEmail)
-          throw new Error('Business email send error');
-      });
+      (templateService.render as jest.Mock)
+        .mockResolvedValueOnce('<html>Customer template</html>') // First call succeeds
+        .mockResolvedValueOnce('<html>Business template</html>'); // Second call succeeds
+
+      (emailService.sendEmail as jest.Mock)
+        .mockRejectedValueOnce(new Error('Customer email send error')) // First call fails
+        .mockRejectedValueOnce(new Error('Business email send error')); // Second call fails
 
       await handleBookingConfirmed(mockConfirmedPayload);
 
@@ -185,8 +187,12 @@ describe('Booking Event Handlers', () => {
     });
 
     it('should log a warning if NATS connection is not established', () => {
+      // Clear previous calls and set up the mock for this specific test
+      (natsClient.subscribe as jest.Mock).mockClear();
       (natsClient.isConnected as jest.Mock).mockReturnValueOnce(false);
+
       initializeBookingEventSubscribers();
+
       expect(logger.warn).toHaveBeenCalledWith(
         'NATS connection not established. Cannot initialize booking event subscribers.'
       );
