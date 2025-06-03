@@ -1,0 +1,633 @@
+openapi: 3.0.0
+info:
+  title: Auth Service API
+  version: v1
+  description: API specification for the Authentication Service.
+servers:
+  - url: http://localhost:8001
+    description: Local Auth Service
+tags:
+  - name: Health
+    description: Health Check Endpoints
+  - name: Auth
+    description: Authentication Endpoints
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+          example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+        email:
+          type: string
+          format: email
+          description: User's email address.
+          example: "user@example.com"
+        firstName:
+          type: string
+          description: User's first name.
+          example: "John"
+        lastName:
+          type: string
+          description: User's last name.
+          example: "Doe"
+        role:
+          type: string
+          enum: [user, admin, business_owner] # Example roles
+          description: User's role.
+          example: "user"
+        timezone:
+          type: string
+          description: User's timezone.
+          example: "America/New_York"
+        businessName:
+          type: string
+          description: User's business name (if applicable).
+          example: "Acme Corp"
+        isVerified:
+          type: boolean
+          description: Indicates if the user's email is verified.
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of user creation.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of last user update.
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "def50200f2918cd..."
+        expiresIn:
+          type: integer
+          format: int32
+          description: Access token validity period in seconds.
+          example: 3600
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - timezone
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        firstName:
+          type: string
+        lastName:
+          type: string
+        timezone:
+          type: string
+        role:
+          type: string
+          description: Optional role, defaults to 'user' if not provided or if invalid.
+        businessName:
+          type: string
+          description: Required if role is 'business_owner'.
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    VerifyEmailRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+
+    APIError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INVALID_INPUT"
+        message:
+          type: string
+          example: "The input provided is invalid."
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+          example: {"field": "email", "issue": "must be a valid email address"}
+
+    GenericMessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Operation completed successfully."
+
+    StandardSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    StandardErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/APIError'
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service Health Check
+      description: Checks if the service is running and healthy.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "UP"
+  /health/liveness:
+    get:
+      tags:
+        - Health
+      summary: Liveness Probe
+      description: Checks if the application is live.
+      responses:
+        '200':
+          description: Application is live
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ALIVE"
+  /health/readiness:
+    get:
+      tags:
+        - Health
+      summary: Readiness Probe
+      description: Checks if the application is ready to accept traffic.
+      responses:
+        '200':
+          description: Application is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "READY"
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus Metrics
+      description: Exposes Prometheus metrics.
+      responses:
+        '200':
+          description: Metrics endpoint
+          content:
+            text/plain:
+              schema:
+                type: string
+  /info:
+    get:
+      tags:
+        - Health
+      summary: Service Information
+      description: Provides information about the service.
+      responses:
+        '200':
+          description: Service information
+          content:
+            application/json:
+              schema:
+                type: object # Define further as needed
+                properties:
+                  version:
+                    type: string
+                    example: "v1.0.0"
+                  build:
+                    type: string
+                    example: "abc123xyz"
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user account and returns user information along with access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      user:
+                        id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                        email: "user@example.com"
+                        firstName: "John"
+                        lastName: "Doe"
+                        role: "user"
+                        timezone: "America/New_York"
+                        isVerified: false
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      refreshToken: "def50200f2918cd..."
+                      expiresIn: 3600
+                    timestamp: "2023-01-01T12:00:00Z"
+        '400':
+          description: Invalid input data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '409':
+          description: User with this email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Log in an existing user
+      description: Authenticates a user and returns user information along with access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: User logged in successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input (e.g., missing fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      description: Provides a new access token using a valid refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Access token refreshed successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                          expiresIn:
+                            type: integer
+                          user: # Optionally return updated user info
+                            $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid refresh token or request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Refresh token expired or revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/verify-email:
+    post:
+      tags:
+        - Auth
+      summary: Verify user's email address
+      description: Verifies a user's email address using a token sent to their email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GenericMessageResponse'
+        '400':
+          description: Invalid or expired token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Request password reset
+      description: Initiates the password reset process by sending a reset link/token to the user's email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Password reset email sent (or generic success message).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GenericMessageResponse'
+                        properties:
+                          message:
+                            example: "If an account with that email exists, a password reset link has been sent."
+        '400':
+          description: Invalid email format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Reset user's password
+      description: Resets the user's password using a valid reset token and a new password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GenericMessageResponse'
+        '400':
+          description: Invalid or expired token, or weak password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Log out user
+      description: Invalidates the user's session/tokens. Requires authentication.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GenericMessageResponse'
+        '401':
+          description: Unauthorized (no valid token provided).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current user details
+      description: Fetches the details of the currently authenticated user. Requires authentication.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved user details.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized (no valid token provided).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+# End of OpenAPI specification
