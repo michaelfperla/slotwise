@@ -11,7 +11,7 @@ import (
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -25,9 +25,11 @@ type AvailabilityServiceTestSuite struct {
 
 func (suite *AvailabilityServiceTestSuite) SetupSuite() {
 	suite.TestLogger = logger.New("debug")
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// Use PostgreSQL test database
+	dsn := "host=localhost user=postgres password=postgres dbname=slotwise_scheduling_test port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		suite.T().Fatalf("Failed to connect to SQLite: %v", err)
+		suite.T().Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 	suite.DB = db
 
@@ -159,7 +161,7 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_ServiceInactive
 		BusinessID: "biz_inactive", DayOfWeek: models.Friday, StartTime: "09:00", EndTime: "17:00",
 	}
 	suite.DB.Create(&rule)
-	
+
 	testDate, _ := time.Parse("2006-01-02", "2024-03-08") // This is a Friday
 	slots, err := suite.AvailabilityService.GetAvailableSlots(ctx, "biz_inactive", "svc_inactive", testDate)
 	assert.Error(t, err, "Should return error for inactive service")
@@ -204,7 +206,6 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_ServiceWrongBus
 	assert.Len(t, slots, 0)
 }
 
-
 func TestAvailabilityServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(AvailabilityServiceTestSuite))
 }
@@ -232,7 +233,7 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_WithExistingBoo
 		StartTime: bookingTime, EndTime: bookingTime.Add(30 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&existingBooking)
-	
+
 	// Booking from 11:00 to 11:30
 	bookingTime2, _ := time.Parse(time.RFC3339, "2024-03-04T11:00:00Z")
 	existingBooking2 := models.Booking{
@@ -241,12 +242,11 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_WithExistingBoo
 	}
 	suite.DB.Create(&existingBooking2)
 
-
 	testDate, _ := time.Parse("2006-01-02", "2024-03-04") // Monday
 
 	slots, err := suite.AvailabilityService.GetAvailableSlots(ctx, "biz_conflict", "svc_conflict", testDate)
 	assert.NoError(t, err)
-	
+
 	// Expected slots: 09:00, 09:30, (10:00 is booked), 10:30, (11:00 is booked), 11:30
 	assert.Len(t, slots, 4, "Should find 4 available slots after filtering booked ones")
 

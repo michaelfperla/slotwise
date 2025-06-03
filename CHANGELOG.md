@@ -37,53 +37,49 @@ and this project adheres to
 ### Added
 
 - **Core Architecture**: Event-driven microservices architecture with NATS.io
-- **Auth Service**: JWT-based authentication with refresh tokens
+- **Auth Service**: JWT-based authentication with refresh tokens (Go)
 - **Business Service**: Multi-tenant business and service management
-- **Scheduling Service**: Booking management with availability calculation
-- **Notification Service**: Multi-channel notifications (Email, SMS)
+  (TypeScript/Node.js)
+- **Scheduling Service**: Booking management with availability calculation (Go)
+- **Notification Service**: Multi-channel notifications foundation
+  (TypeScript/Node.js)
 - **Frontend**: Next.js 14 application with TypeScript and Tailwind CSS
-- **Infrastructure**: Docker containers and Kubernetes deployment configs
-- **API Gateway**: Nginx-based routing and load balancing
+- **Infrastructure**: Docker containers and development environment setup
 - **Database**: PostgreSQL with Prisma (Node.js) and GORM (Go)
 - **Caching**: Redis for session storage and performance optimization
-- **Documentation**: Comprehensive API docs, deployment guides, and development
-  setup
+- **Documentation**: Comprehensive development guides, standards, and API
+  documentation
 
 ### Features
 
-- **Multi-tenant Architecture**: Support for multiple businesses with custom
-  subdomains
-- **Real-time Booking**: Conflict detection and availability management
-- **Payment Integration**: Stripe payment processing with webhooks
+- **Multi-tenant Architecture**: Foundation for multiple businesses with
+  subdomain support
+- **Booking Management**: Core booking logic with availability calculation
 - **Event-driven Communication**: Asynchronous service communication via NATS
 - **Type Safety**: Full TypeScript coverage across frontend and Node.js services
-- **Security**: JWT authentication, rate limiting, CORS, and input validation
-- **Monitoring**: Health checks, structured logging, and observability
-- **Testing**: Unit, integration, and end-to-end testing frameworks
-- **CI/CD**: GitHub Actions workflows for automated testing and deployment
+- **Security**: JWT authentication, input validation, and security headers
+- **Monitoring**: Health checks and structured logging
+- **Testing**: Unit and integration testing frameworks
+- **Development Environment**: Automated setup with Docker and hot reload
 
 ### Technical Stack
 
-- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS, Zustand,
-  TanStack Query
+- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
 - **Backend**: Go (Auth/Scheduling), Node.js (Business/Notification), TypeScript
 - **Database**: PostgreSQL with Prisma ORM and GORM
-- **Message Broker**: NATS.io with JetStream for persistence
+- **Message Broker**: NATS.io for event-driven communication
 - **Cache**: Redis for session storage and caching
-- **API Gateway**: Nginx with load balancing and rate limiting
 - **Containerization**: Docker and Docker Compose
-- **Orchestration**: Kubernetes with Helm charts
-- **External Services**: Stripe (payments), SendGrid (email), Twilio (SMS)
+- **External Services**: Foundation for email and SMS notifications
 
 ### Development Experience
 
 - **Automated Setup**: One-command development environment setup
 - **Hot Reload**: Live reloading for all services during development
 - **Code Quality**: ESLint, Prettier, and Go formatting tools
-- **Testing**: Comprehensive test suites with coverage reporting
-- **Documentation**: Auto-generated API docs with OpenAPI/Swagger
-- **Debugging**: Structured logging with correlation IDs
-- **Monitoring**: Development tools for database, cache, and message broker
+- **Testing**: Unit and integration test frameworks
+- **Documentation**: Comprehensive development guides and standards
+- **Debugging**: Structured logging across all services
 
 ### Security Features
 

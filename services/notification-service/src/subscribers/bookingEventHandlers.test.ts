@@ -2,9 +2,9 @@ import { emailService } from '../services/emailService';
 import { templateService } from '../services/templateService';
 import { logger } from '../utils/logger';
 import {
-    handleBookingCancelled,
-    handleBookingConfirmed,
-    initializeBookingEventSubscribers,
+  handleBookingCancelled,
+  handleBookingConfirmed,
+  initializeBookingEventSubscribers,
 } from './bookingEventHandlers'; // Assuming direct import for test
 
 // Mock services
@@ -176,14 +176,8 @@ describe('Booking Event Handlers', () => {
     it('should subscribe to booking.confirmed and booking.cancelled', () => {
       initializeBookingEventSubscribers();
       expect(natsClient.subscribe).toHaveBeenCalledTimes(2);
-      expect(natsClient.subscribe).toHaveBeenCalledWith(
-        'booking.confirmed',
-        expect.any(Function)
-      );
-      expect(natsClient.subscribe).toHaveBeenCalledWith(
-        'booking.cancelled',
-        expect.any(Function)
-      );
+      expect(natsClient.subscribe).toHaveBeenCalledWith('booking.confirmed', expect.any(Function));
+      expect(natsClient.subscribe).toHaveBeenCalledWith('booking.cancelled', expect.any(Function));
     });
 
     it('should log a warning if NATS connection is not established', () => {

@@ -9,7 +9,18 @@ response formats and error handling.
 
 ## 🌐 Base URLs
 
-- **Development**: `http://localhost:8080/api/v1`
+**Note**: Currently, services run on individual ports in development. API
+Gateway is planned for future implementation.
+
+### Development Service URLs
+
+- **Auth Service**: `http://localhost:8001/api/v1`
+- **Business Service**: `http://localhost:8003/api/v1`
+- **Scheduling Service**: `http://localhost:8002/api/v1`
+- **Notification Service**: `http://localhost:8004/api/v1`
+
+### Future Production URLs (when API Gateway is implemented)
+
 - **Staging**: `https://staging-api.slotwise.com/api/v1`
 - **Production**: `https://api.slotwise.com/api/v1`
 
@@ -24,7 +35,9 @@ response formats and error handling.
 - [Notification Service API](#notification-service-api)
 - [Rate Limiting](#rate-limiting)
 - [Webhooks](#webhooks)
-- [SDKs and Libraries](#sdks-and-libraries)
+
+**Note**: Payment Service API documentation will be added when the service is
+implemented.
 
 ## 🔐 Authentication
 
@@ -561,11 +574,8 @@ SlotWise supports webhooks for real-time event notifications:
 
 ## 📦 SDKs and Libraries
 
-Official SDKs are available for:
-
-- **JavaScript/TypeScript**: `@slotwise/sdk-js`
-- **Go**: `github.com/slotwise/sdk-go`
-- **Python**: `slotwise-python`
+**Note**: Official SDKs are planned for future development. Currently, use
+direct HTTP requests to interact with the APIs.
 
 ## 🆘 Support
 

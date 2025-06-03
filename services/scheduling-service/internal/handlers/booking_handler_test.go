@@ -17,7 +17,7 @@ import (
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -52,7 +52,9 @@ type BookingHandlerTestSuite struct {
 
 func (suite *BookingHandlerTestSuite) SetupSuite() {
 	suite.TestLogger = logger.New("debug")
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// Use PostgreSQL test database
+	dsn := "host=localhost user=postgres password=postgres dbname=slotwise_scheduling_test port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	assert.NoError(suite.T(), err)
 	suite.DB = db
 
@@ -140,7 +142,8 @@ func (suite *BookingHandlerTestSuite) TestCreateBookingAPI_Conflict() {
 
 	existingStartTime, _ := time.Parse(time.RFC3339, "2024-05-01T11:00:00Z")
 	existingBooking := models.Booking{
-		ID: "existing_b_api", BusinessID: "b2", ServiceID: "s2", CustomerID: "c_exist",
+		// Let BeforeCreate hook generate the UUID
+		BusinessID: "b2", ServiceID: "s2", CustomerID: "c_exist",
 		StartTime: existingStartTime, EndTime: existingStartTime.Add(60 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&existingBooking)
@@ -161,13 +164,14 @@ func (suite *BookingHandlerTestSuite) TestCreateBookingAPI_Conflict() {
 
 func (suite *BookingHandlerTestSuite) TestGetBookingByIDAPI() {
 	t := suite.T()
-	bookingID := "get_book_api_1"
 	startTime, _ := time.Parse(time.RFC3339, "2024-05-01T15:00:00Z")
 	newBooking := models.Booking{
-		ID: bookingID, BusinessID: "b_get", ServiceID: "s_get", CustomerID: "c_get",
+		// Let BeforeCreate hook generate the UUID
+		BusinessID: "b_get", ServiceID: "s_get", CustomerID: "c_get",
 		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&newBooking)
+	bookingID := newBooking.ID // Get the generated UUID
 
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/bookings/"+bookingID, nil)
 	rr := httptest.NewRecorder()
@@ -181,10 +185,10 @@ func (suite *BookingHandlerTestSuite) TestGetBookingByIDAPI() {
 
 func (suite *BookingHandlerTestSuite) TestListBookingsAPI_ByCustomer() {
 	t := suite.T()
-	// Seed bookings
-	suite.DB.Create(&models.Booking{ID: "lc1", CustomerID: "cust_list_api", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now(), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID: "lc2", CustomerID: "cust_list_api", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now().Add(time.Hour), Status: models.BookingStatusPendingPayment})
-	suite.DB.Create(&models.Booking{ID: "lc3", CustomerID: "cust_other", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now(), Status: models.BookingStatusConfirmed})
+	// Seed bookings - let BeforeCreate hook generate UUIDs
+	suite.DB.Create(&models.Booking{CustomerID: "cust_list_api", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now(), EndTime: time.Now().Add(30 * time.Minute), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{CustomerID: "cust_list_api", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now().Add(time.Hour), EndTime: time.Now().Add(time.Hour + 30*time.Minute), Status: models.BookingStatusPendingPayment})
+	suite.DB.Create(&models.Booking{CustomerID: "cust_other", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now(), EndTime: time.Now().Add(30 * time.Minute), Status: models.BookingStatusConfirmed})
 
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/bookings?customerId=cust_list_api", nil)
 	rr := httptest.NewRecorder()
@@ -197,13 +201,14 @@ func (suite *BookingHandlerTestSuite) TestListBookingsAPI_ByCustomer() {
 
 func (suite *BookingHandlerTestSuite) TestUpdateBookingStatusAPI() {
 	t := suite.T()
-	bookingID := "update_stat_api_1"
 	startTime, _ := time.Parse(time.RFC3339, "2024-05-01T18:00:00Z")
 	newBooking := models.Booking{
-		ID: bookingID, BusinessID: "b_upd", ServiceID: "s_upd", CustomerID: "c_upd",
+		// Let BeforeCreate hook generate the UUID
+		BusinessID: "b_upd", ServiceID: "s_upd", CustomerID: "c_upd",
 		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusPendingPayment,
 	}
 	suite.DB.Create(&newBooking)
+	bookingID := newBooking.ID // Get the generated UUID
 
 	payload := handlers.UpdateBookingStatusRequestDTO{Status: models.BookingStatusConfirmed}
 	body, _ := json.Marshal(payload)

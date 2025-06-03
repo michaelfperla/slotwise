@@ -128,22 +128,28 @@ slotwise/
 └── scripts/                 # Development and deployment scripts
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
+**Get SlotWise running in 5 minutes!** See
+[QUICK_START_GUIDE.md](./QUICK_START_GUIDE.md) for detailed instructions.
 
-- Node.js 18+
-- Go 1.21+
-- Docker & Docker Compose
-- Kubernetes (minikube for local development)
-- NATS Server (for local development)
-
-### Automated Setup
+### One-Command Setup
 
 ```bash
-# Run the automated setup script
+# Clone and setup everything
+git clone https://github.com/michaelfperla/slotwise.git
+cd slotwise
 chmod +x scripts/setup-dev.sh
 ./scripts/setup-dev.sh
+
+# Start all services
+npm run dev
+
+# Add sample data
+npm run db:seed
+
+# Test everything works
+npm run test:api
 ```
 
 ### Manual Development Setup
@@ -229,14 +235,26 @@ deployment, and maintenance:
 
 - 🚀 [**API Documentation**](docs/api-documentation.md) - Complete REST API
   reference with examples
-- 🎯 [**Event-Driven Architecture**](docs/event-driven-architecture.md) - NATS
-  event patterns and message schemas
+- 🎯
+  [**Event-Driven Architecture**](docs/standards/event-driven-architecture.md) -
+  NATS event patterns and message schemas
 - 🚀 [**Deployment Guide**](docs/deployment-guide.md) - Production deployment
   with Docker and Kubernetes
 - 🧪 [**Testing Setup**](docs/TESTING_SETUP.md) - Testing framework, patterns,
   and best practices
 - 🐛 [**Troubleshooting**](docs/troubleshooting.md) - Common issues, debugging,
   and solutions
+
+### **Development Guides**
+
+- 🚀 [**Quick Start Guide**](QUICK_START_GUIDE.md) - Get running in 5 minutes
+- 🎯 [**Development Priorities**](DEVELOPMENT_PRIORITIES.md) - Critical path to
+  MVP
+- 🏗️ [**Development Workflow**](DEVELOPMENT_WORKFLOW.md) - Git workflow and
+  processes
+- 📋 [**Coding Standards**](CODING_STANDARDS.md) - Code style and conventions
+- 🤝 [**Contributing Guide**](CONTRIBUTING.md) - How to contribute
+- 📊 [**MVP Roadmap**](MVP_DEVELOPMENT_ROADMAP.md) - Development milestones
 
 ### **Development Guidelines**
 
@@ -318,12 +336,18 @@ deployment, and maintenance:
 
 ## API Documentation
 
-Each service provides OpenAPI/Swagger documentation:
+### Service Documentation Status
 
-- **Business Service**: http://localhost:8003/docs
-- **Auth Service**: http://localhost:8001/docs (when implemented)
-- **Scheduling Service**: http://localhost:8002/docs (when implemented)
-- **Notification Service**: http://localhost:8004/docs (when implemented)
+- **Business Service**: ✅ http://localhost:8003/docs (Swagger/OpenAPI
+  available)
+- **Auth Service**: ⚠️ Documentation in progress
+- **Scheduling Service**: ⚠️ Documentation in progress
+- **Notification Service**: ⚠️ Documentation in progress
+
+### Comprehensive API Documentation
+
+See [docs/api-documentation.md](./docs/api-documentation.md) for detailed API
+reference covering all services.
 
 ## Monitoring & Observability
 
@@ -392,8 +416,8 @@ for details.
 - 📚 [Documentation Standards](DOCUMENTATION_STANDARDS.md) - Documentation
   guidelines
 - 🚀 [API Documentation](docs/api-documentation.md) - REST API reference
-- 🎯 [Event-Driven Architecture](docs/event-driven-architecture.md) - NATS event
-  patterns
+- 🎯 [Event-Driven Architecture](docs/standards/event-driven-architecture.md) -
+  NATS event patterns
 - 🚀 [Deployment Guide](docs/deployment-guide.md) - Production deployment
   instructions
 - 🧪 [Testing Setup](docs/TESTING_SETUP.md) - Testing framework and guidelines

@@ -56,44 +56,42 @@ func (m *MockEventPublisher) Reset() {
 // AuthHandlerTestSuite defines the test suite
 type AuthHandlerTestSuite struct {
 	suite.Suite
-	DB             *gorm.DB
-	Router         *gin.Engine
-	authService    service.AuthService
-	userRepo       repository.UserRepository
-	businessRepo   repository.BusinessRepository
-	sessionRepo    repository.SessionRepository
-	mockPublisher  *MockEventPublisher
-	jwtManager     *jwt.Manager
-	testLogger     logger.Logger
-	cfg            *config.Config
-	authHandler    *handlers.AuthHandler
+	DB            *gorm.DB
+	Router        *gin.Engine
+	authService   service.AuthService
+	userRepo      repository.UserRepository
+	businessRepo  repository.BusinessRepository
+	sessionRepo   repository.SessionRepository
+	mockPublisher *MockEventPublisher
+	jwtManager    *jwt.Manager
+	testLogger    logger.Logger
+	cfg           *config.Config
+	authHandler   *handlers.AuthHandler
 }
 
 // SetupSuite runs once before all tests in the suite
 func (suite *AuthHandlerTestSuite) SetupSuite() {
 	// Load config (consider using a test-specific config file or env vars)
-	// For now, try to load default and override DB name
+	// For now, try to load default and override DB settings for testing
 	cfg, err := config.Load()
 	if err != nil {
 		suite.T().Fatalf("Failed to load config: %v", err)
 	}
-	// Use a different database for testing if possible, e.g., by changing cfg.Database.Name
-	// For CI, this often involves setting environment variables.
-	// Example: cfg.Database.Name = cfg.Database.Name + "_test"
-	// Ensure TEST_DB_URL environment variable is set for test database
+
+	// Override database configuration for testing with standard postgres user
+	cfg.Database.Host = "localhost"
+	cfg.Database.Port = 5432
+	cfg.Database.User = "postgres"
+	cfg.Database.Password = "postgres"
+	cfg.Database.Name = "slotwise_auth_test"
+	cfg.Database.SSLMode = "disable"
+
+	// Check for TEST_DB_URL environment variable override
 	testDBURL := os.Getenv("TEST_DB_URL")
 	if testDBURL != "" {
-		// This is a simplified way to parse; a proper DSN parser might be better
-		// Example: postgresql://user:pass@host:port/dbname?sslmode=disable
-		// For now, assuming it replaces the whole DSN or relevant parts in cfg.Database
-		// This part needs to be robust based on actual TEST_DB_URL format.
-		// This is a placeholder for proper test DB configuration.
-		// For this example, we will proceed with cfg.Database, assuming it can be wiped or is a test instance.
-		suite.T().Logf("Using database from config for tests. Ensure it's a test database. TEST_DB_URL was: '%s'", testDBURL)
-
+		suite.T().Logf("TEST_DB_URL provided but using standard test config. TEST_DB_URL was: '%s'", testDBURL)
 	}
 	suite.cfg = cfg
-
 
 	suite.testLogger = logger.New("debug") // Or use cfg.LogLevel
 
@@ -104,22 +102,58 @@ func (suite *AuthHandlerTestSuite) SetupSuite() {
 	}
 	suite.DB = db
 
-	// Run migrations - ensure models.Business is included if not already
-	err = suite.DB.AutoMigrate(&models.User{}, &models.Business{}) // Explicitly migrate here for test safety
-	assert.NoError(suite.T(), err, "AutoMigrate should not fail")
+	// Run migrations - handle circular dependency by creating tables manually
+	// Create users table first without business_id constraint
+	err = suite.DB.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+			email text NOT NULL UNIQUE,
+			password_hash text NOT NULL,
+			first_name text NOT NULL,
+			last_name text NOT NULL,
+			avatar text,
+			timezone text NOT NULL DEFAULT 'UTC',
+			is_email_verified boolean DEFAULT false,
+			email_verified_at timestamptz,
+			last_login_at timestamptz,
+			role varchar(20) NOT NULL DEFAULT 'client',
+			status varchar(30) NOT NULL DEFAULT 'pending_verification',
+			business_id uuid,
+			language text DEFAULT 'en',
+			date_format text DEFAULT 'MM/DD/YYYY',
+			time_format text DEFAULT '12h',
+			email_notifications boolean DEFAULT true,
+			sms_notifications boolean DEFAULT false,
+			password_reset_token text,
+			password_reset_expires_at timestamptz,
+			email_verification_token text,
+			email_verification_expires_at timestamptz,
+			created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+			updated_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+			deleted_at timestamptz
+		);
+	`).Error
+	assert.NoError(suite.T(), err, "Users table creation should not fail")
 
+	// Create businesses table
+	err = suite.DB.Exec(`
+		CREATE TABLE IF NOT EXISTS businesses (
+			id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+			owner_id uuid NOT NULL,
+			name varchar(255) NOT NULL,
+			created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+			updated_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+			deleted_at timestamptz
+		);
+	`).Error
+	assert.NoError(suite.T(), err, "Businesses table creation should not fail")
 
 	// Initialize repositories
 	suite.userRepo = repository.NewUserRepository(suite.DB)
 	suite.businessRepo = repository.NewBusinessRepository(suite.DB, suite.testLogger)
-	// Session repo might need a mock Redis or a real test Redis instance.
-	// For now, using nil or a simple mock if Login doesn't heavily depend on Redis for these tests.
-	// Let's assume SessionRepository can handle a nil Redis for tests not focusing on session storage.
-	// Or, connect to a test Redis instance.
-	// For simplicity, if TEST_REDIS_URL is set, use it. Otherwise, mock session repo if possible or skip tests requiring it.
-	redisClient, _ := database.ConnectRedis(suite.cfg.Redis) // Ignoring error for now if Redis is not critical for all tests
-	suite.sessionRepo = repository.NewSessionRepository(redisClient)
-
+	// For testing, use nil Redis client to avoid connection issues
+	// The session repository should handle nil gracefully for tests
+	suite.sessionRepo = repository.NewSessionRepository(nil)
 
 	// Initialize mock event publisher
 	suite.mockPublisher = &MockEventPublisher{}
@@ -143,17 +177,17 @@ func (suite *AuthHandlerTestSuite) SetupSuite() {
 	// Setup router
 	gin.SetMode(gin.TestMode)
 	router := gin.New() // Use gin.New() for a clean router without default middleware for tests
-	
-    // API v1 routes (matching main router structure)
-    v1 := router.Group("/api/v1")
-    {
-        authRoutes := v1.Group("/auth")
-        {
-            authRoutes.POST("/register", suite.authHandler.Register)
-            authRoutes.POST("/login", suite.authHandler.Login)
-            // Add other routes as needed for testing
-        }
-    }
+
+	// API v1 routes (matching main router structure)
+	v1 := router.Group("/api/v1")
+	{
+		authRoutes := v1.Group("/auth")
+		{
+			authRoutes.POST("/register", suite.authHandler.Register)
+			authRoutes.POST("/login", suite.authHandler.Login)
+			// Add other routes as needed for testing
+		}
+	}
 	suite.Router = router
 }
 
@@ -192,7 +226,7 @@ func (suite *AuthHandlerTestSuite) TestRegisterUserClient() {
 
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		rr := httptest.NewRecorder()
 		suite.Router.ServeHTTP(rr, req)
 
@@ -221,7 +255,6 @@ func (suite *AuthHandlerTestSuite) TestRegisterUserClient() {
 	})
 }
 
-
 // TestRegisterUserBusinessOwner tests business owner registration
 func (suite *AuthHandlerTestSuite) TestRegisterUserBusinessOwner() {
 	suite.T().Run("Successful Business Owner and Business Registration", func(t *testing.T) {
@@ -241,10 +274,10 @@ func (suite *AuthHandlerTestSuite) TestRegisterUserBusinessOwner() {
 
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		rr := httptest.NewRecorder()
 		suite.Router.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusCreated {
 			t.Logf("Response body: %s", rr.Body.String())
 		}
@@ -267,7 +300,7 @@ func (suite *AuthHandlerTestSuite) TestRegisterUserBusinessOwner() {
 
 		// Verify NATS events (UserCreated and BusinessRegistered)
 		assert.Len(t, suite.mockPublisher.PublishedEvents, 2, "Should publish 2 events")
-		
+
 		foundUserCreated := false
 		foundBusinessRegistered := false
 
@@ -300,20 +333,19 @@ func (suite *AuthHandlerTestSuite) TestLoginUser() {
 	// Corrected password hashing for test user setup:
 	passMgr := pkgPassword.NewManager(pkgPassword.DefaultConfig())
 	hashedPassword, _ := passMgr.Hash("Password123!")
-	
+
 	testUser := models.User{
-		ID: "test-login-user", // Fixed ID for predictability if needed
-		Email: "login@example.com",
-		PasswordHash: hashedPassword,
-		FirstName: "Login",
-		LastName: "User",
-		Role: models.RoleClient,
+		// Let BeforeCreate hook generate the UUID
+		Email:           "login@example.com",
+		PasswordHash:    hashedPassword,
+		FirstName:       "Login",
+		LastName:        "User",
+		Role:            models.RoleClient,
 		IsEmailVerified: true, // Assume email is verified for login test
-		Status: models.StatusActive,
-		Timezone: "UTC",
+		Status:          models.StatusActive,
+		Timezone:        "UTC",
 	}
 	suite.DB.Create(&testUser)
-
 
 	suite.T().Run("Successful Login", func(t *testing.T) {
 		suite.mockPublisher.Reset()
@@ -326,7 +358,7 @@ func (suite *AuthHandlerTestSuite) TestLoginUser() {
 
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		rr := httptest.NewRecorder()
 		suite.Router.ServeHTTP(rr, req)
 
@@ -338,7 +370,7 @@ func (suite *AuthHandlerTestSuite) TestLoginUser() {
 		var respBody map[string]interface{}
 		err := json.Unmarshal(rr.Body.Bytes(), &respBody)
 		assert.NoError(t, err, "Should unmarshal response body")
-		
+
 		// Check for data and token
 		data, dataOk := respBody["data"].(map[string]interface{})
 		assert.True(t, dataOk, "'data' field should be present")
@@ -348,18 +380,17 @@ func (suite *AuthHandlerTestSuite) TestLoginUser() {
 		// Verify NATS events. Expecting 2 events: UserLoginEvent and UserSessionCreatedEvent.
 		// UserSessionCreatedEvent is the one that matches `user.authenticated: { userId, sessionId }`.
 		assert.Len(t, suite.mockPublisher.PublishedEvents, 2, "Should publish 2 events on successful login")
-		
+
 		foundSessionCreated := false
 		for _, e := range suite.mockPublisher.PublishedEvents {
 			if e.EventType == events.UserSessionCreatedEvent {
-		 		foundSessionCreated = true
-		 		assert.Equal(t, testUser.ID, e.Data["userId"])
-		 		assert.NotEmpty(t, e.Data["sessionId"])
-		 		break
-		 	}
-		 }
-		 assert.True(t, foundSessionCreated, "UserSessionCreatedEvent should be published")
-
+				foundSessionCreated = true
+				assert.Equal(t, testUser.ID, e.Data["userId"])
+				assert.NotEmpty(t, e.Data["sessionId"])
+				break
+			}
+		}
+		assert.True(t, foundSessionCreated, "UserSessionCreatedEvent should be published")
 
 	})
 
@@ -395,7 +426,6 @@ func (suite *AuthHandlerTestSuite) TestLoginUser() {
 		assert.Len(t, suite.mockPublisher.PublishedEvents, 0, "Should not publish events on failed login")
 	})
 }
-
 
 // TestAuthHandlerTestSuite runs the entire test suite
 func TestAuthHandlerTestSuite(t *testing.T) {

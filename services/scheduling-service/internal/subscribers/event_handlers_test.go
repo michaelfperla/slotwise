@@ -9,7 +9,7 @@ import (
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -22,9 +22,11 @@ type EventHandlersTestSuite struct {
 
 func (suite *EventHandlersTestSuite) SetupSuite() {
 	suite.TestLogger = logger.New("debug") // or "test" to suppress output
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// Use PostgreSQL test database
+	dsn := "host=localhost user=postgres password=postgres dbname=slotwise_scheduling_test port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		suite.T().Fatalf("Failed to connect to SQLite: %v", err)
+		suite.T().Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 	suite.DB = db
 
@@ -70,7 +72,6 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessServiceCreated_NewService
 	desc := "Test Description"
 	payload.ServiceDetails.Description = &desc
 
-
 	eventData, _ := json.Marshal(payload)
 	err := suite.Handlers.HandleBusinessServiceCreated(eventData)
 	assert.NoError(t, err)
@@ -89,7 +90,7 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessServiceCreated_UpdateServ
 	t := suite.T()
 	// Create initial service
 	initialService := models.ServiceDefinition{
-		ID:              "svc-update", BusinessID: "biz-update", Name: "Old Name",
+		ID: "svc-update", BusinessID: "biz-update", Name: "Old Name",
 		DurationMinutes: 30, Price: 5000, Currency: "USD", IsActive: true,
 	}
 	suite.DB.Create(&initialService)
@@ -129,7 +130,6 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessServiceCreated_UpdateServ
 	assert.False(t, serviceDef.IsActive)
 }
 
-
 func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_NewRules() {
 	t := suite.T()
 	payload := subscribers.BusinessAvailabilityUpdatedPayload{
@@ -147,7 +147,7 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_NewRu
 	var rules []models.AvailabilityRule
 	suite.DB.Where("business_id = ?", "biz-avail-1").Find(&rules)
 	assert.Len(t, rules, 3)
-	
+
 	var countMonday int
 	for _, r := range rules {
 		if r.DayOfWeek == models.Monday {
@@ -206,7 +206,6 @@ func (suite *EventHandlersTestSuite) TestHandleBusinessAvailabilityUpdated_Clear
 	suite.DB.Where("business_id = ?", businessID).Find(&rules)
 	assert.Len(t, rules, 0)
 }
-
 
 func TestEventHandlersTestSuite(t *testing.T) {
 	suite.Run(t, new(EventHandlersTestSuite))

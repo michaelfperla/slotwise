@@ -12,7 +12,7 @@ import (
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -40,19 +40,21 @@ func (m *MockEventPublisher) Reset() {
 
 type BookingServiceTestSuite struct {
 	suite.Suite
-	DB                  *gorm.DB
-	BookingService      *service.BookingService
-	BookingRepo         *repository.BookingRepository
-	AvailabilityRepo    *repository.AvailabilityRepository // For service definitions
-	TestLogger          *logger.Logger
-	MockNatsPublisher   *MockEventPublisher
+	DB                *gorm.DB
+	BookingService    *service.BookingService
+	BookingRepo       *repository.BookingRepository
+	AvailabilityRepo  *repository.AvailabilityRepository // For service definitions
+	TestLogger        *logger.Logger
+	MockNatsPublisher *MockEventPublisher
 }
 
 func (suite *BookingServiceTestSuite) SetupSuite() {
 	suite.TestLogger = logger.New("debug")
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// Use PostgreSQL test database
+	dsn := "host=localhost user=postgres password=postgres dbname=slotwise_scheduling_test port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		suite.T().Fatalf("Failed to connect to SQLite: %v", err)
+		suite.T().Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 	suite.DB = db
 
@@ -68,7 +70,7 @@ func (suite *BookingServiceTestSuite) SetupSuite() {
 	// An actual AvailabilityService instance isn't strictly needed if we directly use AvailabilityRepo for setup.
 	suite.BookingService = service.NewBookingService(
 		suite.BookingRepo,
-		nil, // No direct call to AvailabilityService methods in BookingService yet
+		nil,                    // No direct call to AvailabilityService methods in BookingService yet
 		suite.AvailabilityRepo, // Passed as the serviceDefRepo
 		suite.MockNatsPublisher,
 		suite.TestLogger,
@@ -175,7 +177,6 @@ func (suite *BookingServiceTestSuite) TestCreateBooking_BackToBack_NoConflict() 
 	assert.Len(t, suite.MockNatsPublisher.PublishedEvents, 1)
 }
 
-
 // --- UpdateBookingStatus Tests ---
 func (suite *BookingServiceTestSuite) TestUpdateBookingStatus_Confirm() {
 	t := suite.T()
@@ -183,7 +184,7 @@ func (suite *BookingServiceTestSuite) TestUpdateBookingStatus_Confirm() {
 	startTime := time.Now().Add(time.Hour)
 	bookingToConfirm := models.Booking{
 		ID: "book_to_confirm", BusinessID: "biz_confirm", ServiceID: "svc_confirm", CustomerID: "cust_confirm",
-		StartTime: startTime, EndTime: startTime.Add(60*time.Minute), Status: models.BookingStatusPendingPayment,
+		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusPendingPayment,
 	}
 	suite.DB.Create(&bookingToConfirm)
 
@@ -196,13 +197,17 @@ func (suite *BookingServiceTestSuite) TestUpdateBookingStatus_Confirm() {
 	var dbBooking models.Booking
 	suite.DB.First(&dbBooking, "id = ?", bookingToConfirm.ID)
 	assert.Equal(t, models.BookingStatusConfirmed, dbBooking.Status)
-	
+
 	// Verify NATS events (BookingConfirmed and SlotReserved)
 	assert.Len(t, suite.MockNatsPublisher.PublishedEvents, 2)
 	foundConfirmed, foundReserved := false, false
 	for _, event := range suite.MockNatsPublisher.PublishedEvents {
-		if event.Subject == events.BookingConfirmedEvent { foundConfirmed = true }
-		if event.Subject == events.SlotReservedEvent { foundReserved = true }
+		if event.Subject == events.BookingConfirmedEvent {
+			foundConfirmed = true
+		}
+		if event.Subject == events.SlotReservedEvent {
+			foundReserved = true
+		}
 	}
 	assert.True(t, foundConfirmed, "BookingConfirmedEvent not published")
 	assert.True(t, foundReserved, "SlotReservedEvent not published")
@@ -214,7 +219,7 @@ func (suite *BookingServiceTestSuite) TestUpdateBookingStatus_Cancel() {
 	startTime := time.Now().Add(2 * time.Hour)
 	bookingToCancel := models.Booking{
 		ID: "book_to_cancel", BusinessID: "biz_cancel", ServiceID: "svc_cancel", CustomerID: "cust_cancel",
-		StartTime: startTime, EndTime: startTime.Add(60*time.Minute), Status: models.BookingStatusConfirmed,
+		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&bookingToCancel)
 
@@ -233,9 +238,9 @@ func (suite *BookingServiceTestSuite) TestListBookingsForCustomer() {
 	t := suite.T()
 	ctx := context.Background()
 	// Seed bookings for different customers
-	suite.DB.Create(&models.Booking{ID:"b_c1_1", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID:"b_c1_2", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now().Add(2*time.Hour), EndTime: time.Now().Add(3*time.Hour), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID:"b_c2_1", CustomerID: "cust2_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "b_c1_1", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "b_c1_2", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now().Add(2 * time.Hour), EndTime: time.Now().Add(3 * time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "b_c2_1", CustomerID: "cust2_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
 
 	bookings, total, err := suite.BookingService.ListBookingsForCustomer(ctx, "cust1_list", 10, 0)
 	assert.NoError(t, err)
@@ -243,9 +248,9 @@ func (suite *BookingServiceTestSuite) TestListBookingsForCustomer() {
 	assert.Len(t, bookings, 2)
 
 	bookingsPage2, total2, err := suite.BookingService.ListBookingsForCustomer(ctx, "cust1_list", 1, 1)
-    assert.NoError(t, err)
-    assert.Equal(t, int64(2), total2)
-    assert.Len(t, bookingsPage2, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), total2)
+	assert.Len(t, bookingsPage2, 1)
 
 }
 
@@ -253,16 +258,15 @@ func (suite *BookingServiceTestSuite) TestListBookingsForBusiness() {
 	t := suite.T()
 	ctx := context.Background()
 	// Seed bookings for different businesses
-	suite.DB.Create(&models.Booking{ID:"b_b1_1", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID:"b_b1_2", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now().Add(2*time.Hour), EndTime: time.Now().Add(3*time.Hour), Status: models.BookingStatusPendingPayment})
-	suite.DB.Create(&models.Booking{ID:"b_b2_1", BusinessID: "biz2_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "b_b1_1", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "b_b1_2", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now().Add(2 * time.Hour), EndTime: time.Now().Add(3 * time.Hour), Status: models.BookingStatusPendingPayment})
+	suite.DB.Create(&models.Booking{ID: "b_b2_1", BusinessID: "biz2_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
 
 	bookings, total, err := suite.BookingService.ListBookingsForBusiness(ctx, "biz1_list", 10, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	assert.Len(t, bookings, 2)
 }
-
 
 func TestBookingServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(BookingServiceTestSuite))

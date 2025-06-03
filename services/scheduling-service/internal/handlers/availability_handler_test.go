@@ -16,7 +16,7 @@ import (
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -31,9 +31,11 @@ type AvailabilityHandlerTestSuite struct {
 
 func (suite *AvailabilityHandlerTestSuite) SetupSuite() {
 	suite.TestLogger = logger.New("debug")
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// Use PostgreSQL test database
+	dsn := "host=localhost user=postgres password=postgres dbname=slotwise_scheduling_test port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		suite.T().Fatalf("Failed to connect to SQLite: %v", err)
+		suite.T().Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 	suite.DB = db
 
@@ -142,7 +144,8 @@ func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_AP
 	dateForBooking, _ := time.Parse("2006-01-02", "2024-03-04") // Same Monday as slot generation test
 	bookingStartTime := time.Date(dateForBooking.Year(), dateForBooking.Month(), dateForBooking.Day(), 9, 30, 0, 0, dateForBooking.Location())
 	conflictingBooking := models.Booking{
-		ID: "conflict_book_1", BusinessID: bizID, ServiceID: svcID, CustomerID: "cust_conflict_api",
+		// Let BeforeCreate hook generate the UUID
+		BusinessID: bizID, ServiceID: svcID, CustomerID: "cust_conflict_api",
 		StartTime: bookingStartTime, EndTime: bookingStartTime.Add(30 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&conflictingBooking)
