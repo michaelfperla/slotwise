@@ -138,7 +138,7 @@ function convertZodType(zodType: z.ZodTypeAny): JsonSchema {
   if (zodType instanceof z.ZodNativeEnum) {
     return {
       type: 'string',
-      enum: Object.values((zodType._def as { enumType: Record<string, unknown> }).enumType),
+      enum: Object.values((zodType._def as unknown as { enumType: Record<string, unknown> }).enumType),
     };
   }
 

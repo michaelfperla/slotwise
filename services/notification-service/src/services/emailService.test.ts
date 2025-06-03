@@ -1,7 +1,7 @@
-import { emailService } from './emailService'; // Assuming emailService is exported as an instance
-import { config } from '../config';
 import sgMail from '@sendgrid/mail'; // This will be the Jest mock from setup.ts
+import { config } from '../config/config';
 import { logger } from '../utils/logger';
+import { emailService } from './emailService'; // Assuming emailService is exported as an instance
 
 // Spy on logger.info, as it's used by the 'console' email provider
 jest.spyOn(logger, 'info');

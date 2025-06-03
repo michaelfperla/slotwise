@@ -1,8 +1,8 @@
-import { templateService } from '../services/templateService';
-import { emailService } from '../services/emailService';
-import { logger } from '../utils/logger';
-import { natsClient } from '../events/natsClient'; // To register subscribers
 import { config } from '../config/config'; // For fromEmail if needed, though emailService handles it
+import { natsClient } from '../events/natsClient'; // To register subscribers
+import { emailService } from '../services/emailService';
+import { templateService } from '../services/templateService';
+import { logger } from '../utils/logger';
 
 // --- Event Payload Interfaces ---
 // These should match the payloads published by the Scheduling Service for these events.
@@ -56,7 +56,7 @@ interface BookingCancelledPayload {
 
 // --- Event Handler Functions ---
 
-async function handleBookingConfirmed(payload: BookingConfirmedPayload): Promise<void> {
+export async function handleBookingConfirmed(payload: BookingConfirmedPayload): Promise<void> {
   logger.info('Handling booking.confirmed event', { bookingId: payload.bookingId });
 
   const bookingDate = new Date(payload.startTime).toLocaleDateString(undefined, {
@@ -140,7 +140,7 @@ async function handleBookingConfirmed(payload: BookingConfirmedPayload): Promise
   );
 }
 
-async function handleBookingCancelled(payload: BookingCancelledPayload): Promise<void> {
+export async function handleBookingCancelled(payload: BookingCancelledPayload): Promise<void> {
   logger.info('Handling booking.cancelled event', { bookingId: payload.bookingId });
 
   const bookingDate = new Date(payload.startTime).toLocaleDateString(undefined, {

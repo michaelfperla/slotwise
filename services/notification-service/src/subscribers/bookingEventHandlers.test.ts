@@ -1,12 +1,11 @@
-import {
-  handleBookingConfirmed,
-  handleBookingCancelled,
-  initializeBookingEventSubscribers,
-} from './bookingEventHandlers'; // Assuming direct import for test
-import { templateService } from '../services/templateService';
 import { emailService } from '../services/emailService';
+import { templateService } from '../services/templateService';
 import { logger } from '../utils/logger';
-import { natsConnection } from '../events/natsClient'; // For initialize function, and potentially mock its subscribe calls
+import {
+    handleBookingCancelled,
+    handleBookingConfirmed,
+    initializeBookingEventSubscribers,
+} from './bookingEventHandlers'; // Assuming direct import for test
 
 // Mock services
 jest.mock('../services/templateService');
@@ -18,7 +17,7 @@ jest.mock('../utils/logger'); // Mock logger to check reminder log
 // The actual callback execution (handleBookingConfirmed, handleBookingCancelled) will be tested directly.
 const mockNatsSubscribe = jest.fn().mockResolvedValue(undefined); // .mockResolvedValue for async subscribe if it returns Promise
 jest.mock('../events/natsClient', () => ({
-  natsConnection: {
+  natsClient: {
     isConnected: jest.fn().mockReturnValue(true),
     subscribe: jest.fn((subject, handler) => {
       // Store handler to simulate message later if needed, or just check subject
@@ -61,7 +60,7 @@ describe('Booking Event Handlers', () => {
     (logger.info as jest.Mock).mockClear();
     (logger.error as jest.Mock).mockClear();
     mockNatsSubscribe.mockClear(); // Clear our nats subscribe spy
-    (natsConnection.isConnected as jest.Mock).mockReturnValue(true); // Reset to connected
+    (natsClient.isConnected as jest.Mock).mockReturnValue(true); // Reset to connected
   });
 
   describe('handleBookingConfirmed', () => {
@@ -174,24 +173,24 @@ describe('Booking Event Handlers', () => {
   describe('initializeBookingEventSubscribers', () => {
     it('should subscribe to booking.confirmed and booking.cancelled', () => {
       initializeBookingEventSubscribers();
-      expect(natsConnection.subscribe).toHaveBeenCalledTimes(2);
-      expect(natsConnection.subscribe).toHaveBeenCalledWith(
+      expect(natsClient.subscribe).toHaveBeenCalledTimes(2);
+      expect(natsClient.subscribe).toHaveBeenCalledWith(
         'booking.confirmed',
         expect.any(Function)
       );
-      expect(natsConnection.subscribe).toHaveBeenCalledWith(
+      expect(natsClient.subscribe).toHaveBeenCalledWith(
         'booking.cancelled',
         expect.any(Function)
       );
     });
 
     it('should log a warning if NATS connection is not established', () => {
-      (natsConnection.isConnected as jest.Mock).mockReturnValueOnce(false);
+      (natsClient.isConnected as jest.Mock).mockReturnValueOnce(false);
       initializeBookingEventSubscribers();
       expect(logger.warn).toHaveBeenCalledWith(
         'NATS connection not established. Cannot initialize booking event subscribers.'
       );
-      expect(natsConnection.subscribe).not.toHaveBeenCalled();
+      expect(natsClient.subscribe).not.toHaveBeenCalled();
     });
   });
 });
