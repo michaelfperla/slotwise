@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 
 interface BookingDetails {
   serviceId: string;
@@ -12,7 +12,7 @@ interface BookingDetails {
   price: string;
 }
 
-export default function ConfirmBookingPage() {
+function ConfirmBookingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -210,5 +210,13 @@ export default function ConfirmBookingPage() {
         Back to Select Slot
       </button>
     </div>
+  );
+}
+
+export default function ConfirmBookingPage() {
+  return (
+    <Suspense fallback={<div>Loading booking details...</div>}>
+      <ConfirmBookingPageContent />
+    </Suspense>
   );
 }

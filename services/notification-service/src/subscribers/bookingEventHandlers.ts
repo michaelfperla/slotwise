@@ -1,8 +1,8 @@
 import { templateService } from '../services/templateService';
 import { emailService } from '../services/emailService';
 import { logger } from '../utils/logger';
-import { natsConnection } from '../events/natsClient'; // To register subscribers
-import { config } from '../config'; // For fromEmail if needed, though emailService handles it
+import { natsClient } from '../events/natsClient'; // To register subscribers
+import { config } from '../config/config'; // For fromEmail if needed, though emailService handles it
 
 // --- Event Payload Interfaces ---
 // These should match the payloads published by the Scheduling Service for these events.
@@ -227,7 +227,7 @@ async function handleBookingCancelled(payload: BookingCancelledPayload): Promise
 
 // Function to initialize subscribers
 export function initializeBookingEventSubscribers(): void {
-  if (!natsConnection.isConnected()) {
+  if (!natsClient.isConnected()) {
     logger.warn('NATS connection not established. Cannot initialize booking event subscribers.');
     // Optionally, retry connection or handle this state appropriately.
     // For now, just returning. Connection is usually awaited in index.ts.
@@ -238,19 +238,19 @@ export function initializeBookingEventSubscribers(): void {
   const bookingConfirmedSubject = 'booking.confirmed';
   const bookingCancelledSubject = 'booking.cancelled';
 
-  natsConnection
-    .subscribe(bookingConfirmedSubject, async (data: BookingConfirmedPayload) => {
-      await handleBookingConfirmed(data);
+  natsClient
+    .subscribe(bookingConfirmedSubject, async (data: Record<string, unknown>) => {
+      await handleBookingConfirmed(data as unknown as BookingConfirmedPayload);
     })
-    .catch(err =>
+    .catch((err: unknown) =>
       logger.error(`Failed to subscribe to ${bookingConfirmedSubject}`, { error: err })
     );
 
-  natsConnection
-    .subscribe(bookingCancelledSubject, async (data: BookingCancelledPayload) => {
-      await handleBookingCancelled(data);
+  natsClient
+    .subscribe(bookingCancelledSubject, async (data: Record<string, unknown>) => {
+      await handleBookingCancelled(data as unknown as BookingCancelledPayload);
     })
-    .catch(err =>
+    .catch((err: unknown) =>
       logger.error(`Failed to subscribe to ${bookingCancelledSubject}`, { error: err })
     );
 

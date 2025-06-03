@@ -27,8 +27,7 @@ export default function MyBookingsPage() {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setCustomerId(payload.sub || payload.userId || payload.id);
-      } catch (_e: unknown) {
-        // e -> _e
+      } catch {
         setError('Failed to process authentication token.');
         setIsLoading(false);
         router.push('/login');

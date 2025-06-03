@@ -58,8 +58,7 @@ export default function ManageAvailabilityPage() {
             );
             setIsLoading(false);
           }
-        } catch (_e: unknown) {
-          // e -> _e
+        } catch {
           setError('Failed to parse auth token.');
           setIsLoading(false);
         }
@@ -162,7 +161,11 @@ export default function ManageAvailabilityPage() {
 
     try {
       const payload = {
-        rules: rules.map(({ id: _id, ...rule }) => rule), // id changed to _id
+        rules: rules.map((rule) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...ruleWithoutId } = rule;
+          return ruleWithoutId;
+        }), // Remove id from payload
       };
       const response = await fetch(`/api/v1/businesses/${businessId}/availability`, {
         // Business Service POST endpoint

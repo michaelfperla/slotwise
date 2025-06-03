@@ -1,4 +1,6 @@
 import handlebars from 'handlebars';
+
+type HandlebarsTemplateDelegate = (context: any) => string;
 import fs from 'fs/promises';
 import path from 'path';
 import { logger } from '../utils/logger';
@@ -11,7 +13,7 @@ export type TemplateName =
   | 'booking-cancellation-business';
 
 interface TemplateCache {
-  [key: string]: handlebars.HandlebarsTemplateDelegate;
+  [key: string]: HandlebarsTemplateDelegate;
 }
 
 class TemplateService {
@@ -46,7 +48,7 @@ class TemplateService {
   private async loadTemplate(
     name: TemplateName,
     filename: string
-  ): Promise<handlebars.HandlebarsTemplateDelegate> {
+  ): Promise<HandlebarsTemplateDelegate> {
     if (this.templateCache[name]) {
       return this.templateCache[name];
     }

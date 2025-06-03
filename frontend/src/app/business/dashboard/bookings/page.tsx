@@ -38,8 +38,7 @@ export default function BusinessBookingsPage() {
           setIsLoading(false);
           // router.push('/dashboard'); // Redirect to user dashboard or login
         }
-      } catch (_e: unknown) {
-        // e -> _e
+      } catch {
         setError('Failed to process authentication token.');
         setIsLoading(false);
         router.push('/login');

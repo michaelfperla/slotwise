@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 
 // Define a more specific type for Prisma known request errors
 interface PrismaKnownError extends FastifyError {
-  code?: string;
+  code: string;
   meta?: Record<string, unknown>;
 }
 

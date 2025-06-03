@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { logger } from '../utils/logger';
-import { NATSConnection } from '../events/nats'; // Import NATSConnection
+import { natsConnection } from '../events/nats'; // Import natsConnection
 
 // Define types based on Prisma schema
 type BusinessStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_SETUP';
@@ -67,7 +67,7 @@ interface PaginatedResult<T> {
 export class BusinessService {
   constructor(
     private prisma: PrismaClient,
-    private eventPublisher: NATSConnection // Changed from any
+    private eventPublisher: typeof natsConnection // Changed from any
   ) {}
 
   async createBusiness(data: CreateBusinessData): Promise<Business> {
