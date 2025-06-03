@@ -161,7 +161,7 @@ export default function ManageAvailabilityPage() {
 
     try {
       const payload = {
-        rules: rules.map((rule) => {
+        rules: rules.map(rule => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id, ...ruleWithoutId } = rule;
           return ruleWithoutId;

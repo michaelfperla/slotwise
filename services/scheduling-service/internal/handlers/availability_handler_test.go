@@ -108,16 +108,16 @@ func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_AP
 	assert.True(t, ok, "slots should be an array")
 	assert.Len(t, slotsData, 2, "Should return two slots")
 
-    // Further checks on slot times if necessary, by parsing slot strings back to time.Time
-    // Example:
+	// Further checks on slot times if necessary, by parsing slot strings back to time.Time
+	// Example:
 	if len(slotsData) == 2 {
-        // Example check for specific times if needed, requires careful time zone handling
-        // slot1 := slotsData[0].(map[string]interface{})
-        // startTime1Str := slot1["startTime"].(string)
-        // expectedStartTime := time.Date(2024, 3, 4, 10, 0, 0, 0, time.UTC) // Assuming test date and UTC for simplicity
-        // parsedStartTime, _ := time.Parse(time.RFC3339Nano, startTime1Str)
-        // assert.True(t, parsedStartTime.Equal(expectedStartTime), "First slot should start at 10:00")
-    }
+		// Example check for specific times if needed, requires careful time zone handling
+		// slot1 := slotsData[0].(map[string]interface{})
+		// startTime1Str := slot1["startTime"].(string)
+		// expectedStartTime := time.Date(2024, 3, 4, 10, 0, 0, 0, time.UTC) // Assuming test date and UTC for simplicity
+		// parsedStartTime, _ := time.Parse(time.RFC3339Nano, startTime1Str)
+		// assert.True(t, parsedStartTime.Equal(expectedStartTime), "First slot should start at 10:00")
+	}
 }
 
 func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_APIWithConflicts() {
@@ -146,9 +146,8 @@ func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_AP
 		StartTime: bookingStartTime, EndTime: bookingStartTime.Add(30 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&conflictingBooking)
-	
+
 	dateStr := "2024-03-04"
-	url := fmt.Sprintf("/api/v1/internal/availability/%s/slots?serviceId=%s&date=%s", bizID, svcID, dateStr)
 	// This test is for the *internal* endpoint. The public one is /api/v1/services/:serviceId/slots
 	// Let's adjust the URL to match the public endpoint.
 	// The public endpoint handler is GetPublicSlotsForService in AvailabilityHandler.
@@ -179,14 +178,17 @@ func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_AP
 		slot := slotInf.(map[string]interface{})
 		startTimeStr := slot["startTime"].(string)
 		parsedST, _ := time.Parse(time.RFC3339Nano, startTimeStr)
-		if parsedST.Hour() == 9 && parsedST.Minute() == 0 { found0900 = true }
-		if parsedST.Hour() == 10 && parsedST.Minute() == 0 { found1000 = true }
+		if parsedST.Hour() == 9 && parsedST.Minute() == 0 {
+			found0900 = true
+		}
+		if parsedST.Hour() == 10 && parsedST.Minute() == 0 {
+			found1000 = true
+		}
 	}
 	assert.True(t, found0900, "Slot 09:00 should be available")
 	assert.True(t, found1000, "Slot 10:00 should be available")
 
 }
-
 
 func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_APIServiceNotFound() {
 	t := suite.T()
@@ -199,20 +201,18 @@ func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_AP
 	}
 	suite.DB.Create(&rules)
 
-
 	url := fmt.Sprintf("/api/v1/internal/availability/biz_api_nosvc/slots?serviceId=svc_api_nosvc&date=%s", dateStr)
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	rr := httptest.NewRecorder()
 	suite.Router.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusNotFound, rr.Code, "Should return 404 if service not found")
-	
+
 	var responseBody map[string]interface{}
 	err := json.Unmarshal(rr.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
 	assert.Contains(t, responseBody["error"], "not found", "Error message should indicate 'not found'")
 }
-
 
 func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_APIBadRequest() {
 	t := suite.T()
@@ -224,13 +224,12 @@ func (suite *AvailabilityHandlerTestSuite) TestGetSlotsForBusinessServiceDate_AP
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 	// Invalid date format
-    url = "/api/v1/internal/availability/biz_api_badreq/slots?serviceId=svc_api_badreq&date=invalid-date"
+	url = "/api/v1/internal/availability/biz_api_badreq/slots?serviceId=svc_api_badreq&date=invalid-date"
 	req, _ = http.NewRequest(http.MethodGet, url, nil)
 	rr = httptest.NewRecorder()
 	suite.Router.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
-
 
 func TestAvailabilityHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(AvailabilityHandlerTestSuite))

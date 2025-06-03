@@ -61,8 +61,7 @@ export class AvailabilityService {
     }
 
     // Atomically update availability: delete all existing rules for the business and create new ones
-    const _newAvailabilityRules = await this.prisma.$transaction(async tx => {
-      // Prefixed with _
+    await this.prisma.$transaction(async tx => {
       await tx.availability.deleteMany({
         where: { businessId: businessId },
       });

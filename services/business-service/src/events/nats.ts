@@ -60,7 +60,7 @@ class NATSConnection {
       (async () => {
         for await (const message of subscription) {
           try {
-            const data = this.codec.decode(message.data);
+            const data = this.codec.decode(message.data) as Record<string, unknown>;
             await handler(data);
             logger.debug('Processed NATS message', { subject, data });
           } catch (error) {

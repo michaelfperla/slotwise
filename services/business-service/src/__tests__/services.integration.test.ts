@@ -4,7 +4,11 @@ import { natsConnection } from '../events/nats'; // Will use the Jest mock due t
 import { businessRoutes } from '../routes/business'; // For potential business creation prerequisite
 import { serviceRoutes } from '../routes/service';
 import { errorHandler } from '../middleware/errorHandler';
-import { User } from '@prisma/client'; // Assuming User type might be needed for request.user
+// Define a simple User interface for testing
+interface User {
+  id: string;
+  email: string;
+}
 
 // Mock the auth middleware to inject user
 let mockUser: Partial<User> | null = null; // Define User based on your actual user model structure if available
@@ -31,10 +35,8 @@ async function buildTestApp(): Promise<FastifyInstance> {
   fastify.setErrorHandler(errorHandler);
 
   // Register the mocked auth middleware
-  // The jest.mock above should handle this globally for all imports of authMiddleware
-  // If not, explicit registration might be needed:
-  // await fastify.register(require('../middleware/auth').authMiddleware);
-  // For now, relying on global mock.
+  const { authMiddleware } = await import('../middleware/auth');
+  await authMiddleware(fastify);
 
   // Register routes
   // Prefix must match how they are registered in the main app (src/index.ts)
@@ -140,8 +142,8 @@ describe('Service Management API (/api/v1/services)', () => {
 
   beforeEach(async () => {
     // Clear NATS mock calls before each test
-    if (natsConnection.isConnected() && natsConnection.connection?.publish) {
-      (natsConnection.connection.publish as jest.Mock).mockClear();
+    if (natsConnection.publish) {
+      (natsConnection.publish as jest.Mock).mockClear();
     }
     // Clear any other per-test mocks if necessary
   });
@@ -182,11 +184,10 @@ describe('Service Management API (/api/v1/services)', () => {
       expect(dbService?.businessId).toBe(testBusiness.id);
 
       // Verify NATS event
-      // Ensure natsConnection.connection is defined and is the mock
-      expect(natsConnection.connection?.publish).toHaveBeenCalledTimes(1);
-      const publishCall = (natsConnection.connection?.publish as jest.Mock).mock.calls[0];
+      expect(natsConnection.publish).toHaveBeenCalledTimes(1);
+      const publishCall = (natsConnection.publish as jest.Mock).mock.calls[0];
       expect(publishCall[0]).toBe('business.service.created'); // Subject
-      const natsPayload = JSON.parse(new TextDecoder().decode(publishCall[1])); // Decode Uint8Array
+      const natsPayload = publishCall[1]; // Direct access to payload object
 
       expect(natsPayload.serviceId).toBe(dbService?.id);
       expect(natsPayload.businessId).toBe(testBusiness.id);

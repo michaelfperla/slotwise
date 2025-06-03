@@ -2,9 +2,7 @@ package handlers_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,18 +28,21 @@ type MockNatsPublisherForHandler struct {
 		Data    interface{}
 	}
 }
+
 func (m *MockNatsPublisherForHandler) Publish(subject string, data interface{}) error {
-	m.PublishedEvents = append(m.PublishedEvents, struct {Subject string; Data    interface{}}{Subject: subject, Data: data})
+	m.PublishedEvents = append(m.PublishedEvents, struct {
+		Subject string
+		Data    interface{}
+	}{Subject: subject, Data: data})
 	return nil
 }
 func (m *MockNatsPublisherForHandler) Reset() { m.PublishedEvents = nil }
-
 
 type BookingHandlerTestSuite struct {
 	suite.Suite
 	DB                  *gorm.DB
 	Router              *gin.Engine
-	BookingService      *service.BookingService // Real service
+	BookingService      *service.BookingService      // Real service
 	AvailabilityService *service.AvailabilityService // Real service
 	BookingRepo         *repository.BookingRepository
 	AvailabilityRepo    *repository.AvailabilityRepository
@@ -116,7 +117,7 @@ func (suite *BookingHandlerTestSuite) TestCreateBookingAPI_Success() {
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/bookings", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	// TODO: Add mock auth header/context if CreateBooking handler expects CustomerID from auth
-	
+
 	rr := httptest.NewRecorder()
 	suite.Router.ServeHTTP(rr, req)
 
@@ -136,7 +137,7 @@ func (suite *BookingHandlerTestSuite) TestCreateBookingAPI_Conflict() {
 	t := suite.T()
 	svcDef := models.ServiceDefinition{ID: "s2", BusinessID: "b2", Name: "Svc 2", DurationMinutes: 60, IsActive: true}
 	suite.DB.Create(&svcDef)
-	
+
 	existingStartTime, _ := time.Parse(time.RFC3339, "2024-05-01T11:00:00Z")
 	existingBooking := models.Booking{
 		ID: "existing_b_api", BusinessID: "b2", ServiceID: "s2", CustomerID: "c_exist",
@@ -164,7 +165,7 @@ func (suite *BookingHandlerTestSuite) TestGetBookingByIDAPI() {
 	startTime, _ := time.Parse(time.RFC3339, "2024-05-01T15:00:00Z")
 	newBooking := models.Booking{
 		ID: bookingID, BusinessID: "b_get", ServiceID: "s_get", CustomerID: "c_get",
-		StartTime: startTime, EndTime: startTime.Add(60*time.Minute), Status: models.BookingStatusConfirmed,
+		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&newBooking)
 
@@ -181,15 +182,15 @@ func (suite *BookingHandlerTestSuite) TestGetBookingByIDAPI() {
 func (suite *BookingHandlerTestSuite) TestListBookingsAPI_ByCustomer() {
 	t := suite.T()
 	// Seed bookings
-	suite.DB.Create(&models.Booking{ID:"lc1", CustomerID:"cust_list_api", BusinessID:"b_l_c", ServiceID:"s_l_c", StartTime:time.Now(), Status:models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID:"lc2", CustomerID:"cust_list_api", BusinessID:"b_l_c", ServiceID:"s_l_c", StartTime:time.Now().Add(time.Hour), Status:models.BookingStatusPendingPayment})
-	suite.DB.Create(&models.Booking{ID:"lc3", CustomerID:"cust_other", BusinessID:"b_l_c", ServiceID:"s_l_c", StartTime:time.Now(), Status:models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "lc1", CustomerID: "cust_list_api", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now(), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "lc2", CustomerID: "cust_list_api", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now().Add(time.Hour), Status: models.BookingStatusPendingPayment})
+	suite.DB.Create(&models.Booking{ID: "lc3", CustomerID: "cust_other", BusinessID: "b_l_c", ServiceID: "s_l_c", StartTime: time.Now(), Status: models.BookingStatusConfirmed})
 
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/bookings?customerId=cust_list_api", nil)
 	rr := httptest.NewRecorder()
 	suite.Router.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
-	var respData struct { Data []models.Booking }
+	var respData struct{ Data []models.Booking }
 	json.Unmarshal(rr.Body.Bytes(), &respData)
 	assert.Len(t, respData.Data, 2)
 }
@@ -200,7 +201,7 @@ func (suite *BookingHandlerTestSuite) TestUpdateBookingStatusAPI() {
 	startTime, _ := time.Parse(time.RFC3339, "2024-05-01T18:00:00Z")
 	newBooking := models.Booking{
 		ID: bookingID, BusinessID: "b_upd", ServiceID: "s_upd", CustomerID: "c_upd",
-		StartTime: startTime, EndTime: startTime.Add(60*time.Minute), Status: models.BookingStatusPendingPayment,
+		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusPendingPayment,
 	}
 	suite.DB.Create(&newBooking)
 
@@ -219,7 +220,6 @@ func (suite *BookingHandlerTestSuite) TestUpdateBookingStatusAPI() {
 	// Check NATS events (BookingConfirmed and SlotReserved)
 	assert.Len(t, suite.MockNatsPub.PublishedEvents, 2)
 }
-
 
 func TestBookingHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(BookingHandlerTestSuite))

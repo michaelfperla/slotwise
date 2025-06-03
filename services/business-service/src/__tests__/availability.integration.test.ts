@@ -4,7 +4,13 @@ import { natsConnection } from '../events/nats'; // Will use the Jest mock
 import { businessRoutes } from '../routes/business';
 // import { serviceRoutes } from '../routes/service'; // Unused import removed
 import { errorHandler } from '../middleware/errorHandler';
-import { User, DayOfWeek } from '@prisma/client'; // Import DayOfWeek
+import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
+
+// Define a simple User interface for testing
+interface User {
+  id: string;
+  email: string;
+}
 
 // Mock the auth middleware to inject user
 let mockUser: Partial<User> | null = null;
@@ -23,6 +29,11 @@ jest.mock('../middleware/auth', () => ({
 async function buildTestApp(): Promise<FastifyInstance> {
   const fastify = Fastify(); // Changed from require
   fastify.setErrorHandler(errorHandler);
+
+  // Register the mocked auth middleware
+  const { authMiddleware } = await import('../middleware/auth');
+  await authMiddleware(fastify);
+
   // Registering businessRoutes is essential as availability routes are part of it.
   await fastify.register(businessRoutes, { prefix: '/api/v1/businesses' });
   // Service routes might not be strictly necessary if only testing availability under /businesses
@@ -49,6 +60,7 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
 
     mockUser = { id: `owner-avail-${Date.now()}`, email: 'avail-owner@example.com' };
 
+    // Create a test business using the real database
     const businessPayload = {
       name: 'Test Business for Availability',
       subdomain: `avail-biz-${Date.now()}`,
@@ -77,8 +89,13 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
       await app.close();
     }
     if (testBusiness) {
-      await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
-      await prisma.business.delete({ where: { id: testBusiness.id } });
+      try {
+        await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
+        await prisma.business.delete({ where: { id: testBusiness.id } });
+      } catch (error) {
+        // Ignore cleanup errors - test database will be cleaned up anyway
+        console.warn('Cleanup error (ignored):', error);
+      }
     }
     mockUser = null;
     if (natsConnection.isConnected()) {
@@ -87,8 +104,9 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
   });
 
   beforeEach(async () => {
-    if (natsConnection.isConnected() && natsConnection.connection?.publish) {
-      (natsConnection.connection.publish as jest.Mock).mockClear();
+    // Mock the publish method directly on the natsConnection instance
+    if (natsConnection.publish) {
+      (natsConnection.publish as jest.Mock).mockClear();
     }
     // Clear existing availability rules for the test business before each test
     await prisma.availability.deleteMany({ where: { businessId: testBusiness.id } });
@@ -127,10 +145,10 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
       );
 
       // Verify NATS event
-      expect(natsConnection.connection?.publish).toHaveBeenCalledTimes(1);
-      const publishCall = (natsConnection.connection?.publish as jest.Mock).mock.calls[0];
+      expect(natsConnection.publish).toHaveBeenCalledTimes(1);
+      const publishCall = (natsConnection.publish as jest.Mock).mock.calls[0];
       expect(publishCall[0]).toBe('business.availability.updated');
-      const natsPayload = JSON.parse(new TextDecoder().decode(publishCall[1]));
+      const natsPayload = publishCall[1];
       expect(natsPayload.businessId).toBe(testBusiness.id);
       expect(natsPayload.rules.length).toBe(2);
       expect(natsPayload.rules[0].dayOfWeek).toBe(DayOfWeek.MONDAY);
@@ -147,7 +165,7 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
         headers: { Authorization: 'Bearer testtoken' },
       });
       // Clear mock from previous call
-      (natsConnection.connection?.publish as jest.Mock).mockClear();
+      (natsConnection.publish as jest.Mock).mockClear();
 
       const newAvailabilityPayload = {
         rules: [{ dayOfWeek: DayOfWeek.FRIDAY, startTime: '13:00', endTime: '18:00' }],
@@ -164,7 +182,7 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
       });
       expect(dbRules.length).toBe(1);
       expect(dbRules[0].dayOfWeek).toBe(DayOfWeek.FRIDAY);
-      expect(natsConnection.connection?.publish).toHaveBeenCalledTimes(1); // NATS event for the second update
+      expect(natsConnection.publish).toHaveBeenCalledTimes(1); // NATS event for the second update
     });
 
     it('should return 400 for invalid rule (e.g., startTime after endTime)', async () => {

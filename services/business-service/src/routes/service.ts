@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { ServiceService } from '../services/ServiceService';
+import { zodToJsonSchema } from '../utils/schema';
 
 const serviceService = new ServiceService();
 
@@ -39,7 +40,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
     '/',
     {
       schema: {
-        body: createServiceSchema,
+        body: zodToJsonSchema(createServiceSchema),
         response: {
           201: {
             type: 'object',
@@ -89,7 +90,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
     '/',
     {
       schema: {
-        querystring: serviceQuerySchema,
+        querystring: zodToJsonSchema(serviceQuerySchema),
         response: {
           200: {
             type: 'object',
@@ -141,7 +142,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
     '/:id',
     {
       schema: {
-        params: serviceParamsSchema,
+        params: zodToJsonSchema(serviceParamsSchema),
         response: {
           200: {
             type: 'object',
@@ -199,8 +200,8 @@ export async function serviceRoutes(fastify: FastifyInstance) {
     '/:id',
     {
       schema: {
-        params: serviceParamsSchema,
-        body: updateServiceSchema,
+        params: zodToJsonSchema(serviceParamsSchema),
+        body: zodToJsonSchema(updateServiceSchema),
         response: {
           200: {
             type: 'object',
@@ -261,7 +262,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
     '/:id',
     {
       schema: {
-        params: serviceParamsSchema,
+        params: zodToJsonSchema(serviceParamsSchema),
         response: {
           200: {
             type: 'object',

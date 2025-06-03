@@ -28,7 +28,9 @@ async function start() {
     logger.info('Connected to NATS');
 
     // Initialize NATS event subscribers
-    const { initializeBookingEventSubscribers } = await import('./subscribers/bookingEventHandlers');
+    const { initializeBookingEventSubscribers } = await import(
+      './subscribers/bookingEventHandlers'
+    );
     initializeBookingEventSubscribers();
     // Add other subscriber initializers if any (e.g. for user events, etc.)
 

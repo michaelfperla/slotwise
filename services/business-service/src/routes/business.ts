@@ -5,6 +5,7 @@ import { AvailabilityService } from '../services/AvailabilityService'; // Import
 import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats';
+import { zodToJsonSchema } from '../utils/schema';
 
 const businessService = new BusinessService(prisma, natsConnection);
 const availabilityService = new AvailabilityService(); // Instantiate AvailabilityService
@@ -62,7 +63,7 @@ export async function businessRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Business'],
         summary: 'Create a new business',
-        body: createBusinessSchema,
+        body: zodToJsonSchema(createBusinessSchema),
         response: {
           201: {
             type: 'object',
@@ -79,24 +80,40 @@ export async function businessRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Body: z.infer<typeof createBusinessSchema> }>,
       reply: FastifyReply
     ) => {
-      const userId = request.user?.id;
-      if (!userId) {
-        return reply.status(401).send({
-          success: false,
-          message: 'User not authenticated',
+      try {
+        // Validate with Zod
+        const validatedBody = createBusinessSchema.parse(request.body);
+
+        const userId = request.user?.id;
+        if (!userId) {
+          return reply.status(401).send({
+            success: false,
+            message: 'User not authenticated',
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        const business = await businessService.createBusiness({
+          ...validatedBody,
+          ownerId: userId,
+        });
+
+        return reply.status(201).send({
+          success: true,
+          data: business,
           timestamp: new Date().toISOString(),
         });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return reply.status(400).send({
+            success: false,
+            message: 'Validation error',
+            errors: error.errors,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        throw error;
       }
-      const business = await businessService.createBusiness({
-        ...request.body,
-        ownerId: userId,
-      });
-
-      return reply.status(201).send({
-        success: true,
-        data: business,
-        timestamp: new Date().toISOString(),
-      });
     }
   );
 
@@ -107,7 +124,7 @@ export async function businessRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Business'],
         summary: 'Get business by ID',
-        params: businessParamsSchema,
+        params: zodToJsonSchema(businessParamsSchema),
         response: {
           200: {
             type: 'object',
@@ -153,8 +170,8 @@ export async function businessRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Business'],
         summary: 'Update business',
-        params: businessParamsSchema,
-        body: updateBusinessSchema,
+        params: zodToJsonSchema(businessParamsSchema),
+        body: zodToJsonSchema(updateBusinessSchema),
         response: {
           200: {
             type: 'object',
@@ -256,7 +273,7 @@ export async function businessRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Business'],
         summary: 'Delete business',
-        params: businessParamsSchema,
+        params: zodToJsonSchema(businessParamsSchema),
         response: {
           200: {
             type: 'object',
@@ -338,8 +355,8 @@ export async function businessRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Business', 'Availability'],
         summary: 'Set or update availability for a business',
-        params: businessIdParamsSchema,
-        body: setAvailabilitySchema,
+        params: zodToJsonSchema(businessIdParamsSchema),
+        body: zodToJsonSchema(setAvailabilitySchema),
         response: {
           200: {
             type: 'object',
@@ -412,7 +429,7 @@ export async function businessRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['Business', 'Availability'],
         summary: 'Get availability for a business',
-        params: businessIdParamsSchema,
+        params: zodToJsonSchema(businessIdParamsSchema),
         response: {
           200: {
             type: 'object',
