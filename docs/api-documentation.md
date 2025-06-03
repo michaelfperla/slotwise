@@ -147,64 +147,9 @@ All API responses follow a consistent format:
 
 ## 🔐 Auth Service API
 
-### Register User
+The Auth Service is responsible for user registration, login, token management, and other authentication-related operations.
 
-```http
-POST /auth/register
-Content-Type: application/json
-
-{
-  "email": "newuser@example.com",
-  "password": "securepassword",
-  "firstName": "Jane",
-  "lastName": "Smith",
-  "timezone": "America/New_York"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user_456",
-      "email": "newuser@example.com",
-      "firstName": "Jane",
-      "lastName": "Smith",
-      "role": "business_owner",
-      "status": "pending_verification"
-    }
-  },
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-### Refresh Token
-
-```http
-POST /auth/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "refresh_token_here"
-}
-```
-
-### Logout
-
-```http
-POST /auth/logout
-Authorization: Bearer <token>
-```
-
-### Get Current User
-
-```http
-GET /auth/me
-Authorization: Bearer <token>
-```
+For detailed API specification, please see the [Auth Service OpenAPI Documentation](./auth-service-api.yaml).
 
 ## 🏢 Business Service API
 
