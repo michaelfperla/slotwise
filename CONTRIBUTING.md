@@ -20,12 +20,15 @@ Pull requests are the best way to propose changes to the codebase. We actively
 welcome your pull requests:
 
 1. **Fork the repo** and create your branch from `main`.
-2. **Make your changes** following our coding standards.
-3. **Add tests** if you've added code that should be tested.
-4. **Update documentation** if you've changed APIs or added features.
-5. **Ensure the test suite passes** by running `npm run test:all`.
-6. **Make sure your code lints** by running `npm run lint`.
-7. **Issue that pull request!**
+2. **Make your changes** following our [Coding Standards](CODING_STANDARDS.md).
+3. **Follow our workflow** as outlined in
+   [Development Workflow](DEVELOPMENT_WORKFLOW.md).
+4. **Add tests** if you've added code that should be tested.
+5. **Update documentation** following
+   [Documentation Standards](DOCUMENTATION_STANDARDS.md).
+6. **Ensure the test suite passes** by running `npm run test:all`.
+7. **Make sure your code lints** by running `npm run lint`.
+8. **Issue that pull request!**
 
 ### Development Setup
 
@@ -70,36 +73,38 @@ welcome your pull requests:
 
 ## Coding Standards
 
-### TypeScript/JavaScript
+SlotWise follows comprehensive coding standards to ensure consistent,
+maintainable code across all services. Please review our detailed standards
+documentation:
 
-- Use **TypeScript** for all new JavaScript code
-- Follow **ESLint** and **Prettier** configurations
-- Use **meaningful variable names** and **clear function signatures**
-- Write **JSDoc comments** for public APIs
-- Prefer **functional programming** patterns where appropriate
+### 📋 **[Coding Standards](CODING_STANDARDS.md)**
 
-### Go
+Complete guidelines for TypeScript/Node.js, Go, React, Database, API Design,
+NATS Events, and Testing standards.
 
-- Follow standard **Go conventions** (`gofmt`, `golint`, `go vet`)
-- Use **clear, descriptive names** for functions and variables
-- Write **comprehensive error handling**
-- Include **GoDoc comments** for exported functions
-- Write **table-driven tests** where appropriate
+### 🔄 **[Development Workflow](DEVELOPMENT_WORKFLOW.md)**
 
-### Database
+Git workflow, branch management, commit standards, PR process, and code review
+guidelines.
 
-- Use **migrations** for all schema changes
-- Follow **naming conventions** (snake_case for tables/columns)
-- Include **proper indexing** for performance
-- Write **both up and down migrations**
+### 🏗️ **[Architecture Documentation](ARCHITECTURE.md)**
 
-### API Design
+System design, service interactions, database schemas, and deployment patterns.
 
-- Follow **RESTful principles**
-- Use **consistent response formats**
-- Include **comprehensive OpenAPI documentation**
-- Implement **proper error handling** and status codes
-- Use **semantic versioning** for API changes
+### 📚 **[Documentation Standards](DOCUMENTATION_STANDARDS.md)**
+
+Guidelines for code documentation, API docs, architecture docs, and user guides.
+
+### Quick Reference
+
+- **TypeScript/JavaScript**: Use TypeScript, follow ESLint/Prettier, write JSDoc
+  comments
+- **Go**: Follow standard conventions, comprehensive error handling, GoDoc
+  comments
+- **Database**: Use migrations, snake_case naming, proper indexing
+- **API Design**: RESTful principles, consistent responses, OpenAPI
+  documentation
+- **Testing**: 80%+ coverage, unit/integration/e2e tests, clear test structure
 
 ## Testing Guidelines
 

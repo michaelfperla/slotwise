@@ -32,8 +32,9 @@ and comprehensive type safety.
 - [Quick Start](#-quick-start)
 - [Architecture](#-architecture)
 - [Core Features (MVP)](#-core-features-mvp)
-- [API Documentation](#-api-documentation)
 - [Development](#-development)
+- [Documentation](#-documentation)
+- [API Documentation](#-api-documentation)
 - [Deployment](#-deployment)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -208,13 +209,43 @@ npm run k8s:deploy
 - SMS notifications (Twilio)
 - Event-driven messaging
 
-## Development Guidelines
+## 📚 Documentation
 
-- API-first design with OpenAPI specifications
-- Comprehensive testing (unit, integration, e2e)
-- Event-driven architecture with NATS
-- Type-safe development across all services
-- Security by design principles
+SlotWise maintains comprehensive documentation to support development,
+deployment, and maintenance:
+
+### **Development Standards**
+
+- 📋 [**Coding Standards**](CODING_STANDARDS.md) - TypeScript, Go, React,
+  Database, API, and NATS event standards
+- 🔄 [**Development Workflow**](DEVELOPMENT_WORKFLOW.md) - Git workflow, commit
+  standards, PR process, and code review guidelines
+- 🏗️ [**Architecture Documentation**](ARCHITECTURE.md) - System design, service
+  interactions, database schemas, and deployment patterns
+- 📚 [**Documentation Standards**](DOCUMENTATION_STANDARDS.md) - Documentation
+  guidelines, templates, and maintenance procedures
+
+### **Technical Guides**
+
+- 🚀 [**API Documentation**](docs/api-documentation.md) - Complete REST API
+  reference with examples
+- 🎯 [**Event-Driven Architecture**](docs/event-driven-architecture.md) - NATS
+  event patterns and message schemas
+- 🚀 [**Deployment Guide**](docs/deployment-guide.md) - Production deployment
+  with Docker and Kubernetes
+- 🧪 [**Testing Setup**](docs/TESTING_SETUP.md) - Testing framework, patterns,
+  and best practices
+- 🐛 [**Troubleshooting**](docs/troubleshooting.md) - Common issues, debugging,
+  and solutions
+
+### **Development Guidelines**
+
+- **API-first design** with OpenAPI specifications
+- **Comprehensive testing** (unit, integration, e2e) with 80%+ coverage
+- **Event-driven architecture** with NATS for service communication
+- **Type-safe development** across all TypeScript and Go services
+- **Security by design** with JWT authentication and input validation
+- **Automated quality enforcement** with ESLint, Prettier, and pre-commit hooks
 
 ## Core Features (MVP)
 
@@ -353,10 +384,20 @@ for details.
 
 ### Development Resources
 
-- 📖 [Development Guide](docs/development-guide.md)
-- 🚀 [API Documentation](docs/api-documentation.md)
-- 🏗️ [Architecture Guide](docs/event-driven-architecture.md)
-- 🐛 [Troubleshooting](docs/troubleshooting.md)
+- 📋 [Coding Standards](CODING_STANDARDS.md) - Comprehensive coding guidelines
+- 🔄 [Development Workflow](DEVELOPMENT_WORKFLOW.md) - Git workflow and PR
+  process
+- 🏗️ [Architecture Documentation](ARCHITECTURE.md) - System design and service
+  interactions
+- 📚 [Documentation Standards](DOCUMENTATION_STANDARDS.md) - Documentation
+  guidelines
+- 🚀 [API Documentation](docs/api-documentation.md) - REST API reference
+- 🎯 [Event-Driven Architecture](docs/event-driven-architecture.md) - NATS event
+  patterns
+- 🚀 [Deployment Guide](docs/deployment-guide.md) - Production deployment
+  instructions
+- 🧪 [Testing Setup](docs/TESTING_SETUP.md) - Testing framework and guidelines
+- 🐛 [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 📄 License
 
