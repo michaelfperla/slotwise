@@ -32,7 +32,8 @@ export interface PaginatedResponse<T> {
   };
 }
 
-export interface ApiResponse<T = unknown> { // Changed default for T from any to unknown
+export interface ApiResponse<T = unknown> {
+  // Changed default for T from any to unknown
   success: boolean;
   data?: T;
   error?: {

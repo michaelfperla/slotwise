@@ -26,7 +26,7 @@ export enum PaymentStatus {
   FAILED = 'failed',
   CANCELLED = 'cancelled',
   REFUNDED = 'refunded',
-  PARTIALLY_REFUNDED = 'partially_refunded'
+  PARTIALLY_REFUNDED = 'partially_refunded',
 }
 
 export enum PaymentMethod {
@@ -34,7 +34,7 @@ export enum PaymentMethod {
   BANK_TRANSFER = 'bank_transfer',
   PAYPAL = 'paypal',
   APPLE_PAY = 'apple_pay',
-  GOOGLE_PAY = 'google_pay'
+  GOOGLE_PAY = 'google_pay',
 }
 
 export interface PaymentIntent {
@@ -57,7 +57,7 @@ export enum PaymentIntentStatus {
   REQUIRES_ACTION = 'requires_action',
   PROCESSING = 'processing',
   SUCCEEDED = 'succeeded',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export interface CreatePaymentIntentRequest {
@@ -93,7 +93,7 @@ export enum RefundStatus {
   PENDING = 'pending',
   SUCCEEDED = 'succeeded',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export interface PaymentMethodDetails {
@@ -123,7 +123,7 @@ export interface PaymentMethodDetails {
 export enum PaymentMethodType {
   CARD = 'card',
   BANK_ACCOUNT = 'bank_account',
-  PAYPAL = 'paypal'
+  PAYPAL = 'paypal',
 }
 
 export interface PaymentStats {
@@ -134,11 +134,14 @@ export interface PaymentStats {
   refundRate: number;
   processingFees: number;
   netRevenue: number;
-  byMethod: Record<PaymentMethod, {
-    count: number;
-    amount: number;
-    successRate: number;
-  }>;
+  byMethod: Record<
+    PaymentMethod,
+    {
+      count: number;
+      amount: number;
+      successRate: number;
+    }
+  >;
   byPeriod: {
     daily: PaymentPeriodStats[];
     weekly: PaymentPeriodStats[];

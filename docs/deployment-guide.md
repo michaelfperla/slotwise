@@ -1,6 +1,7 @@
 # SlotWise Deployment Guide
 
 ## Table of Contents
+
 - [Development Deployment](#development-deployment)
 - [Staging Deployment](#staging-deployment)
 - [Production Deployment](#production-deployment)
@@ -14,6 +15,7 @@
 ## Development Deployment
 
 ### Prerequisites
+
 - Docker and Docker Compose
 - Node.js 18+ and Go 1.21+
 - Git
@@ -21,6 +23,7 @@
 ### Quick Start
 
 1. **Clone and setup**:
+
    ```bash
    git clone https://github.com/your-org/slotwise.git
    cd slotwise
@@ -29,6 +32,7 @@
    ```
 
 2. **Start development environment**:
+
    ```bash
    npm run dev
    ```
@@ -57,11 +61,13 @@ npm run infra:logs
 ### Docker Compose Staging
 
 1. **Create staging environment file**:
+
    ```bash
    cp .env.example .env.staging
    ```
 
 2. **Update staging configuration**:
+
    ```env
    NODE_ENV=staging
    DATABASE_URL=postgresql://user:pass@staging-db:5432/slotwise
@@ -102,43 +108,45 @@ npm run test:integration -- --env=staging
 ### Production Environment Setup
 
 1. **Create production environment file**:
+
    ```env
    NODE_ENV=production
-   
+
    # Database
    DATABASE_URL=postgresql://user:pass@prod-db.amazonaws.com:5432/slotwise
-   
+
    # Redis
    REDIS_URL=redis://prod-redis.amazonaws.com:6379
-   
+
    # NATS
    NATS_URL=nats://prod-nats.amazonaws.com:4222
-   
+
    # Security
    JWT_SECRET=your-super-secure-production-jwt-secret
-   
+
    # External Services
    SENDGRID_API_KEY=your-sendgrid-api-key
    TWILIO_ACCOUNT_SID=your-twilio-sid
    TWILIO_AUTH_TOKEN=your-twilio-token
    STRIPE_SECRET_KEY=your-stripe-secret-key
-   
+
    # Monitoring
    SENTRY_DSN=your-sentry-dsn
    ```
 
 2. **Build production images**:
+
    ```bash
    # Build all services
    docker-compose -f infrastructure/docker-compose.yml build
-   
+
    # Tag for registry
    docker tag slotwise-auth-service:latest your-registry/slotwise-auth-service:v1.0.0
    docker tag slotwise-business-service:latest your-registry/slotwise-business-service:v1.0.0
    docker tag slotwise-scheduling-service:latest your-registry/slotwise-scheduling-service:v1.0.0
    docker tag slotwise-notification-service:latest your-registry/slotwise-notification-service:v1.0.0
    docker tag slotwise-frontend:latest your-registry/slotwise-frontend:v1.0.0
-   
+
    # Push to registry
    docker push your-registry/slotwise-auth-service:v1.0.0
    # ... repeat for all services
@@ -168,7 +176,7 @@ services:
       - NATS_URL=${NATS_URL}
       - JWT_SECRET=${JWT_SECRET}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8001/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -187,6 +195,7 @@ services:
 ### Kubernetes Manifests
 
 1. **Create namespace**:
+
    ```bash
    kubectl create namespace slotwise
    ```
@@ -217,33 +226,33 @@ spec:
         app: auth-service
     spec:
       containers:
-      - name: auth-service
-        image: your-registry/slotwise-auth-service:v1.0.0
-        ports:
-        - containerPort: 8001
-        env:
-        - name: DATABASE_HOST
-          valueFrom:
-            secretKeyRef:
-              name: slotwise-secrets
-              key: database-host
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: slotwise-secrets
-              key: jwt-secret
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 8001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 8001
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: auth-service
+          image: your-registry/slotwise-auth-service:v1.0.0
+          ports:
+            - containerPort: 8001
+          env:
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: slotwise-secrets
+                  key: database-host
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: slotwise-secrets
+                  key: jwt-secret
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -254,19 +263,21 @@ spec:
   selector:
     app: auth-service
   ports:
-  - port: 8001
-    targetPort: 8001
+    - port: 8001
+      targetPort: 8001
   type: ClusterIP
 ```
 
 ### Helm Deployment (Optional)
 
 1. **Create Helm chart**:
+
    ```bash
    helm create slotwise
    ```
 
 2. **Deploy with Helm**:
+
    ```bash
    helm install slotwise ./helm/slotwise -n slotwise
    ```
@@ -281,6 +292,7 @@ spec:
 ### Required Environment Variables
 
 #### Auth Service
+
 ```env
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
@@ -296,6 +308,7 @@ LOG_LEVEL=info
 ```
 
 #### Business Service
+
 ```env
 DATABASE_URL=postgresql://user:pass@host:5432/slotwise_business
 REDIS_URL=redis://localhost:6379
@@ -306,6 +319,7 @@ PORT=8003
 ```
 
 #### Scheduling Service
+
 ```env
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
@@ -320,6 +334,7 @@ LOG_LEVEL=info
 ```
 
 #### Notification Service
+
 ```env
 DATABASE_URL=postgresql://user:pass@host:5432/slotwise_notification
 REDIS_URL=redis://localhost:6379
@@ -332,6 +347,7 @@ TWILIO_AUTH_TOKEN=your-twilio-token
 ```
 
 #### Frontend
+
 ```env
 NEXT_PUBLIC_API_URL=https://api.slotwise.com
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_stripe_key
@@ -343,18 +359,19 @@ NODE_ENV=production
 ### Production Database Configuration
 
 1. **Create databases**:
+
    ```sql
    CREATE DATABASE slotwise_auth;
    CREATE DATABASE slotwise_business;
    CREATE DATABASE slotwise_scheduling;
    CREATE DATABASE slotwise_notification;
-   
+
    -- Create users
    CREATE USER slotwise_auth_user WITH PASSWORD 'secure_password';
    CREATE USER slotwise_business_user WITH PASSWORD 'secure_password';
    CREATE USER slotwise_scheduling_user WITH PASSWORD 'secure_password';
    CREATE USER slotwise_notification_user WITH PASSWORD 'secure_password';
-   
+
    -- Grant permissions
    GRANT ALL PRIVILEGES ON DATABASE slotwise_auth TO slotwise_auth_user;
    GRANT ALL PRIVILEGES ON DATABASE slotwise_business TO slotwise_business_user;
@@ -363,11 +380,12 @@ NODE_ENV=production
    ```
 
 2. **Run migrations**:
+
    ```bash
    # Node.js services
    cd services/business-service && npx prisma migrate deploy
    cd services/notification-service && npx prisma migrate deploy
-   
+
    # Go services (run migration commands)
    cd services/auth-service && go run migrations/migrate.go
    cd services/scheduling-service && go run migrations/migrate.go
@@ -390,6 +408,7 @@ pg_dump -h $DB_HOST -U $DB_USER slotwise_notification > backup_notification_$DAT
 ### Health Checks
 
 All services provide health check endpoints:
+
 - `/health` - Basic health status
 - `/health/ready` - Readiness check
 - `/health/live` - Liveness check
@@ -399,10 +418,10 @@ All services provide health check endpoints:
 ```yaml
 # docker-compose.yml logging
 logging:
-  driver: "json-file"
+  driver: 'json-file'
   options:
-    max-size: "10m"
-    max-file: "3"
+    max-size: '10m'
+    max-file: '3'
 ```
 
 ### Monitoring Stack
@@ -460,7 +479,8 @@ sudo crontab -e
 ### Common Deployment Issues
 
 1. **Service won't start**: Check environment variables and logs
-2. **Database connection errors**: Verify database credentials and network access
+2. **Database connection errors**: Verify database credentials and network
+   access
 3. **High memory usage**: Check for memory leaks and optimize queries
 4. **Slow response times**: Implement caching and database optimization
 
@@ -478,4 +498,5 @@ kubectl rollout undo deployment/scheduling-service -n slotwise
 kubectl rollout undo deployment/notification-service -n slotwise
 ```
 
-For more troubleshooting information, see the [Troubleshooting Guide](troubleshooting.md).
+For more troubleshooting information, see the
+[Troubleshooting Guide](troubleshooting.md).

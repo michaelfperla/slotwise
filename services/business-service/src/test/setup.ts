@@ -17,23 +17,23 @@ beforeAll(async () => {
   prisma = new PrismaClient({
     datasources: {
       db: {
-        url: TEST_DATABASE_URL
-      }
-    }
+        url: TEST_DATABASE_URL,
+      },
+    },
   });
 
   try {
     // Try to connect and create database if it doesn't exist
     await prisma.$connect();
-  } catch (error) {
+  } catch {
     // If connection fails, try to create the database
     try {
       const adminPrisma = new PrismaClient({
         datasources: {
           db: {
-            url: 'postgresql://postgres:postgres@localhost:5432/postgres'
-          }
-        }
+            url: 'postgresql://postgres:postgres@localhost:5432/postgres',
+          },
+        },
       });
 
       await adminPrisma.$executeRawUnsafe('CREATE DATABASE slotwise_business_test');
@@ -41,7 +41,7 @@ beforeAll(async () => {
 
       // Now connect to the test database
       await prisma.$connect();
-    } catch (createError) {
+    } catch {
       console.warn('Could not create test database, it may already exist');
     }
   }
@@ -50,16 +50,16 @@ beforeAll(async () => {
   try {
     execSync('npx prisma migrate deploy', {
       stdio: 'pipe',
-      env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL }
+      env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
     });
-  } catch (error) {
+  } catch {
     // If migrations fail, try to push the schema
     try {
       execSync('npx prisma db push --force-reset', {
         stdio: 'pipe',
-        env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL }
+        env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
       });
-    } catch (pushError) {
+    } catch {
       console.warn('Could not set up test database schema, tests may fail');
     }
   }
@@ -70,8 +70,10 @@ afterAll(async () => {
   if (prisma) {
     // Clean up test data
     try {
-      await prisma.$executeRawUnsafe('TRUNCATE TABLE businesses, services, availabilities RESTART IDENTITY CASCADE');
-    } catch (error) {
+      await prisma.$executeRawUnsafe(
+        'TRUNCATE TABLE businesses, services, availabilities RESTART IDENTITY CASCADE'
+      );
+    } catch {
       console.warn('Could not clean up test data');
     }
 

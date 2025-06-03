@@ -29,14 +29,14 @@ export enum NotificationType {
   PASSWORD_RESET = 'password_reset',
   EMAIL_VERIFICATION = 'email_verification',
   WELCOME = 'welcome',
-  MARKETING = 'marketing'
+  MARKETING = 'marketing',
 }
 
 export enum NotificationChannel {
   EMAIL = 'email',
   SMS = 'sms',
   PUSH = 'push',
-  IN_APP = 'in_app'
+  IN_APP = 'in_app',
 }
 
 export enum NotificationStatus {
@@ -44,14 +44,14 @@ export enum NotificationStatus {
   SENT = 'sent',
   DELIVERED = 'delivered',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export enum NotificationPriority {
   LOW = 'low',
   NORMAL = 'normal',
   HIGH = 'high',
-  URGENT = 'urgent'
+  URGENT = 'urgent',
 }
 
 export interface NotificationTemplate extends BaseEntity {
@@ -116,17 +116,23 @@ export interface NotificationStats {
   totalFailed: number;
   deliveryRate: number;
   averageDeliveryTime: number; // in seconds
-  byChannel: Record<NotificationChannel, {
-    sent: number;
-    delivered: number;
-    failed: number;
-    deliveryRate: number;
-  }>;
-  byType: Record<NotificationType, {
-    sent: number;
-    delivered: number;
-    failed: number;
-  }>;
+  byChannel: Record<
+    NotificationChannel,
+    {
+      sent: number;
+      delivered: number;
+      failed: number;
+      deliveryRate: number;
+    }
+  >;
+  byType: Record<
+    NotificationType,
+    {
+      sent: number;
+      delivered: number;
+      failed: number;
+    }
+  >;
 }
 
 export interface EmailNotificationData {

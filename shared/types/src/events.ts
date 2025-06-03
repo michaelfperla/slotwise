@@ -235,7 +235,7 @@ export interface AvailabilityUpdatedEvent extends BaseEvent {
 }
 
 // Union type for all events
-export type DomainEvent = 
+export type DomainEvent =
   | UserCreatedEvent
   | UserUpdatedEvent
   | UserDeletedEvent
@@ -270,9 +270,6 @@ export interface EventPublisher {
 
 // Event subscriber interface
 export interface EventSubscriber {
-  subscribe<T extends BaseEvent>(
-    eventType: string,
-    handler: EventHandler<T>
-  ): Promise<void>;
+  subscribe<T extends BaseEvent>(eventType: string, handler: EventHandler<T>): Promise<void>;
   unsubscribe(eventType: string): Promise<void>;
 }

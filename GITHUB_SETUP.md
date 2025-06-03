@@ -3,6 +3,7 @@
 ## 🚀 Quick Upload to GitHub
 
 ### Step 1: Prepare Local Repository
+
 ```bash
 # Make the upload script executable
 chmod +x upload-to-github.sh
@@ -12,14 +13,17 @@ chmod +x upload-to-github.sh
 ```
 
 ### Step 2: Create GitHub Repository
+
 1. Go to: https://github.com/new
 2. **Repository name**: `slotwise`
-3. **Description**: `High-velocity scheduling platform for solopreneurs and small businesses`
+3. **Description**:
+   `High-velocity scheduling platform for solopreneurs and small businesses`
 4. **Visibility**: Public (recommended for open source)
 5. **❌ Do NOT check any initialization options** (README, .gitignore, license)
 6. Click **"Create repository"**
 
 ### Step 3: Push to GitHub
+
 ```bash
 # Add GitHub remote
 git remote add origin https://github.com/michaelfperla/slotwise.git
@@ -31,15 +35,18 @@ git push -u origin main
 ## 🔧 Repository Configuration
 
 ### Essential Settings
+
 After creating the repository, configure these settings:
 
 #### 1. Enable Features (Settings > General > Features)
+
 - ✅ Issues
-- ✅ Discussions  
+- ✅ Discussions
 - ✅ Projects
 - ✅ Wiki (optional)
 
 #### 2. Branch Protection (Settings > Branches)
+
 - Add rule for `main` branch
 - ✅ Require pull request reviews before merging
 - ✅ Require status checks to pass before merging
@@ -47,12 +54,15 @@ After creating the repository, configure these settings:
 - ✅ Include administrators
 
 #### 3. Repository Topics (Main page > ⚙️ Settings icon)
+
 Add these topics for discoverability:
+
 ```
 scheduling, booking, microservices, typescript, go, react, nextjs, docker, kubernetes, event-driven, saas, open-source, stripe, postgresql, redis, nats
 ```
 
 #### 4. Security Settings (Settings > Security)
+
 - ✅ Enable Dependabot alerts
 - ✅ Enable Dependabot security updates
 - ✅ Enable Dependabot version updates
@@ -60,19 +70,21 @@ scheduling, booking, microservices, typescript, go, react, nextjs, docker, kuber
 ## 🤖 GitHub Actions Setup
 
 ### Secrets Configuration
+
 Add these secrets in Settings > Secrets and variables > Actions:
 
 #### Optional (for enhanced CI/CD):
+
 - `SNYK_TOKEN` - For security scanning (get from snyk.io)
 - `SLACK_WEBHOOK` - For deployment notifications
 - `DOCKER_REGISTRY_TOKEN` - For container registry access
 
 ### Workflows Included
+
 - **CI Workflow** (`.github/workflows/ci.yml`)
   - Runs on every push and PR
   - Linting, type checking, testing, building
   - Security scanning
-  
 - **CD Workflow** (`.github/workflows/cd.yml`)
   - Runs on main branch pushes and tags
   - Automated deployment
@@ -120,18 +132,21 @@ slotwise/
 After uploading to GitHub:
 
 ### Immediate Actions
+
 - [ ] Verify all files uploaded correctly
 - [ ] Check that GitHub Actions workflows are running
 - [ ] Test the automated setup script: `./scripts/setup-dev.sh`
 - [ ] Verify documentation renders correctly
 
 ### Community Setup
+
 - [ ] Enable GitHub Discussions
 - [ ] Create initial discussion topics (General, Ideas, Q&A)
 - [ ] Pin important issues or discussions
 - [ ] Add repository description and website URL
 
 ### Marketing & Visibility
+
 - [ ] Share on social media
 - [ ] Submit to awesome lists
 - [ ] Create demo video or screenshots
@@ -140,6 +155,7 @@ After uploading to GitHub:
 ## 🎯 What You Get
 
 ### For Developers
+
 - **One-command setup**: `./scripts/setup-dev.sh`
 - **Hot reload development**: All services with live reloading
 - **Comprehensive testing**: Unit, integration, and E2E tests
@@ -147,6 +163,7 @@ After uploading to GitHub:
 - **API documentation**: Auto-generated Swagger docs
 
 ### For DevOps
+
 - **Container ready**: Complete Docker configurations
 - **Kubernetes ready**: Production deployment manifests
 - **CI/CD ready**: Automated testing and deployment
@@ -154,6 +171,7 @@ After uploading to GitHub:
 - **Security ready**: Automated vulnerability scanning
 
 ### For Business
+
 - **Production ready**: Scalable microservices architecture
 - **Payment ready**: Stripe integration included
 - **Multi-tenant**: Support for unlimited businesses
@@ -163,6 +181,7 @@ After uploading to GitHub:
 ## 🆘 Need Help?
 
 After uploading to GitHub, users can get help through:
+
 - **GitHub Issues**: Bug reports and feature requests
 - **GitHub Discussions**: Questions and community support
 - **Documentation**: Comprehensive guides in `/docs`
@@ -171,6 +190,7 @@ After uploading to GitHub, users can get help through:
 ## 🎉 Success!
 
 Once uploaded, your repository will be:
+
 - ✅ **Professional** - Enterprise-grade documentation and structure
 - ✅ **Community-ready** - Clear contribution guidelines and templates
 - ✅ **Production-ready** - Complete deployment configurations

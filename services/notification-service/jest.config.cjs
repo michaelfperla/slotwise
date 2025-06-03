@@ -20,9 +20,11 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
-  testTimeout: 10000,
+  testTimeout: 30000,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
-  passWithNoTests: true
+  passWithNoTests: true,
+  // Set environment variables for tests
+  setupFiles: ['<rootDir>/jest.env.js']
 };

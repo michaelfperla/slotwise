@@ -17,7 +17,7 @@ export enum DayOfWeek {
   WEDNESDAY = 3,
   THURSDAY = 4,
   FRIDAY = 5,
-  SATURDAY = 6
+  SATURDAY = 6,
 }
 
 export interface AvailabilityException extends BaseEntity {
@@ -33,7 +33,7 @@ export interface AvailabilityException extends BaseEntity {
 export enum ExceptionType {
   UNAVAILABLE = 'unavailable', // Block time
   AVAILABLE = 'available', // Override normal unavailability
-  CUSTOM_HOURS = 'custom_hours' // Different hours than usual
+  CUSTOM_HOURS = 'custom_hours', // Different hours than usual
 }
 
 export interface TimeSlot {

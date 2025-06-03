@@ -130,7 +130,7 @@ describe('Service Management API (/api/v1/services)', () => {
     if (testBusiness && testBusiness.id) {
       await prisma.business.update({
         where: { id: testBusiness.id },
-        data: { status: 'ACTIVE' }
+        data: { status: 'ACTIVE' },
       });
     }
   });
@@ -267,7 +267,7 @@ describe('GET /api/v1/services (List Services)', () => {
     if (testBusiness && testBusiness.id) {
       await prisma.business.update({
         where: { id: testBusiness.id },
-        data: { status: 'ACTIVE' }
+        data: { status: 'ACTIVE' },
       });
     }
 
@@ -364,7 +364,7 @@ describe('GET /api/v1/services/:serviceId (Get Service by ID)', () => {
     if (testBusiness && testBusiness.id) {
       await prisma.business.update({
         where: { id: testBusiness.id },
-        data: { status: 'ACTIVE' }
+        data: { status: 'ACTIVE' },
       });
     }
 
@@ -461,7 +461,7 @@ describe('PUT /api/v1/services/:serviceId (Update Service)', () => {
     if (testBusiness && testBusiness.id) {
       await prisma.business.update({
         where: { id: testBusiness.id },
-        data: { status: 'ACTIVE' }
+        data: { status: 'ACTIVE' },
       });
     }
 
@@ -543,7 +543,7 @@ describe('DELETE /api/v1/services/:serviceId (Delete Service)', () => {
     if (testBusiness && testBusiness.id) {
       await prisma.business.update({
         where: { id: testBusiness.id },
-        data: { status: 'ACTIVE' }
+        data: { status: 'ACTIVE' },
       });
     }
 

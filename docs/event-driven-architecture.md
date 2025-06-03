@@ -2,7 +2,9 @@
 
 ## Overview
 
-SlotWise implements an event-driven architecture using NATS.io as the message broker. This approach enables loose coupling between services, improved scalability, and better fault tolerance.
+SlotWise implements an event-driven architecture using NATS.io as the message
+broker. This approach enables loose coupling between services, improved
+scalability, and better fault tolerance.
 
 ## Architecture Diagram
 
@@ -57,6 +59,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ### User Events
 
 #### user.created
+
 ```json
 {
   "id": "evt_123",
@@ -76,6 +79,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ```
 
 #### user.updated
+
 ```json
 {
   "id": "evt_124",
@@ -96,6 +100,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ### Business Events
 
 #### business.created
+
 ```json
 {
   "id": "evt_125",
@@ -113,6 +118,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ```
 
 #### service.created
+
 ```json
 {
   "id": "evt_126",
@@ -125,7 +131,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
     "businessId": "biz_101",
     "name": "Strategy Session",
     "duration": 60,
-    "price": 150.00
+    "price": 150.0
   }
 }
 ```
@@ -133,6 +139,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ### Booking Events
 
 #### booking.created
+
 ```json
 {
   "id": "evt_127",
@@ -147,13 +154,14 @@ Process Start → Service A → Event → Service B → Event → Service C → 
     "clientId": "client_404",
     "startTime": "2024-01-15T14:00:00Z",
     "endTime": "2024-01-15T15:00:00Z",
-    "totalAmount": 150.00,
+    "totalAmount": 150.0,
     "requiresPayment": true
   }
 }
 ```
 
 #### booking.confirmed
+
 ```json
 {
   "id": "evt_128",
@@ -175,6 +183,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ### Payment Events
 
 #### payment.succeeded
+
 ```json
 {
   "id": "evt_129",
@@ -188,7 +197,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
     "bookingId": "booking_303",
     "businessId": "biz_101",
     "clientId": "client_404",
-    "amount": 150.00,
+    "amount": 150.0,
     "currency": "USD",
     "method": "card"
   }
@@ -198,6 +207,7 @@ Process Start → Service A → Event → Service B → Event → Service C → 
 ### Notification Events
 
 #### notification.sent
+
 ```json
 {
   "id": "evt_130",
@@ -226,22 +236,22 @@ func (s *BookingService) HandlePaymentSucceeded(event PaymentSucceededEvent) err
     if err != nil {
         return err
     }
-    
+
     booking.PaymentStatus = "paid"
     booking.Status = "confirmed"
-    
+
     err = s.repo.UpdateBooking(booking)
     if err != nil {
         return err
     }
-    
+
     // Publish booking confirmed event
     confirmEvent := BookingConfirmedEvent{
         BookingId: booking.ID,
         BusinessId: booking.BusinessId,
         ClientId: booking.ClientId,
     }
-    
+
     return s.eventPublisher.Publish("booking.confirmed", confirmEvent)
 }
 ```
@@ -260,13 +270,13 @@ class NotificationEventHandler {
       templateData: {
         bookingId: event.data.bookingId,
         startTime: event.data.startTime,
-        serviceName: await this.getServiceName(event.data.serviceId)
-      }
+        serviceName: await this.getServiceName(event.data.serviceId),
+      },
     };
-    
+
     await this.notificationService.sendNotification(notification);
   }
-  
+
   async handlePaymentFailed(event: PaymentFailedEvent): Promise<void> {
     const notification = {
       recipientId: event.data.clientId,
@@ -276,10 +286,10 @@ class NotificationEventHandler {
       templateData: {
         bookingId: event.data.bookingId,
         amount: event.data.amount,
-        failureReason: event.data.failureReason
-      }
+        failureReason: event.data.failureReason,
+      },
     };
-    
+
     await this.notificationService.sendNotification(notification);
   }
 }
@@ -329,7 +339,7 @@ jetstream {
     store_dir: "/data/jetstream"
     max_memory_store: 4GB
     max_file_store: 100GB
-    
+
     # Domain for multi-tenancy
     domain: "slotwise-prod"
 }
@@ -351,13 +361,15 @@ Ensure events are published reliably with database transactions:
 
 ```typescript
 // TypeScript example
-async function createBusinessWithEvent(businessData: CreateBusinessData): Promise<Business> {
-  return await this.prisma.$transaction(async (tx) => {
+async function createBusinessWithEvent(
+  businessData: CreateBusinessData
+): Promise<Business> {
+  return await this.prisma.$transaction(async tx => {
     // 1. Create business
     const business = await tx.business.create({
-      data: businessData
+      data: businessData,
     });
-    
+
     // 2. Store event in outbox
     await tx.outboxEvent.create({
       data: {
@@ -366,12 +378,12 @@ async function createBusinessWithEvent(businessData: CreateBusinessData): Promis
         eventData: {
           businessId: business.id,
           name: business.name,
-          ownerId: business.ownerId
+          ownerId: business.ownerId,
         },
-        status: 'pending'
-      }
+        status: 'pending',
+      },
     });
-    
+
     return business;
   });
 }
@@ -380,25 +392,25 @@ async function createBusinessWithEvent(businessData: CreateBusinessData): Promis
 async function processOutboxEvents(): Promise<void> {
   const pendingEvents = await this.prisma.outboxEvent.findMany({
     where: { status: 'pending' },
-    take: 100
+    take: 100,
   });
-  
+
   for (const event of pendingEvents) {
     try {
       await this.eventPublisher.publish(event.eventType, event.eventData);
-      
+
       await this.prisma.outboxEvent.update({
         where: { id: event.id },
-        data: { status: 'published', publishedAt: new Date() }
+        data: { status: 'published', publishedAt: new Date() },
       });
     } catch (error) {
       await this.prisma.outboxEvent.update({
         where: { id: event.id },
-        data: { 
-          status: 'failed', 
+        data: {
+          status: 'failed',
           failureReason: error.message,
-          retryCount: { increment: 1 }
-        }
+          retryCount: { increment: 1 },
+        },
       });
     }
   }
@@ -414,33 +426,36 @@ class EventProcessor {
   async processEvent(event: DomainEvent): Promise<void> {
     const maxRetries = 3;
     let retryCount = 0;
-    
+
     while (retryCount < maxRetries) {
       try {
         await this.handleEvent(event);
         return; // Success
       } catch (error) {
         retryCount++;
-        
+
         if (retryCount >= maxRetries) {
           // Send to dead letter queue
           await this.sendToDeadLetterQueue(event, error);
           throw error;
         }
-        
+
         // Exponential backoff
         const delay = Math.pow(2, retryCount) * 1000;
         await this.sleep(delay);
       }
     }
   }
-  
-  private async sendToDeadLetterQueue(event: DomainEvent, error: Error): Promise<void> {
+
+  private async sendToDeadLetterQueue(
+    event: DomainEvent,
+    error: Error
+  ): Promise<void> {
     await this.eventPublisher.publish('dlq.failed_event', {
       originalEvent: event,
       error: error.message,
       timestamp: new Date(),
-      retryCount: 3
+      retryCount: 3,
     });
   }
 }
@@ -464,7 +479,11 @@ Use correlation IDs to trace events across services:
 
 ```typescript
 class EventPublisher {
-  async publish(eventType: string, data: any, correlationId?: string): Promise<void> {
+  async publish(
+    eventType: string,
+    data: any,
+    correlationId?: string
+  ): Promise<void> {
     const event = {
       id: nanoid(),
       type: eventType,
@@ -472,26 +491,26 @@ class EventPublisher {
       version: '1.0',
       source: this.serviceName,
       correlationId: correlationId || nanoid(),
-      data
+      data,
     };
-    
+
     // Add tracing headers
     const headers = {
       'correlation-id': event.correlationId,
       'event-id': event.id,
-      'source-service': this.serviceName
+      'source-service': this.serviceName,
     };
-    
+
     await this.natsConnection.publish(
       `slotwise.${eventType}`,
       JSON.stringify(event),
       { headers }
     );
-    
+
     this.logger.info('Event published', {
       eventType,
       eventId: event.id,
-      correlationId: event.correlationId
+      correlationId: event.correlationId,
     });
   }
 }
@@ -531,15 +550,15 @@ describe('BookingEventHandler', () => {
     // Arrange
     const event = createBookingCreatedEvent();
     const mockNotificationService = jest.fn();
-    
+
     // Act
     await handler.handleBookingCreated(event);
-    
+
     // Assert
     expect(mockNotificationService).toHaveBeenCalledWith({
       recipientId: event.data.clientId,
       type: 'booking_confirmation',
-      channel: 'email'
+      channel: 'email',
     });
   });
 });
@@ -552,13 +571,13 @@ describe('Booking Flow Integration', () => {
   it('should complete full booking flow with events', async () => {
     // Create booking
     const booking = await bookingService.createBooking(bookingData);
-    
+
     // Wait for events to be processed
     await waitForEvent('booking.created');
-    
+
     // Simulate payment success
     await publishEvent('payment.succeeded', { bookingId: booking.id });
-    
+
     // Verify booking is confirmed
     await waitForEvent('booking.confirmed');
     const updatedBooking = await bookingService.getBooking(booking.id);
@@ -567,4 +586,6 @@ describe('Booking Flow Integration', () => {
 });
 ```
 
-This event-driven architecture provides SlotWise with the flexibility to scale individual services, maintain loose coupling, and ensure reliable message delivery across the entire platform.
+This event-driven architecture provides SlotWise with the flexibility to scale
+individual services, maintain loose coupling, and ensure reliable message
+delivery across the entire platform.

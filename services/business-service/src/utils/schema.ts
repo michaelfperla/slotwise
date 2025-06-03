@@ -1,16 +1,33 @@
 import { z } from 'zod';
 
+// Type definitions for JSON Schema
+interface JsonSchema {
+  type: string;
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  additionalProperties?: boolean;
+  items?: JsonSchema;
+  enum?: unknown[];
+  format?: string;
+  pattern?: string;
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  default?: unknown;
+}
+
 /**
  * Convert Zod schema to JSON Schema for Fastify validation
  * This is a simplified converter for the schemas we're using
  */
-export function zodToJsonSchema(zodSchema: z.ZodSchema): any {
+export function zodToJsonSchema(zodSchema: z.ZodSchema): JsonSchema {
   // This is a basic implementation for the schemas we're using
   // For production, consider using a library like zod-to-json-schema
 
   if (zodSchema instanceof z.ZodObject) {
     const shape = zodSchema.shape;
-    const properties: any = {};
+    const properties: Record<string, JsonSchema> = {};
     const required: string[] = [];
 
     for (const [key, value] of Object.entries(shape)) {
@@ -33,9 +50,9 @@ export function zodToJsonSchema(zodSchema: z.ZodSchema): any {
   return convertZodType(zodSchema);
 }
 
-function convertZodType(zodType: z.ZodTypeAny): any {
+function convertZodType(zodType: z.ZodTypeAny): JsonSchema {
   if (zodType instanceof z.ZodString) {
-    const schema: any = { type: 'string' };
+    const schema: JsonSchema = { type: 'string' };
 
     // Handle string constraints
     if (zodType._def.checks) {
@@ -68,7 +85,7 @@ function convertZodType(zodType: z.ZodTypeAny): any {
   }
 
   if (zodType instanceof z.ZodNumber) {
-    const schema: any = { type: 'number' };
+    const schema: JsonSchema = { type: 'number' };
 
     // Handle number constraints
     if (zodType._def.checks) {
@@ -121,7 +138,7 @@ function convertZodType(zodType: z.ZodTypeAny): any {
   if (zodType instanceof z.ZodNativeEnum) {
     return {
       type: 'string',
-      enum: Object.values((zodType._def as any).enumType),
+      enum: Object.values((zodType._def as { enumType: Record<string, unknown> }).enumType),
     };
   }
 

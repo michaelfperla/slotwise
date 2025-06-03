@@ -89,7 +89,7 @@ describe('Availability Management API (/api/v1/businesses/:businessId/availabili
     if (testBusiness && testBusiness.id) {
       await prisma.business.update({
         where: { id: testBusiness.id },
-        data: { status: 'ACTIVE' }
+        data: { status: 'ACTIVE' },
       });
     }
   });

@@ -114,7 +114,6 @@ export async function businessRoutes(fastify: FastifyInstance) {
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-
         if (error instanceof z.ZodError) {
           return reply.status(400).send({
             success: false,

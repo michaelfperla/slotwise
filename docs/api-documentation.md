@@ -2,7 +2,9 @@
 
 ## Overview
 
-SlotWise provides a comprehensive REST API for managing scheduling and booking operations. The API is organized into four main services, each handling specific domain responsibilities.
+SlotWise provides a comprehensive REST API for managing scheduling and booking
+operations. The API is organized into four main services, each handling specific
+domain responsibilities.
 
 ## Base URLs
 
@@ -30,6 +32,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -67,6 +70,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -136,6 +140,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -178,6 +183,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -235,6 +241,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -276,6 +283,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -347,6 +355,7 @@ Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -463,10 +472,12 @@ All API endpoints return consistent error responses:
 ## Rate Limiting
 
 API requests are rate limited:
+
 - **Authentication endpoints**: 5 requests per minute
 - **General API endpoints**: 100 requests per minute
 
 Rate limit headers are included in responses:
+
 ```http
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -504,6 +515,7 @@ SlotWise supports webhooks for real-time event notifications:
 ## SDKs and Libraries
 
 Official SDKs are available for:
+
 - **JavaScript/TypeScript**: `@slotwise/sdk-js`
 - **Go**: `github.com/slotwise/sdk-go`
 - **Python**: `slotwise-python`
@@ -511,6 +523,7 @@ Official SDKs are available for:
 ## Support
 
 For API support:
+
 - **Documentation**: https://docs.slotwise.com
 - **Support Email**: api-support@slotwise.com
 - **GitHub Issues**: https://github.com/slotwise/slotwise/issues

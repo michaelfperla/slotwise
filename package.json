@@ -28,7 +28,8 @@
     "build:business": "cd services/business-service && npm run build",
     "build:scheduling": "cd services/scheduling-service && go build -o bin/scheduling-service main.go",
     "build:notification": "cd services/notification-service && npm run build",
-    "test": "npx nx run-many -t test --passWithNoTests",
+    "test": "npm run test:setup && npx nx run-many -t test --passWithNoTests",
+    "test:setup": "node scripts/setup-test-databases.js",
     "test:affected": "npx nx affected -t test --passWithNoTests",
     "test:all": "npm run test:frontend && npm run test:services",
     "test:frontend": "cd frontend && npm test",
@@ -61,7 +62,7 @@
     "ci:typecheck": "npx nx run-many -t typecheck --all",
     "ci:build": "npx nx run-many -t build --all",
     "ci:lint": "npx nx run-many -t lint --all",
-    "ci:test:unit": "npx nx run-many -t test --all --passWithNoTests",
+    "ci:test:unit": "npm run test:setup && npx nx run-many -t test --all --passWithNoTests",
     "typecheck": "npx nx run-many -t typecheck",
     "typecheck:affected": "npx nx affected -t typecheck",
     "docker:build": "docker-compose -f infrastructure/docker-compose.yml build",
@@ -139,6 +140,18 @@
   ],
   "author": "SlotWise Team",
   "license": "MIT",
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.prisma": [
+      "prettier --write"
+    ]
+  },
   "dependencies": {
     "next": "~15.2.4",
     "react": "19.0.0",

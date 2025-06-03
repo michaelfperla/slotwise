@@ -2,35 +2,44 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for migrating SlotWise services to handle breaking changes in major dependency updates.
+This guide provides step-by-step instructions for migrating SlotWise services to
+handle breaking changes in major dependency updates.
 
 ## Breaking Changes Summary
 
 ### Fastify v4 → v5
+
 - **Plugin API Changes**: Some plugin registration methods have changed
 - **Type System Updates**: Enhanced TypeScript support with stricter types
 - **Performance Improvements**: Better request handling and memory management
 
 ### @fastify/cors v8 → v11
-- **Default Methods Change**: Now defaults to CORS-safelisted methods only (`GET`, `HEAD`, `POST`)
-- **Explicit Configuration Required**: Must specify methods explicitly for full REST API support
+
+- **Default Methods Change**: Now defaults to CORS-safelisted methods only
+  (`GET`, `HEAD`, `POST`)
+- **Explicit Configuration Required**: Must specify methods explicitly for full
+  REST API support
 
 ### @fastify/swagger-ui v2 → v5
+
 - **Configuration Structure**: Updated configuration options
 - **UI Improvements**: Enhanced Swagger UI with better performance
 - **Security Enhancements**: Improved CSP and security headers
 
 ### @typescript-eslint v6 → v8
+
 - **Rule Changes**: Several rules have been updated or deprecated
 - **Configuration Format**: New configuration options available
 - **Performance Improvements**: Faster linting with better caching
 
 ### NATS.go v1.31 → v1.42
+
 - **Security Fixes**: Critical security vulnerabilities patched
 - **New Features**: Per-key TTL functionality for key-value stores
 - **Memory Leak Fixes**: Improved memory management
 
 ### Viper v1.18 → v1.20
+
 - **Encoding Changes**: Dropped support for HCL, Java properties, INI formats
 - **API Changes**: New encoding layer with different configuration methods
 - **Breaking Changes**: Some configuration loading methods have changed
@@ -40,12 +49,13 @@ This guide provides step-by-step instructions for migrating SlotWise services to
 ### 1. Node.js Services Migration
 
 #### Update Package Dependencies
+
 ```bash
 # Business Service
 cd services/business-service
 npm install
 
-# Notification Service  
+# Notification Service
 cd services/notification-service
 npm install
 ```
@@ -77,14 +87,14 @@ await fastify.register(cors, corsConfig);
 // Before (v8) - Implicit methods
 await fastify.register(cors, {
   origin: true,
-  credentials: true
+  credentials: true,
 });
 
 // After (v11) - Explicit methods required
 await fastify.register(cors, {
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
   origin: true,
-  credentials: true
+  credentials: true,
 });
 ```
 
@@ -93,7 +103,7 @@ await fastify.register(cors, {
 ```typescript
 // Before (v2)
 await fastify.register(require('@fastify/swagger-ui'), {
-  routePrefix: '/docs'
+  routePrefix: '/docs',
 });
 
 // After (v5)
@@ -139,13 +149,14 @@ module.exports = {
 ### 2. Go Services Migration
 
 #### Update Go Dependencies
+
 ```bash
 # Auth Service
 cd services/auth-service
 go mod tidy
 
 # Scheduling Service
-cd services/scheduling-service  
+cd services/scheduling-service
 go mod tidy
 ```
 
@@ -189,6 +200,7 @@ err := viper.ReadInConfig()
 ### 3. Testing Migration
 
 #### Update Test Dependencies
+
 ```bash
 # Update Jest and related testing dependencies
 npm update jest @types/jest ts-jest
@@ -222,6 +234,7 @@ module.exports = {
 ### 4. Configuration Updates
 
 #### Environment Variables
+
 Add new environment variables for enhanced configuration:
 
 ```bash
@@ -231,7 +244,7 @@ LOG_LEVEL=info
 API_HOST=localhost:3000
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# NATS v1.42 Configuration  
+# NATS v1.42 Configuration
 NATS_URL=nats://localhost:4222
 NATS_CLUSTER_ID=slotwise-cluster
 NATS_CLIENT_ID=slotwise-service
@@ -246,6 +259,7 @@ CORS_ORIGINS=http://localhost:3000
 ```
 
 #### Docker Configuration
+
 Update Dockerfile for new dependency versions:
 
 ```dockerfile
@@ -272,6 +286,7 @@ CMD ["npm", "start"]
 ### 5. Validation Steps
 
 #### 1. Service Health Checks
+
 ```bash
 # Test all services start correctly
 npm run dev
@@ -282,6 +297,7 @@ curl http://localhost:3002/health  # Notification Service
 ```
 
 #### 2. API Documentation
+
 ```bash
 # Verify Swagger UI works
 open http://localhost:3001/docs
@@ -289,6 +305,7 @@ open http://localhost:3002/docs
 ```
 
 #### 3. NATS Communication
+
 ```bash
 # Test NATS connectivity
 nats-cli pub test.subject "Hello World"
@@ -296,6 +313,7 @@ nats-cli sub test.subject
 ```
 
 #### 4. Database Connectivity
+
 ```bash
 # Test database migrations
 npm run db:migrate:business
@@ -307,12 +325,14 @@ npm run db:migrate:notification
 If issues occur during migration:
 
 1. **Revert Package Versions**:
+
    ```bash
    git checkout HEAD~1 -- package.json package-lock.json
    npm install
    ```
 
 2. **Revert Go Dependencies**:
+
    ```bash
    git checkout HEAD~1 -- go.mod go.sum
    go mod download
@@ -328,19 +348,25 @@ If issues occur during migration:
 ## Common Issues and Solutions
 
 ### Issue: CORS Errors After Update
+
 **Solution**: Ensure explicit methods configuration in CORS setup
 
 ### Issue: Swagger UI Not Loading
+
 **Solution**: Update CSP headers and verify new configuration format
 
 ### Issue: ESLint Errors
+
 **Solution**: Update ESLint configuration for v8 rule changes
 
 ### Issue: NATS Connection Failures
+
 **Solution**: Verify NATS server compatibility and connection options
 
 ### Issue: Viper Configuration Errors
-**Solution**: Ensure configuration files use supported formats (YAML/JSON/TOML only)
+
+**Solution**: Ensure configuration files use supported formats (YAML/JSON/TOML
+only)
 
 ## Post-Migration Checklist
 
@@ -357,6 +383,7 @@ If issues occur during migration:
 ## Support
 
 For migration issues:
+
 1. Check the troubleshooting guide: `docs/troubleshooting.md`
 2. Review service logs for specific error messages
 3. Consult dependency-specific migration guides

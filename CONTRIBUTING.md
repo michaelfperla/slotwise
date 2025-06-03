@@ -1,6 +1,7 @@
 # Contributing to SlotWise
 
-We love your input! We want to make contributing to SlotWise as easy and transparent as possible, whether it's:
+We love your input! We want to make contributing to SlotWise as easy and
+transparent as possible, whether it's:
 
 - Reporting a bug
 - Discussing the current state of the code
@@ -10,11 +11,13 @@ We love your input! We want to make contributing to SlotWise as easy and transpa
 
 ## Development Process
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
+We use GitHub to host code, to track issues and feature requests, as well as
+accept pull requests.
 
 ### Pull Requests
 
-Pull requests are the best way to propose changes to the codebase. We actively welcome your pull requests:
+Pull requests are the best way to propose changes to the codebase. We actively
+welcome your pull requests:
 
 1. **Fork the repo** and create your branch from `main`.
 2. **Make your changes** following our coding standards.
@@ -27,23 +30,27 @@ Pull requests are the best way to propose changes to the codebase. We actively w
 ### Development Setup
 
 1. **Clone your fork**:
+
    ```bash
    git clone https://github.com/your-username/slotwise.git
    cd slotwise
    ```
 
 2. **Set up development environment**:
+
    ```bash
    chmod +x scripts/setup-dev.sh
    ./scripts/setup-dev.sh
    ```
 
 3. **Create a feature branch**:
+
    ```bash
    git checkout -b feature/amazing-feature
    ```
 
 4. **Make your changes and test**:
+
    ```bash
    npm run dev
    npm run test:all
@@ -51,6 +58,7 @@ Pull requests are the best way to propose changes to the codebase. We actively w
    ```
 
 5. **Commit your changes**:
+
    ```bash
    git commit -m "Add amazing feature"
    ```
@@ -110,10 +118,10 @@ describe('Feature', () => {
     it('should do expected behavior', () => {
       // Arrange
       const input = createTestInput();
-      
+
       // Act
       const result = performAction(input);
-      
+
       // Assert
       expect(result).toEqual(expectedOutput);
     });
@@ -137,7 +145,8 @@ npm run test:coverage
 
 ## Commit Message Guidelines
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+We follow the [Conventional Commits](https://www.conventionalcommits.org/)
+specification:
 
 ### Format
 
@@ -252,7 +261,8 @@ We'll respond within 48 hours and work with you to resolve the issue.
 
 ### Code of Conduct
 
-This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By
+participating, you are expected to uphold this code.
 
 ### Getting Help
 
@@ -271,7 +281,8 @@ Contributors who make significant contributions will be:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the
+MIT License.
 
 ## Questions?
 

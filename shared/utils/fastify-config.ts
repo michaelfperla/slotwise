@@ -13,34 +13,34 @@ import { FastifyRegisterOptions } from 'fastify';
 export const corsConfig = {
   // Explicitly specify methods to maintain compatibility with v8 behavior
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  
+
   // Allow credentials for authenticated requests
   credentials: true,
-  
+
   // Configure allowed origins based on environment
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [
       'http://localhost:3000', // Frontend development
       'http://localhost:3001', // Alternative frontend port
-      'https://slotwise.app',   // Production frontend
+      'https://slotwise.app', // Production frontend
       'https://app.slotwise.com', // Alternative production domain
     ];
-    
+
     // Add environment-specific origins
     if (process.env.ALLOWED_ORIGINS) {
       allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(','));
     }
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'), false);
     }
   },
-  
+
   // Allow common headers
   allowedHeaders: [
     'Origin',
@@ -50,13 +50,9 @@ export const corsConfig = {
     'Authorization',
     'X-API-Key',
   ],
-  
+
   // Expose headers that clients can access
-  exposedHeaders: [
-    'X-Total-Count',
-    'X-Page-Count',
-    'X-Rate-Limit-Remaining',
-  ],
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'X-Rate-Limit-Remaining'],
 };
 
 /**
@@ -75,10 +71,10 @@ export const helmetConfig = {
       connectSrc: ["'self'", 'wss:', 'ws:'],
     },
   },
-  
+
   // Cross-Origin Embedder Policy
   crossOriginEmbedderPolicy: false, // Disable for API services
-  
+
   // HSTS (HTTP Strict Transport Security)
   hsts: {
     maxAge: 31536000, // 1 year
@@ -93,19 +89,19 @@ export const helmetConfig = {
 export const rateLimitConfig = {
   // Global rate limit
   global: true,
-  
+
   // Maximum requests per time window
   max: 100,
-  
+
   // Time window in milliseconds (15 minutes)
   timeWindow: 15 * 60 * 1000,
-  
+
   // Skip successful requests in count
   skipSuccessfulRequests: false,
-  
+
   // Skip failed requests in count
   skipFailedRequests: false,
-  
+
   // Custom key generator for rate limiting
   keyGenerator: (request: any) => {
     // Use IP address and user ID if available
@@ -113,7 +109,7 @@ export const rateLimitConfig = {
     const userId = request.user?.id;
     return userId ? `${ip}:${userId}` : ip;
   },
-  
+
   // Custom error response
   errorResponseBuilder: (request: any, context: any) => {
     return {
@@ -123,7 +119,7 @@ export const rateLimitConfig = {
       retryAfter: context.ttl,
     };
   },
-  
+
   // Add rate limit headers to response
   addHeaders: {
     'x-ratelimit-limit': true,
@@ -164,7 +160,7 @@ export const swaggerConfig = {
     },
     security: [{ Bearer: [] }],
   },
-  
+
   // Transform schema for better documentation
   transform: ({ schema, url }: any) => {
     // Add common response schemas
@@ -177,7 +173,7 @@ export const swaggerConfig = {
           statusCode: { type: 'number' },
         },
       };
-      
+
       schema.response['401'] = {
         type: 'object',
         properties: {
@@ -186,7 +182,7 @@ export const swaggerConfig = {
           statusCode: { type: 'number' },
         },
       };
-      
+
       schema.response['500'] = {
         type: 'object',
         properties: {
@@ -196,7 +192,7 @@ export const swaggerConfig = {
         },
       };
     }
-    
+
     return { schema, url };
   },
 };
@@ -243,36 +239,39 @@ export const serverConfig = {
   // Logger configuration
   logger: {
     level: process.env.LOG_LEVEL || 'info',
-    transport: process.env.NODE_ENV === 'development' ? {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-      },
-    } : undefined,
+    transport:
+      process.env.NODE_ENV === 'development'
+        ? {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'HH:MM:ss Z',
+              ignore: 'pid,hostname',
+            },
+          }
+        : undefined,
   },
-  
+
   // Request ID generation
   genReqId: () => {
     return require('nanoid').nanoid();
   },
-  
+
   // Trust proxy for proper IP detection
   trustProxy: true,
-  
+
   // Request timeout (30 seconds)
   connectionTimeout: 30000,
-  
+
   // Keep alive timeout
   keepAliveTimeout: 5000,
-  
+
   // Maximum request payload size (10MB)
   bodyLimit: 10 * 1024 * 1024,
-  
+
   // Disable Fastify's default error handler for custom error handling
   disableRequestLogging: false,
-  
+
   // Request validation options
   ajv: {
     customOptions: {

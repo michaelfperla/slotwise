@@ -26,7 +26,7 @@ export enum BookingStatus {
   CONFIRMED = 'confirmed',
   CANCELLED = 'cancelled',
   COMPLETED = 'completed',
-  NO_SHOW = 'no_show'
+  NO_SHOW = 'no_show',
 }
 
 // PaymentStatus moved to payment.ts to avoid conflicts
@@ -72,7 +72,7 @@ export enum ConflictType {
   OUTSIDE_AVAILABILITY = 'outside_availability',
   TOO_SHORT_NOTICE = 'too_short_notice',
   TOO_FAR_ADVANCE = 'too_far_advance',
-  SERVICE_INACTIVE = 'service_inactive'
+  SERVICE_INACTIVE = 'service_inactive',
 }
 
 export interface BookingSearchParams {

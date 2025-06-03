@@ -36,30 +36,26 @@ export class AuthUtils {
     const accessToken = jwt.sign(payload, secret, {
       expiresIn: this.ACCESS_TOKEN_EXPIRY,
       issuer: 'slotwise-auth-service',
-      audience: 'slotwise-platform'
+      audience: 'slotwise-platform',
     });
 
-    const refreshToken = jwt.sign(
-      { sub: payload.sub, type: 'refresh' },
-      secret,
-      {
-        expiresIn: this.REFRESH_TOKEN_EXPIRY,
-        issuer: 'slotwise-auth-service',
-        audience: 'slotwise-platform'
-      }
-    );
+    const refreshToken = jwt.sign({ sub: payload.sub, type: 'refresh' }, secret, {
+      expiresIn: this.REFRESH_TOKEN_EXPIRY,
+      issuer: 'slotwise-auth-service',
+      audience: 'slotwise-platform',
+    });
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: 15 * 60 // 15 minutes in seconds
+      expiresIn: 15 * 60, // 15 minutes in seconds
     };
   }
 
   static verifyToken(token: string, secret: string): TokenPayload {
     return jwt.verify(token, secret, {
       issuer: 'slotwise-auth-service',
-      audience: 'slotwise-platform'
+      audience: 'slotwise-platform',
     }) as TokenPayload;
   }
 

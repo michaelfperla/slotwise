@@ -10,7 +10,8 @@
 
 - [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
 - [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] 💥 Breaking change (fix or feature that would cause existing functionality
+      to not work as expected)
 - [ ] 📚 Documentation update
 - [ ] 🔧 Refactoring (no functional changes)
 - [ ] ⚡ Performance improvement
@@ -30,18 +31,21 @@
 <!-- Provide a detailed list of changes made in this PR -->
 
 ### Frontend Changes
+
 - [ ] Component updates
 - [ ] Styling changes
 - [ ] State management updates
 - [ ] Routing changes
 
 ### Backend Changes
+
 - [ ] API endpoint changes
 - [ ] Database schema changes
 - [ ] Business logic updates
 - [ ] Event handling updates
 
 ### Infrastructure Changes
+
 - [ ] Docker configuration updates
 - [ ] Kubernetes manifest changes
 - [ ] CI/CD pipeline updates
@@ -52,18 +56,21 @@
 <!-- Describe the testing that has been done -->
 
 ### Test Coverage
+
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
 - [ ] End-to-end tests added/updated
 - [ ] Manual testing completed
 
 ### Test Results
+
 ```
 # Paste test results here
 npm run test:all
 ```
 
 ### Manual Testing Checklist
+
 - [ ] Tested on development environment
 - [ ] Tested on staging environment (if applicable)
 - [ ] Tested with different user roles
@@ -76,15 +83,19 @@ npm run test:all
 <!-- If this PR includes API changes, document them here -->
 
 ### New Endpoints
+
 - `POST /api/v1/example` - Description of endpoint
 
 ### Modified Endpoints
+
 - `GET /api/v1/example` - Description of changes
 
 ### Deprecated Endpoints
+
 - `DELETE /api/v1/old-endpoint` - Will be removed in v2.0.0
 
 ### Breaking Changes
+
 <!-- List any breaking changes and migration steps -->
 
 ## Database Changes
@@ -92,17 +103,20 @@ npm run test:all
 <!-- If this PR includes database changes, document them here -->
 
 ### Schema Changes
+
 - [ ] New tables added
 - [ ] Existing tables modified
 - [ ] Indexes added/modified
 - [ ] Constraints added/modified
 
 ### Migration Notes
+
 ```sql
 -- Include migration SQL here if applicable
 ```
 
 ### Data Migration Required
+
 - [ ] Yes - migration script included
 - [ ] No - schema changes only
 - [ ] N/A - no database changes
@@ -127,6 +141,7 @@ npm run test:all
 - [ ] Performance testing completed
 
 ### Performance Notes
+
 <!-- Add details about performance impact or improvements -->
 
 ## Documentation
@@ -145,12 +160,15 @@ npm run test:all
 <!-- Any special deployment considerations -->
 
 ### Environment Variables
+
 <!-- List any new or changed environment variables -->
 
 ### Configuration Changes
+
 <!-- List any configuration changes required -->
 
 ### Deployment Order
+
 <!-- If services need to be deployed in a specific order -->
 
 1. Deploy infrastructure changes
@@ -163,9 +181,11 @@ npm run test:all
 <!-- Add screenshots or videos to demonstrate the changes -->
 
 ### Before
+
 <!-- Screenshots of the current state -->
 
 ### After
+
 <!-- Screenshots of the new state -->
 
 ## Checklist
@@ -173,6 +193,7 @@ npm run test:all
 <!-- Mark completed items with an "x" -->
 
 ### Code Quality
+
 - [ ] Code follows the project's coding standards
 - [ ] Code is self-documenting with clear variable/function names
 - [ ] Complex logic is commented
@@ -180,6 +201,7 @@ npm run test:all
 - [ ] Error handling is implemented appropriately
 
 ### Testing
+
 - [ ] All existing tests pass
 - [ ] New tests have been added for new functionality
 - [ ] Test coverage is maintained or improved
@@ -187,24 +209,28 @@ npm run test:all
 - [ ] Manual testing completed
 
 ### Documentation
+
 - [ ] Code is documented with JSDoc/GoDoc comments
 - [ ] API changes are documented
 - [ ] README is updated if needed
 - [ ] Breaking changes are documented
 
 ### Security
+
 - [ ] Input validation is implemented
 - [ ] No sensitive information is exposed
 - [ ] Authentication/authorization is properly implemented
 - [ ] Security best practices are followed
 
 ### Performance
+
 - [ ] No obvious performance regressions
 - [ ] Database queries are optimized
 - [ ] Caching is implemented where appropriate
 - [ ] Resource usage is reasonable
 
 ### Compatibility
+
 - [ ] Changes are backward compatible (or breaking changes are documented)
 - [ ] Browser compatibility maintained (if frontend changes)
 - [ ] Mobile responsiveness maintained (if frontend changes)

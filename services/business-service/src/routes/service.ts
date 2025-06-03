@@ -148,9 +148,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
         };
 
         // Bypass Fastify serialization by manually stringifying
-        return reply
-          .header('content-type', 'application/json')
-          .send(JSON.stringify(responseData));
+        return reply.header('content-type', 'application/json').send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error retrieving services:', error);
         return reply.code(500).send({
@@ -218,9 +216,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
         };
 
         // Bypass Fastify serialization by manually stringifying
-        return reply
-          .header('content-type', 'application/json')
-          .send(JSON.stringify(responseData));
+        return reply.header('content-type', 'application/json').send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error retrieving service:', error);
         return reply.code(500).send({
@@ -292,9 +288,7 @@ export async function serviceRoutes(fastify: FastifyInstance) {
         };
 
         // Bypass Fastify serialization by manually stringifying
-        return reply
-          .header('content-type', 'application/json')
-          .send(JSON.stringify(responseData));
+        return reply.header('content-type', 'application/json').send(JSON.stringify(responseData));
       } catch (error) {
         fastify.log.error('Error updating service:', error);
         return reply.code(500).send({

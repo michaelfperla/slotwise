@@ -1,6 +1,7 @@
 # SlotWise Development Guide
 
 ## Table of Contents
+
 - [Getting Started](#getting-started)
 - [Development Environment Setup](#development-environment-setup)
 - [Architecture Overview](#architecture-overview)
@@ -32,12 +33,14 @@ Before you begin, ensure you have the following installed:
 ### Quick Setup
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/michaelfperla/slotwise.git
    cd slotwise
    ```
 
 2. **Run automated setup**:
+
    ```bash
    chmod +x scripts/setup-dev.sh
    ./scripts/setup-dev.sh
@@ -53,12 +56,14 @@ Before you begin, ensure you have the following installed:
 ### Manual Setup (Alternative to Automated Script)
 
 1. **Install dependencies**:
+
    ```bash
    npm install
    npm run install:all
    ```
 
 2. **Setup environment files**:
+
    ```bash
    cp services/business-service/.env.example services/business-service/.env
    cp services/notification-service/.env.example services/notification-service/.env
@@ -66,11 +71,13 @@ Before you begin, ensure you have the following installed:
    ```
 
 3. **Start infrastructure services**:
+
    ```bash
    npm run infra:up
    ```
 
 4. **Run database migrations**:
+
    ```bash
    cd services/business-service && npx prisma migrate dev
    cd ../notification-service && npx prisma migrate dev
@@ -85,15 +92,17 @@ Before you begin, ensure you have the following installed:
 ### Development Workflow
 
 1. **Start all services**:
+
    ```bash
    npm run dev
    ```
 
 2. **Individual service development**:
+
    ```bash
    # Frontend only
    npm run dev:frontend
-   
+
    # Specific service
    npm run dev:auth
    npm run dev:business
@@ -102,10 +111,11 @@ Before you begin, ensure you have the following installed:
    ```
 
 3. **Running tests**:
+
    ```bash
    # All tests
    npm run test:all
-   
+
    # Specific service
    cd services/business-service && npm test
    cd services/auth-service && go test ./...
@@ -167,21 +177,23 @@ SlotWise follows a microservices architecture with the following services:
 2. **Strict mode** enabled in tsconfig.json
 3. **ESLint** and **Prettier** for code formatting
 4. **Naming conventions**:
+
    - Variables and functions: `camelCase`
    - Classes and interfaces: `PascalCase`
    - Constants: `UPPER_SNAKE_CASE`
    - Files: `kebab-case` or `camelCase`
 
 5. **Import organization**:
+
    ```typescript
    // External libraries
    import React from 'react';
    import { NextPage } from 'next';
-   
+
    // Internal modules
    import { BusinessService } from '../services/BusinessService';
    import { logger } from '../utils/logger';
-   
+
    // Types
    import type { Business } from '@slotwise/types';
    ```
@@ -197,11 +209,13 @@ SlotWise follows a microservices architecture with the following services:
 ### Database Standards
 
 1. **Naming conventions**:
+
    - Tables: `snake_case` (e.g., `user_profiles`)
    - Columns: `snake_case` (e.g., `created_at`)
    - Indexes: `idx_table_column` (e.g., `idx_users_email`)
 
 2. **Migrations**:
+
    - Always use migrations for schema changes
    - Include both up and down migrations
    - Test migrations on sample data
@@ -220,15 +234,16 @@ SlotWise follows a microservices architecture with the following services:
 3. **Naming**: `TestFunctionName_Scenario_ExpectedResult`
 
 **Example (Go)**:
+
 ```go
 func TestUserService_CreateUser_ValidInput_ReturnsUser(t *testing.T) {
     // Arrange
     service := NewUserService(mockRepo)
     userData := UserData{Email: "test@example.com"}
-    
+
     // Act
     user, err := service.CreateUser(userData)
-    
+
     // Assert
     assert.NoError(t, err)
     assert.Equal(t, "test@example.com", user.Email)
@@ -236,15 +251,16 @@ func TestUserService_CreateUser_ValidInput_ReturnsUser(t *testing.T) {
 ```
 
 **Example (TypeScript)**:
+
 ```typescript
 describe('BusinessService', () => {
   it('should create business with valid data', async () => {
     // Arrange
     const businessData = { name: 'Test Business' };
-    
+
     // Act
     const result = await businessService.createBusiness(businessData);
-    
+
     // Assert
     expect(result.success).toBe(true);
     expect(result.data.name).toBe('Test Business');
@@ -269,6 +285,7 @@ describe('BusinessService', () => {
 ### REST API Standards
 
 1. **HTTP Methods**:
+
    - `GET`: Retrieve resources
    - `POST`: Create resources
    - `PUT`: Update entire resources
@@ -276,6 +293,7 @@ describe('BusinessService', () => {
    - `DELETE`: Remove resources
 
 2. **Status Codes**:
+
    - `200`: Success
    - `201`: Created
    - `400`: Bad Request
@@ -286,6 +304,7 @@ describe('BusinessService', () => {
    - `500`: Internal Server Error
 
 3. **Response Format**:
+
    ```json
    {
      "success": true,
@@ -319,11 +338,13 @@ describe('BusinessService', () => {
 ### Prisma (Node.js Services)
 
 1. **Schema changes**:
+
    ```bash
    npx prisma migrate dev --name description_of_change
    ```
 
 2. **Generate client**:
+
    ```bash
    npx prisma generate
    ```
@@ -336,6 +357,7 @@ describe('BusinessService', () => {
 ### GORM (Go Services)
 
 1. **Auto-migration**:
+
    ```go
    db.AutoMigrate(&User{}, &Session{})
    ```
@@ -359,7 +381,7 @@ describe('BusinessService', () => {
 await eventPublisher.publish('business.created', {
   businessId: business.id,
   name: business.name,
-  ownerId: business.ownerId
+  ownerId: business.ownerId,
 });
 ```
 
@@ -376,7 +398,7 @@ publisher.Publish("slotwise.user.created", event)
 
 ```typescript
 // TypeScript example
-eventSubscriber.subscribe('payment.succeeded', async (event) => {
+eventSubscriber.subscribe('payment.succeeded', async event => {
   await bookingService.confirmBooking(event.data.bookingId);
 });
 ```
@@ -456,4 +478,5 @@ eventSubscriber.subscribe('payment.succeeded', async (event) => {
 3. **High CPU**: Profile application performance
 4. **Network issues**: Check service-to-service communication
 
-For more specific troubleshooting, see the [Troubleshooting Guide](troubleshooting.md).
+For more specific troubleshooting, see the
+[Troubleshooting Guide](troubleshooting.md).

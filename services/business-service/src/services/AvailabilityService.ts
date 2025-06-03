@@ -81,13 +81,8 @@ export class AvailabilityService {
     // Fetch the created rules with all fields
     const fullNewRules = await this.prisma.availability.findMany({
       where: { businessId: businessId },
-      orderBy: [
-        { dayOfWeek: 'asc' },
-        { startTime: 'asc' },
-      ],
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
     });
-
-
 
     // Publish NATS event
     try {
