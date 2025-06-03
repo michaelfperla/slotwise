@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -50,8 +51,14 @@ type BookingServiceTestSuite struct {
 
 func (suite *BookingServiceTestSuite) SetupSuite() {
 	suite.TestLogger = logger.New("debug")
-	// Use PostgreSQL test database
+	// Use PostgreSQL test database with environment-aware configuration
 	dsn := "host=localhost user=postgres password=postgres dbname=slotwise_scheduling_test port=5432 sslmode=disable"
+
+	// Allow override via environment variable (for CI)
+	if envURL := os.Getenv("TEST_DATABASE_URL"); envURL != "" {
+		dsn = envURL
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		suite.T().Fatalf("Failed to connect to PostgreSQL: %v", err)

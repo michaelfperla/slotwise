@@ -28,12 +28,7 @@
         "command": "go test ./...",
         "cwd": "services/scheduling-service"
       },
-      "outputs": ["{projectRoot}/coverage"],
-      "configurations": {
-        "passWithNoTests": {
-          "command": "go test ./... || exit 0"
-        }
-      }
+      "outputs": ["{projectRoot}/coverage"]
     },
     "test:integration": {
       "executor": "nx:run-commands",
