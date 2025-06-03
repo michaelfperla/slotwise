@@ -152,18 +152,32 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_MultipleRulesOn
 func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_ServiceInactive() {
 	t := suite.T()
 	ctx := context.Background()
-	serviceDef := models.ServiceDefinition{
-		ID: "svc_inactive_unique", BusinessID: "biz_inactive_unique", Name: "Inactive Service",
-		DurationMinutes: 30, IsActive: false, // INACTIVE
-	}
-	suite.DB.Create(&serviceDef)
+
+	// Explicitly delete any existing service with this ID first
+	suite.DB.Where("id = ?", "svc_inactive_unique").Delete(&models.ServiceDefinition{})
+
+	// Create inactive service using raw SQL to bypass GORM default handling
+	serviceID := "svc_inactive_unique"
+	businessID := "biz_inactive_unique"
+	result := suite.DB.Exec(`
+		INSERT INTO service_definitions (id, business_id, name, duration_minutes, price, currency, is_active, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+	`, serviceID, businessID, "Inactive Service", 30, 1000, "USD", false)
+	assert.NoError(t, result.Error, "Should be able to create inactive service")
+
+	// Verify the service was created with IsActive = false
+	var createdService models.ServiceDefinition
+	err := suite.DB.First(&createdService, "id = ?", serviceID).Error
+	assert.NoError(t, err, "Should be able to retrieve created service")
+	assert.False(t, createdService.IsActive, "Created service should be inactive")
+
 	rule := models.AvailabilityRule{
-		BusinessID: "biz_inactive_unique", DayOfWeek: models.Friday, StartTime: "09:00", EndTime: "17:00",
+		BusinessID: businessID, DayOfWeek: models.Friday, StartTime: "09:00", EndTime: "17:00",
 	}
 	suite.DB.Create(&rule)
 
 	testDate, _ := time.Parse("2006-01-02", "2024-03-08") // This is a Friday
-	slots, err := suite.AvailabilityService.GetAvailableSlots(ctx, "biz_inactive_unique", "svc_inactive_unique", testDate)
+	slots, err := suite.AvailabilityService.GetAvailableSlots(ctx, businessID, serviceID, testDate)
 	assert.Error(t, err, "Should return error for inactive service")
 	if err != nil {
 		assert.Contains(t, err.Error(), "not found or is not active")

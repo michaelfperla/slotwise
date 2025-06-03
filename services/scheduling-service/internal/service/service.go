@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt" // Added import
+	"fmt"     // Added import
 	"strconv" // Added import
 	"strings" // Added import
 	"time"
@@ -15,10 +15,10 @@ import (
 
 // BookingService handles booking business logic
 type BookingService struct {
-	bookingRepo         *repository.BookingRepository      // Changed field name for clarity
+	bookingRepo         *repository.BookingRepository // Changed field name for clarity
 	availabilityService *AvailabilityService
 	serviceDefRepo      *repository.AvailabilityRepository // To get service definitions (duration)
-	eventPublisher      EventPublisher // Interface
+	eventPublisher      EventPublisher                     // Interface
 	logger              *logger.Logger
 }
 
@@ -117,13 +117,13 @@ func (s *BookingService) CreateBooking(ctx context.Context, req CreateBookingReq
 
 	// 4. Publish NATS event: booking.requested
 	eventPayload := map[string]interface{}{
-		"bookingId":    newBooking.ID,
-		"customerId":   newBooking.CustomerID,
-		"serviceId":    newBooking.ServiceID,
-		"businessId":   newBooking.BusinessID,
-		"startTime":    newBooking.StartTime.Format(time.RFC3339),
-		"endTime":      newBooking.EndTime.Format(time.RFC3339),
-		"status":       string(newBooking.Status),
+		"bookingId":  newBooking.ID,
+		"customerId": newBooking.CustomerID,
+		"serviceId":  newBooking.ServiceID,
+		"businessId": newBooking.BusinessID,
+		"startTime":  newBooking.StartTime.Format(time.RFC3339),
+		"endTime":    newBooking.EndTime.Format(time.RFC3339),
+		"status":     string(newBooking.Status),
 	}
 	if err := s.eventPublisher.Publish(events.BookingRequestedEvent, eventPayload); err != nil {
 		s.logger.Error("Failed to publish booking.requested event", "bookingId", newBooking.ID, "error", err)
@@ -131,7 +131,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, req CreateBookingReq
 	} else {
 		s.logger.Info("Published booking.requested event", "bookingId", newBooking.ID)
 	}
-	
+
 	// If no payment is required, we might move to Confirmed and publish slot.reserved here.
 	// For now, assuming payment comes next or manual confirmation.
 
@@ -182,20 +182,20 @@ func (s *BookingService) UpdateBookingStatus(ctx context.Context, bookingID stri
 		s.logger.Error("Failed to update booking status in database", "bookingId", bookingID, "error", err)
 		return nil, fmt.Errorf("failed to update status for booking %s: %w", bookingID, err)
 	}
-	
-	booking.Status = newStatus // Update status in the fetched object for return
+
+	booking.Status = newStatus     // Update status in the fetched object for return
 	booking.UpdatedAt = time.Now() // Should be handled by GORM hooks ideally, or manually set
 
 	// Publish NATS events based on status change
 	var eventSubject string
 	eventPayload := map[string]interface{}{
-		"bookingId":    booking.ID,
-		"customerId":   booking.CustomerID,
-		"serviceId":    booking.ServiceID,
-		"businessId":   booking.BusinessID,
-		"newStatus":    string(newStatus),
-		"startTime":    booking.StartTime.Format(time.RFC3339),
-		"endTime":      booking.EndTime.Format(time.RFC3339),
+		"bookingId":  booking.ID,
+		"customerId": booking.CustomerID,
+		"serviceId":  booking.ServiceID,
+		"businessId": booking.BusinessID,
+		"newStatus":  string(newStatus),
+		"startTime":  booking.StartTime.Format(time.RFC3339),
+		"endTime":    booking.EndTime.Format(time.RFC3339),
 	}
 
 	switch newStatus {
@@ -229,7 +229,7 @@ func (s *BookingService) UpdateBookingStatus(ctx context.Context, bookingID stri
 			s.logger.Info("Published booking status event", "subject", eventSubject, "bookingId", booking.ID)
 		}
 	}
-	
+
 	return booking, nil
 }
 
@@ -254,7 +254,6 @@ func (s *BookingService) ListBookingsForBusiness(ctx context.Context, businessID
 	}
 	return bookings, total, nil
 }
-
 
 // HandlePaymentSucceeded handles payment success events (stub)
 func (s *BookingService) HandlePaymentSucceeded(data []byte) error {
@@ -287,7 +286,7 @@ func NewAvailabilityService(
 		bookingRepo:      bookingRepo, // Added
 		cacheRepo:        cacheRepo,
 		eventPublisher:   eventPublisher,
-		logger:         logger,
+		logger:           logger,
 	}
 }
 
@@ -307,8 +306,14 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 		s.logger.Error("Failed to get service definition", "serviceID", serviceID, "error", err)
 		return nil, fmt.Errorf("service definition for %s not found: %w", serviceID, err)
 	}
-	if serviceDef == nil || !serviceDef.IsActive {
-		s.logger.Warn("Service definition not found or not active", "serviceID", serviceID)
+	if serviceDef == nil {
+		s.logger.Warn("Service definition not found", "serviceID", serviceID)
+		return nil, fmt.Errorf("service definition %s not found", serviceID)
+	}
+
+	// 2. Check if service is active
+	if !serviceDef.IsActive {
+		s.logger.Warn("Service definition is not active", "serviceID", serviceID)
 		return nil, fmt.Errorf("service %s not found or is not active", serviceID)
 	}
 	if serviceDef.BusinessID != businessID {
@@ -316,12 +321,10 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 		return nil, fmt.Errorf("service %s does not belong to business %s", serviceID, businessID)
 	}
 
-
 	// 2. Determine DayOfWeek for the given date
 	dayOfWeekToSchedule := models.DayOfWeekString(dateToSchedule.Weekday().String()) // time.Weekday.String() returns "Monday", "Tuesday" etc.
 	// Our DayOfWeekString enum is "MONDAY", "TUESDAY". Need to convert.
 	dayOfWeekToSchedule = models.DayOfWeekString(strings.ToUpper(dateToSchedule.Weekday().String()))
-
 
 	// 3. Get Availability Rules for that business and day
 	rules, err := s.availabilityRepo.GetAvailabilityRulesFiltered(ctx, businessID, dayOfWeekToSchedule) // Use injected availabilityRepo
@@ -359,7 +362,7 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 			s.logger.Error("Invalid rule end time format", "ruleId", rule.ID, "endTime", ruleEndTimeStr, "error", errEt)
 			continue // Skip this rule
 		}
-		
+
 		periodStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), stH, stM, 0, 0, loc)
 		periodEnd := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), etH, etM, 0, 0, loc)
 
@@ -377,8 +380,7 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 			currentSlotStart = currentSlotEnd // Next slot starts right after the current one ends
 		}
 	}
-	
-	
+
 	// 5. Conflict Detection with existing bookings
 	// Fetch relevant bookings for the entire day to minimize DB calls.
 	// Bookings could potentially span across the start/end of the day if they are long.
@@ -392,7 +394,7 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 	// Let's assume bookingRepo.FindBookingsInTimeRangeForBusiness(ctx, businessID, dayStart, dayEnd)
 	// For now, I'll use the existing FindConflictingBookings and iterate, which is less efficient.
 	// A better approach would be to fetch all confirmed/pending bookings for the day once.
-	
+
 	var finalSlots []TimeSlot
 	for _, slot := range availableSlots {
 		// Check conflict for this specific slot
@@ -415,24 +417,23 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 
 // parseHHMM is a helper to parse "HH:MM" string to hours and minutes
 func parseHHMM(timeStr string) (int, int, error) {
-    parts := strings.Split(timeStr, ":")
-    if len(parts) != 2 {
-        return 0, 0, fmt.Errorf("invalid time format: expected HH:MM, got %s", timeStr)
-    }
-    hour, err := strconv.Atoi(parts[0])
-    if err != nil {
-        return 0, 0, fmt.Errorf("invalid hour: %s", parts[0])
-    }
-    minute, err := strconv.Atoi(parts[1])
-    if err != nil {
-        return 0, 0, fmt.Errorf("invalid minute: %s", parts[1])
-    }
-    if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
-        return 0, 0, fmt.Errorf("time out of range: %s", timeStr)
-    }
-    return hour, minute, nil
+	parts := strings.Split(timeStr, ":")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("invalid time format: expected HH:MM, got %s", timeStr)
+	}
+	hour, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid hour: %s", parts[0])
+	}
+	minute, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid minute: %s", parts[1])
+	}
+	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
+		return 0, 0, fmt.Errorf("time out of range: %s", timeStr)
+	}
+	return hour, minute, nil
 }
-
 
 // HandleServiceUpdated handles service update events (stub)
 func (s *AvailabilityService) HandleServiceUpdated(data []byte) error {
