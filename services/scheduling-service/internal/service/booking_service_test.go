@@ -134,7 +134,7 @@ func (suite *BookingServiceTestSuite) TestCreateBooking_Conflict() {
 	// Seed an existing confirmed booking
 	existingStartTime, _ := time.Parse(time.RFC3339, "2024-04-01T11:00:00Z")
 	existingBooking := models.Booking{
-		ID: "existing_book1", BusinessID: "biz2", ServiceID: "svc2", CustomerID: "cust_exist",
+		ID: "550e8400-e29b-41d4-a716-446655440001", BusinessID: "biz2", ServiceID: "svc2", CustomerID: "cust_exist",
 		StartTime: existingStartTime, EndTime: existingStartTime.Add(60 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&existingBooking)
@@ -160,7 +160,7 @@ func (suite *BookingServiceTestSuite) TestCreateBooking_BackToBack_NoConflict() 
 
 	existingStartTime, _ := time.Parse(time.RFC3339, "2024-04-01T14:00:00Z")
 	existingBooking := models.Booking{
-		ID: "existing_b2b", BusinessID: "biz3", ServiceID: "svc3", CustomerID: "cust_b2b_1",
+		ID: "550e8400-e29b-41d4-a716-446655440003", BusinessID: "biz3", ServiceID: "svc3", CustomerID: "cust_b2b_1",
 		StartTime: existingStartTime, EndTime: existingStartTime.Add(30 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&existingBooking)
@@ -183,7 +183,7 @@ func (suite *BookingServiceTestSuite) TestUpdateBookingStatus_Confirm() {
 	ctx := context.Background()
 	startTime := time.Now().Add(time.Hour)
 	bookingToConfirm := models.Booking{
-		ID: "book_to_confirm", BusinessID: "biz_confirm", ServiceID: "svc_confirm", CustomerID: "cust_confirm",
+		ID: "550e8400-e29b-41d4-a716-446655440004", BusinessID: "biz_confirm", ServiceID: "svc_confirm", CustomerID: "cust_confirm",
 		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusPendingPayment,
 	}
 	suite.DB.Create(&bookingToConfirm)
@@ -218,7 +218,7 @@ func (suite *BookingServiceTestSuite) TestUpdateBookingStatus_Cancel() {
 	ctx := context.Background()
 	startTime := time.Now().Add(2 * time.Hour)
 	bookingToCancel := models.Booking{
-		ID: "book_to_cancel", BusinessID: "biz_cancel", ServiceID: "svc_cancel", CustomerID: "cust_cancel",
+		ID: "550e8400-e29b-41d4-a716-446655440002", BusinessID: "biz_cancel", ServiceID: "svc_cancel", CustomerID: "cust_cancel",
 		StartTime: startTime, EndTime: startTime.Add(60 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&bookingToCancel)
@@ -238,9 +238,9 @@ func (suite *BookingServiceTestSuite) TestListBookingsForCustomer() {
 	t := suite.T()
 	ctx := context.Background()
 	// Seed bookings for different customers
-	suite.DB.Create(&models.Booking{ID: "b_c1_1", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID: "b_c1_2", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now().Add(2 * time.Hour), EndTime: time.Now().Add(3 * time.Hour), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID: "b_c2_1", CustomerID: "cust2_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "550e8400-e29b-41d4-a716-446655440005", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "550e8400-e29b-41d4-a716-446655440006", CustomerID: "cust1_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now().Add(2 * time.Hour), EndTime: time.Now().Add(3 * time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "550e8400-e29b-41d4-a716-446655440007", CustomerID: "cust2_list", BusinessID: "biz_c_list", ServiceID: "svc_c_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
 
 	bookings, total, err := suite.BookingService.ListBookingsForCustomer(ctx, "cust1_list", 10, 0)
 	assert.NoError(t, err)
@@ -258,9 +258,9 @@ func (suite *BookingServiceTestSuite) TestListBookingsForBusiness() {
 	t := suite.T()
 	ctx := context.Background()
 	// Seed bookings for different businesses
-	suite.DB.Create(&models.Booking{ID: "b_b1_1", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
-	suite.DB.Create(&models.Booking{ID: "b_b1_2", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now().Add(2 * time.Hour), EndTime: time.Now().Add(3 * time.Hour), Status: models.BookingStatusPendingPayment})
-	suite.DB.Create(&models.Booking{ID: "b_b2_1", BusinessID: "biz2_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "550e8400-e29b-41d4-a716-446655440008", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
+	suite.DB.Create(&models.Booking{ID: "550e8400-e29b-41d4-a716-446655440009", BusinessID: "biz1_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now().Add(2 * time.Hour), EndTime: time.Now().Add(3 * time.Hour), Status: models.BookingStatusPendingPayment})
+	suite.DB.Create(&models.Booking{ID: "550e8400-e29b-41d4-a716-44665544000a", BusinessID: "biz2_list", CustomerID: "cust_b_list", ServiceID: "svc_b_list", StartTime: time.Now(), EndTime: time.Now().Add(time.Hour), Status: models.BookingStatusConfirmed})
 
 	bookings, total, err := suite.BookingService.ListBookingsForBusiness(ctx, "biz1_list", 10, 0)
 	assert.NoError(t, err)

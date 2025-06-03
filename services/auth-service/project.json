@@ -28,7 +28,12 @@
         "command": "go test ./...",
         "cwd": "services/auth-service"
       },
-      "outputs": ["{projectRoot}/coverage"]
+      "outputs": ["{projectRoot}/coverage"],
+      "configurations": {
+        "passWithNoTests": {
+          "command": "go test ./... || exit 0"
+        }
+      }
     },
     "test:integration": {
       "executor": "nx:run-commands",

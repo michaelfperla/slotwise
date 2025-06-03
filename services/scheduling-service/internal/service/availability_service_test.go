@@ -153,19 +153,21 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_ServiceInactive
 	t := suite.T()
 	ctx := context.Background()
 	serviceDef := models.ServiceDefinition{
-		ID: "svc_inactive", BusinessID: "biz_inactive", Name: "Inactive Service",
+		ID: "svc_inactive_unique", BusinessID: "biz_inactive_unique", Name: "Inactive Service",
 		DurationMinutes: 30, IsActive: false, // INACTIVE
 	}
 	suite.DB.Create(&serviceDef)
 	rule := models.AvailabilityRule{
-		BusinessID: "biz_inactive", DayOfWeek: models.Friday, StartTime: "09:00", EndTime: "17:00",
+		BusinessID: "biz_inactive_unique", DayOfWeek: models.Friday, StartTime: "09:00", EndTime: "17:00",
 	}
 	suite.DB.Create(&rule)
 
 	testDate, _ := time.Parse("2006-01-02", "2024-03-08") // This is a Friday
-	slots, err := suite.AvailabilityService.GetAvailableSlots(ctx, "biz_inactive", "svc_inactive", testDate)
+	slots, err := suite.AvailabilityService.GetAvailableSlots(ctx, "biz_inactive_unique", "svc_inactive_unique", testDate)
 	assert.Error(t, err, "Should return error for inactive service")
-	assert.Contains(t, err.Error(), "not found or is not active")
+	if err != nil {
+		assert.Contains(t, err.Error(), "not found or is not active")
+	}
 	assert.Len(t, slots, 0)
 }
 
@@ -229,7 +231,7 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_WithExistingBoo
 	// Booking from 10:00 to 10:30
 	bookingTime, _ := time.Parse(time.RFC3339, "2024-03-04T10:00:00Z") // Use the same Monday as other tests
 	existingBooking := models.Booking{
-		ID: "booked_slot_1", BusinessID: "biz_conflict", ServiceID: "svc_conflict", CustomerID: "cust_booked",
+		ID: "550e8400-e29b-41d4-a716-44665544000b", BusinessID: "biz_conflict", ServiceID: "svc_conflict", CustomerID: "cust_booked",
 		StartTime: bookingTime, EndTime: bookingTime.Add(30 * time.Minute), Status: models.BookingStatusConfirmed,
 	}
 	suite.DB.Create(&existingBooking)
@@ -237,7 +239,7 @@ func (suite *AvailabilityServiceTestSuite) TestGetAvailableSlots_WithExistingBoo
 	// Booking from 11:00 to 11:30
 	bookingTime2, _ := time.Parse(time.RFC3339, "2024-03-04T11:00:00Z")
 	existingBooking2 := models.Booking{
-		ID: "booked_slot_2", BusinessID: "biz_conflict", ServiceID: "svc_conflict", CustomerID: "cust_booked2",
+		ID: "550e8400-e29b-41d4-a716-44665544000c", BusinessID: "biz_conflict", ServiceID: "svc_conflict", CustomerID: "cust_booked2",
 		StartTime: bookingTime2, EndTime: bookingTime2.Add(30 * time.Minute), Status: models.BookingStatusPendingPayment, // Also a conflicting status
 	}
 	suite.DB.Create(&existingBooking2)
