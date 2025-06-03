@@ -222,6 +222,8 @@ deployment, and maintenance:
 
 ### **Development Standards**
 
+- 🚀 [**CI/CD Philosophy**](docs/CI_PHILOSOPHY.md) - **Start here!** Our
+  approach to continuous integration and development workflow
 - 📋 [**Coding Standards**](CODING_STANDARDS.md) - TypeScript, Go, React,
   Database, API, and NATS event standards
 - 🔄 [**Development Workflow**](DEVELOPMENT_WORKFLOW.md) - Git workflow, commit

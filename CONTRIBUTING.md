@@ -14,6 +14,9 @@ transparent as possible, whether it's:
 We use GitHub to host code, to track issues and feature requests, as well as
 accept pull requests.
 
+**🚀 Before you start:** Read our [CI/CD Philosophy](docs/CI_PHILOSOPHY.md) to
+understand our development approach and what our CI checks.
+
 ### Pull Requests
 
 Pull requests are the best way to propose changes to the codebase. We actively
@@ -55,9 +58,14 @@ welcome your pull requests:
 4. **Make your changes and test**:
 
    ```bash
+   # Start development
    npm run dev
-   npm run test:all
-   npm run lint
+
+   # Before committing, run these locally:
+   npm run format        # Fix code formatting
+   npm run build         # Ensure code compiles
+   npm run test          # Run essential tests
+   npm run lint          # Check code quality (advisory)
    ```
 
 5. **Commit your changes**:

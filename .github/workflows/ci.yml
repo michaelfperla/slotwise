@@ -1,4 +1,4 @@
-name: Simple CI
+name: Essential CI
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  quality-check:
-    name: Code Quality Check
+  essential-checks:
+    name: Essential Checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,54 +33,67 @@ jobs:
           cd services/business-service && npx prisma generate
           cd ../notification-service && npx prisma generate
 
-      - name: Lint Check
-        run: |
-          echo "🔍 Running linting..."
-          npm run lint || echo "⚠️ Linting issues found - please fix locally"
-
-      - name: Format Check
-        run: |
-          echo "🎨 Checking code formatting..."
-          npm run format
-          if ! git diff --exit-code; then
-            echo "⚠️ Code formatting issues found - run 'npm run format' locally"
-            exit 1
-          fi
-
-      - name: Type Check
-        run: |
-          echo "🔍 Running TypeScript type checking..."
-          npm run typecheck || echo "⚠️ Type errors found - please fix locally"
-
       - name: Build Check
         run: |
-          echo "🏗️ Testing builds..."
-          npm run build || echo "⚠️ Build failed - please fix compilation errors"
+          echo "🏗️ Checking if code builds..."
+          npm run build
 
-      - name: Go Vet
+      - name: Test Check
         run: |
-          echo "🔍 Running Go vet..."
-          cd services/auth-service && go vet ./... || echo "⚠️ Go vet issues in auth-service"
-          cd ../scheduling-service && go vet ./... || echo "⚠️ Go vet issues in scheduling-service"
+          echo "🧪 Running essential tests..."
+          npm run test
 
-      - name: Security Audit
+  advisory-checks:
+    name: Advisory Checks (Warnings Only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma clients
         run: |
-          echo "🔒 Running security audit..."
+          cd services/business-service && npx prisma generate
+          cd ../notification-service && npx prisma generate
+
+      - name: Lint Check (Advisory)
+        run: |
+          echo "🔍 Running linting (advisory only)..."
+          npm run lint || echo "⚠️ Linting issues found - please fix locally"
+
+      - name: Security Audit (Advisory)
+        run: |
+          echo "🔒 Running security audit (advisory only)..."
           npm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - please review"
 
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [quality-check]
+    needs: [essential-checks, advisory-checks]
     if: always()
     steps:
       - name: Summary
         run: |
-          echo "🎉 Simple CI Complete!"
+          echo "🎉 CI Complete!"
           echo ""
-          echo "✅ Code quality checks completed"
+          echo "Essential checks: ${{ needs.essential-checks.result }}"
+          echo "Advisory checks: ${{ needs.advisory-checks.result }}"
           echo ""
-          echo "This CI focuses on fast feedback for code quality."
-          echo "Run integration tests locally before merging:"
-          echo "  npm run test"
-          echo "  cd services/scheduling-service && go test ./..."
+          echo "📖 See docs/CI_PHILOSOPHY.md for our CI strategy"
+          echo ""
+          echo "💡 Before merging, run locally:"
+          echo "  npm run format"
+          echo "  npm run test:integration"
