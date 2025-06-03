@@ -1,0 +1,605 @@
+openapi: 3.0.0
+info:
+  title: Scheduling Service API
+  version: v1
+  description: API specification for the Scheduling Service, managing bookings and availability.
+servers:
+  - url: http://localhost:8002 # Port for Scheduling Service
+    description: Local Scheduling Service
+tags:
+  - name: Health
+    description: Health Check Endpoints
+  - name: Bookings
+    description: Booking Management Endpoints
+  - name: Availability
+    description: Service Availability Endpoints
+
+components:
+  schemas:
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the booking.
+          example: "bkg_123abc"
+        businessId:
+          type: string
+          format: uuid
+          description: Identifier of the business this booking belongs to.
+          example: "biz_456def"
+        serviceId:
+          type: string
+          format: uuid
+          description: Identifier of the service booked.
+          example: "svc_789ghi"
+        customerId:
+          type: string
+          # format: uuid # Assuming customerId might be a string from an external system or user ID
+          description: Identifier of the customer who made the booking.
+          example: "cust_101xyz"
+        startTime:
+          type: string
+          format: date-time
+          description: Start time of the booking.
+          example: "2024-08-15T10:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          description: End time of the booking (calculated based on service duration).
+          example: "2024-08-15T11:00:00Z"
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled, completed, no_show]
+          description: Status of the booking.
+          example: "confirmed"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of booking creation.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of last booking update.
+
+    CreateBookingRequestDTO:
+      type: object
+      required:
+        - businessId
+        - serviceId
+        - customerId
+        - startTime
+      properties:
+        businessId:
+          type: string
+          format: uuid
+          description: Identifier of the business.
+        serviceId:
+          type: string
+          format: uuid
+          description: Identifier of the service.
+        customerId:
+          type: string
+          description: Identifier of the customer.
+        startTime:
+          type: string
+          format: date-time
+          description: Desired start time for the booking.
+
+    UpdateBookingStatusRequestDTO:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [confirmed, cancelled, completed, no_show] # 'pending' is usually an initial state
+          description: New status for the booking.
+          example: "confirmed"
+
+    TimeSlot:
+      type: object
+      properties:
+        startTime:
+          type: string
+          format: date-time
+          example: "2024-08-15T09:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          example: "2024-08-15T10:00:00Z"
+        isAvailable: # Assuming this might be part of the slot info from handlers
+          type: boolean
+          example: true
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Total number of items.
+          example: 100
+        page:
+          type: integer
+          format: int32
+          description: Current page number.
+          example: 1
+        limit:
+          type: integer
+          format: int32
+          description: Number of items per page.
+          example: 10
+        totalPages:
+          type: integer
+          format: int32
+          description: Total number of pages.
+          example: 10
+
+    PaginatedBookings:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    APIError: # Reusing a common error structure
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "RESOURCE_NOT_FOUND"
+        message:
+          type: string
+          example: "The requested resource was not found."
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+          example: {"id": "The booking ID does not exist"}
+
+    StandardSuccessResponse: # Wrapper for successful responses
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object # Actual data will vary by endpoint
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    StandardErrorResponse: # Wrapper for error responses
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/APIError'
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service Health Check
+      description: Checks if the service is running and healthy.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "UP"
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness Probe
+      description: Checks if the application is ready to accept traffic.
+      responses:
+        '200':
+          description: Application is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "READY"
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness Probe
+      description: Checks if the application is live.
+      responses:
+        '200':
+          description: Application is live
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ALIVE"
+
+  /api/v1/bookings:
+    post:
+      tags:
+        - Bookings
+      summary: Create a new booking
+      description: Creates a new booking for a service. Requires authentication.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequestDTO'
+      responses:
+        '201':
+          description: Booking created successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Booking'
+        '400':
+          description: Invalid input data (e.g., validation error, missing fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Resource not found (e.g., businessId, serviceId, or customerId does not exist).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '409':
+          description: Conflict (e.g., time slot not available).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+    get:
+      tags:
+        - Bookings
+      summary: List bookings
+      description: Retrieves a list of bookings, optionally filtered by customerId or businessId. Requires authentication.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: customerId
+          in: query
+          description: Filter bookings by customer ID.
+          required: false
+          schema:
+            type: string
+        - name: businessId
+          in: query
+          description: Filter bookings by business ID.
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number for pagination.
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successfully retrieved list of bookings.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedBookings'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/bookings/{bookingId}:
+    get:
+      tags:
+        - Bookings
+      summary: Get a booking by ID
+      description: Retrieves a specific booking by its unique identifier. Requires authentication.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: Unique identifier of the booking.
+          schema:
+            type: string
+            format: uuid # Assuming booking IDs are UUIDs
+      responses:
+        '200':
+          description: Successfully retrieved the booking.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Booking'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Booking not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/bookings/{bookingId}/status:
+    put:
+      tags:
+        - Bookings
+      summary: Update booking status
+      description: Updates the status of a specific booking. Requires authentication.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: Unique identifier of the booking.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingStatusRequestDTO'
+      responses:
+        '200':
+          description: Booking status updated successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Booking'
+        '400':
+          description: Invalid input data (e.g., invalid status value).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Booking not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/services/{serviceId}/slots: # Public Availability
+    get:
+      tags:
+        - Availability
+      summary: Get available slots for a service (Public)
+      description: Retrieves available time slots for a specific service on a given date for a business.
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          description: Identifier of the service.
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          description: The date for which to retrieve available slots (YYYY-MM-DD).
+          schema:
+            type: string
+            format: date
+        - name: businessId
+          in: query
+          required: true
+          description: Identifier of the business.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved available slots.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TimeSlot'
+        '400':
+          description: Invalid query parameters (e.g., malformed date, missing required params).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Service or Business not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/internal/availability/{businessId}/slots: # Internal Availability
+    get:
+      tags:
+        - Availability
+      summary: Get available slots for a service within a business (Internal)
+      description: Retrieves available time slots for a specific service on a given date for a business. Intended for internal or privileged access.
+      # security:
+      #   - BearerAuth: [] # Should likely be secured if truly internal
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          description: Identifier of the business.
+          schema:
+            type: string
+            format: uuid
+        - name: serviceId
+          in: query
+          required: true
+          description: Identifier of the service.
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          description: The date for which to retrieve available slots (YYYY-MM-DD).
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Successfully retrieved available slots.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TimeSlot'
+        '400':
+          description: Invalid query parameters (e.g., malformed date, missing required params).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Service or Business not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+# End of OpenAPI specification
