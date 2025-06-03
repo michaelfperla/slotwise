@@ -26,7 +26,7 @@ beforeAll(async () => {
   try {
     // Try to connect and create database if it doesn't exist
     await prisma.$connect();
-  } catch (error) {
+  } catch {
     // If connection fails, try to create the database
     try {
       const adminPrisma = new PrismaClient({
@@ -42,7 +42,7 @@ beforeAll(async () => {
 
       // Now connect to the test database
       await prisma.$connect();
-    } catch (createError) {
+    } catch {
       console.warn('Could not create test database, it may already exist');
     }
   }
@@ -53,14 +53,14 @@ beforeAll(async () => {
       stdio: 'pipe',
       env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
     });
-  } catch (error) {
+  } catch {
     // If migrations fail, try to push the schema
     try {
       execSync('npx prisma db push --force-reset', {
         stdio: 'pipe',
         env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
       });
-    } catch (pushError) {
+    } catch {
       console.warn('Could not set up test database schema, tests may fail');
     }
   }
@@ -74,7 +74,7 @@ afterAll(async () => {
       await prisma.$executeRawUnsafe(
         'TRUNCATE TABLE notifications, notification_templates RESTART IDENTITY CASCADE'
       );
-    } catch (error) {
+    } catch {
       console.warn('Could not clean up test data');
     }
 

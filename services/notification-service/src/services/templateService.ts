@@ -1,9 +1,9 @@
-import handlebars from 'handlebars';
-
-type HandlebarsTemplateDelegate = (context: any) => string;
 import fs from 'fs/promises';
+import handlebars from 'handlebars';
 import path from 'path';
 import { logger } from '../utils/logger';
+
+type HandlebarsTemplateDelegate = (context: Record<string, unknown>) => string;
 
 // Define a type for the template names for better type safety
 export type TemplateName =
