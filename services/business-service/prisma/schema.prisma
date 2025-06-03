@@ -77,13 +77,13 @@ model Service {
 }
 
 model Availability {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   businessId  String
-  dayOfWeek   String // String for days (e.g., "MONDAY", "TUESDAY")
-  startTime   String   // Store as HH:MM string in 24-hour format e.g., "09:00"
-  endTime     String   // Store as HH:MM string e.g., "17:00"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  dayOfWeek   DayOfWeek // Use enum for days
+  startTime   String    // Store as HH:MM string in 24-hour format e.g., "09:00"
+  endTime     String    // Store as HH:MM string e.g., "17:00"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -92,8 +92,18 @@ model Availability {
   @@map("availabilities")
 }
 
-// Enums converted to string constants for SQLite compatibility
+// Enums
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+// String constants for other enums (keeping for compatibility)
 // BusinessStatus: "ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_SETUP"
 // SubscriptionPlan: "FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"
 // SubscriptionStatus: "ACTIVE", "PAST_DUE", "CANCELED", "UNPAID"
-// DayOfWeek: "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"

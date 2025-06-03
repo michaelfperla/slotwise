@@ -1,4 +1,4 @@
-import { PrismaClient, Availability, DayOfWeek } from '@prisma/client'; // Removed Business
+import { PrismaClient, Availability, DayOfWeek, Prisma } from '@prisma/client';
 import { prisma } from '../database/prisma';
 import { natsConnection } from '../events/nats';
 import { logger } from '../utils/logger';
@@ -61,7 +61,7 @@ export class AvailabilityService {
     }
 
     // Atomically update availability: delete all existing rules for the business and create new ones
-    await this.prisma.$transaction(async tx => {
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.availability.deleteMany({
         where: { businessId: businessId },
       });
@@ -72,7 +72,7 @@ export class AvailabilityService {
 
       const createdRules = await tx.availability.createManyAndReturn({
         // Prisma 5.1+ feature
-        data: data.rules.map(rule => ({
+        data: data.rules.map((rule: AvailabilityRuleData) => ({
           businessId: businessId,
           dayOfWeek: rule.dayOfWeek,
           startTime: rule.startTime,
@@ -92,7 +92,7 @@ export class AvailabilityService {
       const eventPayload = {
         businessId: businessId,
         // scheduleId: could be a version or a specific ID if availabilities are versioned
-        rules: fullNewRules.map(rule => ({
+        rules: fullNewRules.map((rule: Availability) => ({
           dayOfWeek: rule.dayOfWeek,
           startTime: rule.startTime,
           endTime: rule.endTime,

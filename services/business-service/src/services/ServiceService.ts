@@ -90,7 +90,7 @@ export class ServiceService {
           name: service.name,
           description: service.description,
           durationMinutes: service.duration,
-          price: service.price.toNumber(), // Convert Decimal to number
+          price: service.price, // Price is already a number in the schema
           currency: service.currency,
           category: service.category,
           isActive: service.isActive,

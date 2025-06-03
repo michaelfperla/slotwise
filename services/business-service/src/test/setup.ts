@@ -17,10 +17,6 @@ jest.mock('nanoid', () => ({
   nanoid: jest.fn(() => 'mock-id-' + Date.now()),
 }));
 
-
-
-
-
 jest.mock('nats', () => ({
   connect: jest.fn().mockResolvedValue({
     publish: jest.fn(),
@@ -30,8 +26,8 @@ jest.mock('nats', () => ({
     isClosed: jest.fn().mockReturnValue(false),
   }),
   JSONCodec: jest.fn().mockReturnValue({
-    encode: jest.fn((data) => JSON.stringify(data)),
-    decode: jest.fn((data) => JSON.parse(data)),
+    encode: jest.fn(data => JSON.stringify(data)),
+    decode: jest.fn(data => JSON.parse(data)),
   }),
 }));
 

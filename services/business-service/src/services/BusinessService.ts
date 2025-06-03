@@ -1,21 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Business } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { logger } from '../utils/logger';
 import { natsConnection } from '../events/nats'; // Import natsConnection
-
-// Define types based on Prisma schema
-type BusinessStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_SETUP';
-
-interface Business {
-  id: string;
-  name: string;
-  description: string | null;
-  subdomain: string;
-  ownerId: string;
-  status: BusinessStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 interface CreateBusinessData {
   name: string;

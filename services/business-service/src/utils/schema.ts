@@ -7,21 +7,21 @@ import { z } from 'zod';
 export function zodToJsonSchema(zodSchema: z.ZodSchema): any {
   // This is a basic implementation for the schemas we're using
   // For production, consider using a library like zod-to-json-schema
-  
+
   if (zodSchema instanceof z.ZodObject) {
     const shape = zodSchema.shape;
     const properties: any = {};
     const required: string[] = [];
-    
+
     for (const [key, value] of Object.entries(shape)) {
       properties[key] = convertZodType(value as z.ZodTypeAny);
-      
+
       // Check if field is required (not optional)
       if (!(value as z.ZodTypeAny).isOptional()) {
         required.push(key);
       }
     }
-    
+
     return {
       type: 'object',
       properties,
@@ -29,14 +29,14 @@ export function zodToJsonSchema(zodSchema: z.ZodSchema): any {
       additionalProperties: false,
     };
   }
-  
+
   return convertZodType(zodSchema);
 }
 
 function convertZodType(zodType: z.ZodTypeAny): any {
   if (zodType instanceof z.ZodString) {
     const schema: any = { type: 'string' };
-    
+
     // Handle string constraints
     if (zodType._def.checks) {
       for (const check of zodType._def.checks) {
@@ -63,13 +63,13 @@ function convertZodType(zodType: z.ZodTypeAny): any {
         }
       }
     }
-    
+
     return schema;
   }
-  
+
   if (zodType instanceof z.ZodNumber) {
     const schema: any = { type: 'number' };
-    
+
     // Handle number constraints
     if (zodType._def.checks) {
       for (const check of zodType._def.checks) {
@@ -86,31 +86,31 @@ function convertZodType(zodType: z.ZodTypeAny): any {
         }
       }
     }
-    
+
     return schema;
   }
-  
+
   if (zodType instanceof z.ZodBoolean) {
     return { type: 'boolean' };
   }
-  
+
   if (zodType instanceof z.ZodArray) {
     return {
       type: 'array',
       items: convertZodType(zodType._def.type),
     };
   }
-  
+
   if (zodType instanceof z.ZodOptional) {
     return convertZodType(zodType._def.innerType);
   }
-  
+
   if (zodType instanceof z.ZodDefault) {
     const schema = convertZodType(zodType._def.innerType);
     schema.default = zodType._def.defaultValue();
     return schema;
   }
-  
+
   if (zodType instanceof z.ZodEnum) {
     return {
       type: 'string',
@@ -124,7 +124,7 @@ function convertZodType(zodType: z.ZodTypeAny): any {
       enum: Object.values((zodType._def as any).enumType),
     };
   }
-  
+
   // Fallback for unknown types
   return { type: 'string' };
 }
