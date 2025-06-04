@@ -1,9 +1,9 @@
 // frontend/src/components/payment/PaymentGateway.tsx
-import React, { useState, useEffect } from 'react';
-import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
+import { createPaymentIntentAPI } from '@/utils/payment'; // Adjust path
 import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
+import React, { useEffect, useState } from 'react';
 import StripeCheckoutForm from './StripeCheckoutForm';
-import { createPaymentIntentAPI, PaymentIntentResponse } from '@/utils/payment'; // Adjust path
 
 // Make sure to call loadStripe outside of a component’s render to avoid
 // recreating the Stripe object on every render.
@@ -16,11 +16,19 @@ interface PaymentGatewayProps {
   businessId: string;
   bookingId?: string;
   customerEmail?: string;
-  onPaymentSuccess: (paymentResult: any) => void;
+  onPaymentSuccess: (paymentResult: unknown) => void;
   onPaymentError: (errorMessage: string) => void;
 }
 
-const PaymentGateway: React.FC<PaymentGatewayProps> = (props) => {
+const PaymentGateway: React.FC<PaymentGatewayProps> = ({
+  amount,
+  currency,
+  businessId,
+  bookingId,
+  customerEmail,
+  onPaymentSuccess,
+  onPaymentError,
+}) => {
   const [clientSecret, setClientSecret] = useState('');
   const [paymentIntentId, setPaymentIntentId] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,11 +36,11 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = (props) => {
   useEffect(() => {
     const fetchPaymentIntent = async () => {
       const result = await createPaymentIntentAPI({
-        amount: props.amount,
-        currency: props.currency,
-        businessId: props.businessId,
-        bookingId: props.bookingId,
-        customerEmail: props.customerEmail,
+        amount,
+        currency,
+        businessId,
+        bookingId,
+        customerEmail,
       });
 
       if (result && result.clientSecret && result.paymentIntentId) {
@@ -41,17 +49,17 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = (props) => {
         setError(null);
       } else {
         setError(result?.error || 'Failed to initialize payment.');
-        props.onPaymentError(result?.error || 'Failed to initialize payment.');
+        onPaymentError(result?.error || 'Failed to initialize payment.');
       }
     };
 
-    if (props.amount > 0 && props.businessId) {
+    if (amount > 0 && businessId) {
         fetchPaymentIntent();
     } else {
         setError("Amount and Business ID are required to initialize payment.");
-        // props.onPaymentError("Amount and Business ID are required."); // Call if it's an error state
+        // onPaymentError("Amount and Business ID are required."); // Call if it's an error state
     }
-  }, [props.amount, props.currency, props.businessId, props.bookingId, props.customerEmail, props.onPaymentError]);
+  }, [amount, currency, businessId, bookingId, customerEmail, onPaymentError]);
 
   const options: StripeElementsOptions = {
     clientSecret,
@@ -71,9 +79,9 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = (props) => {
       <StripeCheckoutForm
         clientSecret={clientSecret}
         paymentIntentId={paymentIntentId}
-        bookingId={props.bookingId}
-        onPaymentSuccess={props.onPaymentSuccess}
-        onPaymentError={props.onPaymentError}
+        bookingId={bookingId}
+        onPaymentSuccess={onPaymentSuccess}
+        onPaymentError={onPaymentError}
       />
     </Elements>
   );

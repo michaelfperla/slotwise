@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import useAuth from '@/hooks/useAuth'; // Assuming @ is configured for src path alias
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -39,8 +39,8 @@ const LoginPage = () => {
       } else {
         throw new Error('Tokens not found in response');
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);
     }

@@ -1,8 +1,8 @@
 // frontend/src/app/booking/confirm/page.tsx
 'use client'; // Required for hooks like useState, useEffect
 
-import React, { useState, useEffect } from 'react';
 import PaymentGateway from '@/components/payment/PaymentGateway'; // Adjust path if needed
+import { useEffect, useState } from 'react';
 // import { useSearchParams } from 'next/navigation'; // Example: if bookingId comes from URL
 
 // Placeholder for how booking data might be fetched or passed
@@ -65,10 +65,11 @@ const BookingConfirmPage = () => {
     fetchBookingDetails();
   }, []); // Add dependencies if bookingIdFromQuery or similar is used
 
-  const handlePaymentSuccess = (paymentResult: any) => {
+  const handlePaymentSuccess = (paymentResult: unknown) => {
     console.log('Payment successful!', paymentResult);
     setPaymentStatus('success');
-    setPaymentMessage(`Payment Confirmed! Your booking for ${bookingDetails?.serviceName} is successful. Payment Intent ID: ${paymentResult?.paymentIntent?.id}`);
+    const result = paymentResult as { paymentIntent?: { id?: string } };
+    setPaymentMessage(`Payment Confirmed! Your booking for ${bookingDetails?.serviceName} is successful. Payment Intent ID: ${result?.paymentIntent?.id || 'N/A'}`);
     // TODO: Redirect to a final confirmation/thank you page or update UI
     // e.g., router.push(`/booking-confirmed?bookingId=${bookingDetails?.id}`);
   };

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import useAuth from '@/hooks/useAuth'; // Assuming @ is configured for src path alias
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
@@ -51,8 +51,8 @@ const RegisterPage = () => {
       } else {
         throw new Error('Tokens not found in registration response');
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during registration.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred during registration.');
     } finally {
       setIsLoading(false);
     }

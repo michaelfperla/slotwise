@@ -40,7 +40,7 @@ export interface ConfirmPaymentPayload {
 
 export interface ConfirmPaymentResponse {
     status: string;
-    paymentRecord?: any; // Define a proper type later
+    paymentRecord?: unknown; // Define a proper type later
     bookingUpdated?: boolean;
     error?: string;
 }

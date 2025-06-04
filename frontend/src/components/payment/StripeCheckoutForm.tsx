@@ -1,23 +1,21 @@
 // frontend/src/components/payment/StripeCheckoutForm.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  PaymentElement,
-  useStripe,
-  useElements,
-} from '@stripe/react-stripe-js';
 import { confirmPaymentAPI, ConfirmPaymentPayload } from '@/utils/payment'; // Adjust path as needed
+import {
+    PaymentElement,
+    useElements,
+    useStripe,
+} from '@stripe/react-stripe-js';
+import React, { useState } from 'react';
 
 interface StripeCheckoutFormProps {
   clientSecret: string;
   paymentIntentId: string;
   bookingId?: string; // Pass bookingId to link payment confirmation
-  onPaymentSuccess: (paymentResult: any) => void; // Callback for success
+  onPaymentSuccess: (paymentResult: unknown) => void; // Callback for success
   onPaymentError: (errorMessage: string) => void; // Callback for error
 }
 
 const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({
-  clientSecret,
-  paymentIntentId,
   bookingId,
   onPaymentSuccess,
   onPaymentError,
