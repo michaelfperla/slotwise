@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/slotwise/scheduling-service/internal/config"
-	"github.com/slotwise/scheduling-service/internal/database"
-	"github.com/slotwise/scheduling-service/internal/handlers"
-	"github.com/slotwise/scheduling-service/internal/middleware"
-	"github.com/slotwise/scheduling-service/internal/repository"
-	"github.com/slotwise/scheduling-service/internal/service"
-	"github.com/slotwise/scheduling-service/internal/subscribers" // Added import
+	"github.com/slotwise-app/services/scheduling-service/internal/client" // Import notification client
+	"github.com/slotwise-app/services/scheduling-service/internal/config"
+	"github.com/slotwise-app/services/scheduling-service/internal/database"
+	"github.com/slotwise-app/services/scheduling-service/internal/handlers"
+	"github.com/slotwise-app/services/scheduling-service/internal/middleware"
+	"github.com/slotwise-app/services/scheduling-service/internal/repository"
+	"github.com/slotwise-app/services/scheduling-service/internal/service"
+	"github.com/slotwise-app/services/scheduling-service/internal/subscribers" // Added import
 	"github.com/slotwise/scheduling-service/pkg/events"
 	"github.com/slotwise/scheduling-service/pkg/logger"
 	"github.com/slotwise/scheduling-service/pkg/scheduler"
@@ -68,8 +69,12 @@ func main() {
 	// Initialize services
 	// AvailabilityService now needs BookingRepository
 	availabilityService := service.NewAvailabilityService(availabilityRepo, bookingRepo, cacheRepo, eventPublisher, logger)
-	// BookingService now needs AvailabilityRepository for service definitions
-	bookingService := service.NewBookingService(bookingRepo, availabilityService, availabilityRepo, eventPublisher, logger)
+
+	// Initialize Notification Client
+	notificationClient := client.NewNotificationServiceClient(cfg)
+
+	// BookingService now needs AvailabilityRepository for service definitions and NotificationClient
+	bookingService := service.NewBookingService(bookingRepo, availabilityService, availabilityRepo, eventPublisher, notificationClient, logger)
 	
 	// Initialize background scheduler
 	cronScheduler := scheduler.New(bookingService, logger)

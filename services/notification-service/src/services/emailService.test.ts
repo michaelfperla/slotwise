@@ -1,138 +1,209 @@
-import sgMail from '@sendgrid/mail'; // This will be the Jest mock from setup.ts
-import { config } from '../config/config';
-import { logger } from '../utils/logger';
-import { emailService } from './emailService'; // Assuming emailService is exported as an instance
+import nodemailer from 'nodemailer';
+import handlebars from 'handlebars';
+import fs from 'fs/promises';
+import { config } from '../config/config.js';
+import { logger } from '../utils/logger.js';
+import { sendEmail, emailNotificationLog, getEmailNotificationLog } from './emailService.js'; // Import specific functions
 
-// Spy on logger.info, as it's used by the 'console' email provider
+// Mocking nodemailer
+let mockSendMail = jest.fn();
+const mockCreateTransport = jest.fn(() => ({
+  sendMail: mockSendMail,
+}));
+jest.mock('nodemailer', () => ({
+  createTransport: () => mockCreateTransport(),
+}));
+
+// Mocking fs/promises
+jest.mock('fs/promises', () => ({
+  readFile: jest.fn(),
+}));
+
+// Mocking handlebars (partially, just the compile function)
+const mockTemplate = jest.fn(() => 'Compiled HTML');
+jest.mock('handlebars', () => ({
+  compile: jest.fn(() => mockTemplate),
+  // Keep other Handlebars exports if used by the service, e.g. registerHelper
+  registerHelper: jest.fn(),
+}));
+
+
+// Spy on logger methods
 jest.spyOn(logger, 'info');
-// Spy on logger.error for error cases
 jest.spyOn(logger, 'error');
+jest.spyOn(logger, 'warn');
+
 
 describe('EmailService', () => {
   const originalEmailProvider = config.email.provider;
-  const originalSendgridApiKey = config.email.sendgrid.apiKey;
+  const originalSmtpConfig = { ...config.email.smtp };
 
   beforeEach(() => {
-    // Reset mocks before each test
-    (sgMail.send as jest.Mock).mockClear();
+    // Reset mocks and logs before each test
+    mockSendMail.mockClear();
+    mockCreateTransport.mockClear();
+    (fs.readFile as jest.Mock).mockClear();
+    (handlebars.compile as jest.Mock).mockClear();
+    mockTemplate.mockClear();
     (logger.info as jest.Mock).mockClear();
     (logger.error as jest.Mock).mockClear();
+    (logger.warn as jest.Mock).mockClear();
+    emailNotificationLog.length = 0; // Clear in-memory log
 
-    // Ensure a default state for config if tests modify it
+    // Restore original config
     config.email.provider = originalEmailProvider;
-    config.email.sendgrid.apiKey = originalSendgridApiKey;
-    // Re-initialize emailService if its constructor depends on mutable config values directly
-    // For this example, we assume emailService is stateless enough or picks up config dynamically.
-    // If not, new EmailService() might be needed in tests that change config.
+    config.email.smtp = { ...originalSmtpConfig };
   });
 
   afterAll(() => {
-    // Restore original config if necessary
+    // Restore original config fully
     config.email.provider = originalEmailProvider;
-    config.email.sendgrid.apiKey = originalSendgridApiKey;
+    config.email.smtp = originalSmtpConfig;
   });
 
-  it('should send email via SendGrid if provider is "sendgrid" and API key is present', async () => {
-    config.email.provider = 'sendgrid';
-    config.email.sendgrid.apiKey = 'test-api-key'; // Ensure API key is seen as present
-    // Re-create or re-configure service if necessary (if constructor reads config once)
-    const testEmailService = new (emailService as any).constructor(); // Re-instantiate to pick up new config
+  describe('sendEmail with SMTP provider', () => {
+    beforeEach(() => {
+      config.email.provider = 'smtp';
+      config.email.smtp = {
+        host: 'smtp.example.com',
+        port: 587,
+        secure: false,
+        user: 'user@example.com',
+        pass: 'password',
+        fromEmail: 'from@example.com',
+      };
+      // Reset createTransport mock specifically for SMTP tests
+      mockCreateTransport.mockReturnValue({ sendMail: mockSendMail });
+    });
 
-    const testMail = {
-      to: 'test@example.com',
-      subject: 'Test Subject',
-      htmlBody: '<p>Hello World</p>',
-      textBody: 'Hello World',
-    };
+    it('should send an email using nodemailer and handlebars', async () => {
+      (fs.readFile as jest.Mock).mockResolvedValue('Raw {{name}} template content');
+      mockSendMail.mockResolvedValue({ messageId: 'smtp-123' });
 
-    await testEmailService.sendEmail(
-      testMail.to,
-      testMail.subject,
-      testMail.htmlBody,
-      testMail.textBody
-    );
+      const result = await sendEmail('to@example.com', 'Test Subject', 'testTemplate', { name: 'Tester' });
 
-    expect(sgMail.send).toHaveBeenCalledTimes(1);
-    expect(sgMail.send).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: testMail.to,
-        from: config.email.sendgrid.fromEmail, // or the default
-        subject: testMail.subject,
-        html: testMail.htmlBody,
-        text: testMail.textBody,
-      })
-    );
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('Email sent successfully via SendGrid'),
-      expect.anything()
-    );
+      expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('testTemplate.hbs'), 'utf-8');
+      expect(handlebars.compile).toHaveBeenCalledWith('Raw {{name}} template content');
+      expect(mockTemplate).toHaveBeenCalledWith({ name: 'Tester', currentYear: new Date().getFullYear() });
+      expect(mockCreateTransport).toHaveBeenCalled();
+      expect(mockSendMail).toHaveBeenCalledWith({
+        from: 'from@example.com',
+        to: 'to@example.com',
+        subject: 'Test Subject',
+        html: 'Compiled HTML',
+      });
+      expect(result.success).toBe(true);
+      expect(result.messageId).toBe('smtp-123');
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Email sent successfully to to@example.com'));
+      expect(emailNotificationLog.length).toBe(1);
+      expect(emailNotificationLog[0].status).toBe('sent');
+      expect(emailNotificationLog[0].recipientEmail).toBe('to@example.com');
+    });
+
+    it('should return error if sendMail fails', async () => {
+      (fs.readFile as jest.Mock).mockResolvedValue('Template content');
+      mockSendMail.mockRejectedValue(new Error('SMTP Error'));
+
+      const result = await sendEmail('to@example.com', 'Test Subject', 'testTemplate', {});
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('SMTP Error');
+      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ err: new Error('SMTP Error') }), expect.stringContaining('Error sending email to to@example.com'));
+      expect(emailNotificationLog.length).toBe(1);
+      expect(emailNotificationLog[0].status).toBe('failed');
+      expect(emailNotificationLog[0].error).toBe('SMTP Error');
+    });
+
+    it('should return error if template loading fails', async () => {
+      (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
+
+      const result = await sendEmail('to@example.com', 'Test Subject', 'testTemplate', {});
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Could not load or compile email template');
+      expect(logger.error).toHaveBeenCalledWith(expect.objectContaining({ err: new Error('File not found')}), expect.stringContaining('Error loading or compiling email template testTemplate'));
+      expect(emailNotificationLog.length).toBe(1);
+      expect(emailNotificationLog[0].status).toBe('failed');
+    });
+
+    it('should not attempt to send if SMTP config is incomplete', async () => {
+      config.email.smtp.host = undefined; // Incomplete config
+      // Need to re-initialize or mock getTransporter behavior if it's memoized and affected by config changes.
+      // For this test structure, sendEmail will call getTransporter internally which will return null.
+
+      const result = await sendEmail('to@example.com', 'Test Subject', 'testTemplate', {});
+
+      expect(mockCreateTransport).not.toHaveBeenCalled(); // transporter should be null
+      expect(mockSendMail).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Email transporter is not configured');
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Email transporter is not configured'));
+      expect(emailNotificationLog.length).toBe(1);
+      expect(emailNotificationLog[0].status).toBe('failed');
+      expect(emailNotificationLog[0].error).toContain('Email transporter is not configured');
+    });
   });
 
-  it('should log to console if provider is "console"', async () => {
-    config.email.provider = 'console';
-    const testEmailService = new (emailService as any).constructor();
+  describe('sendEmail with console provider', () => {
+    beforeEach(() => {
+      config.email.provider = 'console';
+      // No need to mock createTransport for console, as it should not be called.
+      // Ensure the mock for nodemailer.createTransport() itself is reset or doesn't get called.
+       mockCreateTransport.mockClear(); // Clear any previous calls from SMTP tests
+       mockSendMail.mockClear();
+    });
 
-    const testMail = {
-      to: 'console@example.com',
-      subject: 'Console Test',
-      htmlBody: '<p>Console Hello</p>',
-    };
+    it('should log email details to console', async () => {
+      (fs.readFile as jest.Mock).mockResolvedValue('Raw {{name}} template content'); // Still need to "load" template
 
-    await testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody);
+      const result = await sendEmail('console@example.com', 'Console Subject', 'consoleTemplate', { name: 'Console User' });
 
-    expect(sgMail.send).not.toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledWith('--- CONSOLE EMAIL ---');
-    expect(logger.info).toHaveBeenCalledWith(`To: ${testMail.to}`);
-    expect(logger.info).toHaveBeenCalledWith(`Subject: ${testMail.subject}`);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('HTML Body'),
-      expect.stringContaining(testMail.htmlBody.substring(0, 10))
-    );
-    expect(logger.info).toHaveBeenCalledWith('--- END CONSOLE EMAIL ---');
+      expect(mockCreateTransport).not.toHaveBeenCalled(); // nodemailer.createTransport should not be called
+      expect(mockSendMail).not.toHaveBeenCalled();
+
+      expect(logger.info).toHaveBeenCalledWith('--- MOCK EMAIL (CONSOLE PROVIDER) ---');
+      expect(logger.info).toHaveBeenCalledWith('To: console@example.com');
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('From:')); // From is default
+      expect(logger.info).toHaveBeenCalledWith('Subject: Console Subject');
+      expect(logger.info).toHaveBeenCalledWith('Body (HTML):');
+      expect(logger.info).toHaveBeenCalledWith('Compiled HTML'); // Since mockTemplate returns this
+      expect(logger.info).toHaveBeenCalledWith('--- MOCK EMAIL END ---');
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toMatch(/^mock-/);
+      expect(emailNotificationLog.length).toBe(1);
+      expect(emailNotificationLog[0].status).toBe('sent'); // Console provider is treated as 'sent'
+    });
   });
 
-  it('should log to console via SendGrid path if API key is missing', async () => {
-    config.email.provider = 'sendgrid';
-    config.email.sendgrid.apiKey = undefined; // Simulate missing API key
-    const testEmailService = new (emailService as any).constructor();
+  describe('getEmailNotificationLog', () => {
+    it('should return a copy of the emailNotificationLog', () => {
+        // Add a couple of mock logs
+        emailNotificationLog.push({
+            id: 'log1', recipientEmail: 'test1@example.com', subject: 'Sub1', templateName: 'temp1',
+            status: 'sent', sentAt: new Date(), messageId: 'msg1'
+        });
+        emailNotificationLog.push({
+            id: 'log2', recipientEmail: 'test2@example.com', subject: 'Sub2', templateName: 'temp2',
+            status: 'failed', sentAt: new Date(), error: 'Some error'
+        });
 
-    const testMail = {
-      to: 'fallback@example.com',
-      subject: 'Fallback Test',
-      htmlBody: '<p>Fallback Hello</p>',
-    };
+        const logCopy = getEmailNotificationLog();
+        expect(logCopy).toHaveLength(2);
+        expect(logCopy).not.toBe(emailNotificationLog); // Ensure it's a copy (slice behavior)
+        expect(logCopy[0].id).toBe('log1');
+    });
 
-    await testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody);
-
-    expect(sgMail.send).not.toHaveBeenCalled(); // SendGrid send should not be called
-    expect(logger.error).toHaveBeenCalledWith(
-      'Cannot send email via SendGrid: API key not configured.'
-    );
-    expect(logger.info).toHaveBeenCalledWith('--- CONSOLE EMAIL ---'); // Check if it falls back to console
-    expect(logger.info).toHaveBeenCalledWith(`To: ${testMail.to}`);
-  });
-
-  it('should handle SendGrid send errors', async () => {
-    config.email.provider = 'sendgrid';
-    config.email.sendgrid.apiKey = 'test-api-key';
-    const testEmailService = new (emailService as any).constructor();
-
-    (sgMail.send as jest.Mock).mockRejectedValueOnce(new Error('SendGrid API Error'));
-
-    const testMail = {
-      to: 'error@example.com',
-      subject: 'Error Test',
-      htmlBody: '<p>Error Hello</p>',
-    };
-
-    await expect(
-      testEmailService.sendEmail(testMail.to, testMail.subject, testMail.htmlBody)
-    ).rejects.toThrow('SendGrid API Error');
-
-    expect(sgMail.send).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith(
-      'Error sending email via SendGrid',
-      expect.objectContaining({ error: 'SendGrid API Error' })
-    );
+    it('should limit the number of returned log entries', () => {
+        for (let i = 0; i < 60; i++) {
+            emailNotificationLog.push({
+                id: `log${i}`, recipientEmail: `test${i}@example.com`, subject: `Sub${i}`,
+                templateName: `temp${i}`, status: 'sent', sentAt: new Date(), messageId: `msg${i}`
+            });
+        }
+        const logCopy = getEmailNotificationLog(50);
+        expect(logCopy).toHaveLength(50);
+        expect(logCopy[0].id).toBe('log10'); // Should be the 10th original entry (index 10)
+    });
   });
 });
