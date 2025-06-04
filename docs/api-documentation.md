@@ -147,64 +147,9 @@ All API responses follow a consistent format:
 
 ## 🔐 Auth Service API
 
-### Register User
+The Auth Service is responsible for user registration, login, token management, and other authentication-related operations.
 
-```http
-POST /auth/register
-Content-Type: application/json
-
-{
-  "email": "newuser@example.com",
-  "password": "securepassword",
-  "firstName": "Jane",
-  "lastName": "Smith",
-  "timezone": "America/New_York"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user_456",
-      "email": "newuser@example.com",
-      "firstName": "Jane",
-      "lastName": "Smith",
-      "role": "business_owner",
-      "status": "pending_verification"
-    }
-  },
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-### Refresh Token
-
-```http
-POST /auth/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "refresh_token_here"
-}
-```
-
-### Logout
-
-```http
-POST /auth/logout
-Authorization: Bearer <token>
-```
-
-### Get Current User
-
-```http
-GET /auth/me
-Authorization: Bearer <token>
-```
+For detailed API specification, please see the [Auth Service OpenAPI Documentation](./auth-service-api.yaml).
 
 ## 🏢 Business Service API
 
@@ -353,181 +298,15 @@ Content-Type: application/json
 
 ## 📅 Scheduling Service API
 
-### Create Booking
+The Scheduling Service handles the core booking logic, manages appointment slots, and calculates availability.
 
-```http
-POST /bookings
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "serviceId": "svc_101",
-  "startTime": "2025-01-15T14:00:00Z",
-  "client": {
-    "firstName": "Alice",
-    "lastName": "Johnson",
-    "email": "alice@example.com",
-    "phone": "+1-555-0456",
-    "timezone": "America/New_York"
-  },
-  "notes": "First-time consultation",
-  "requirePayment": true
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "booking_202",
-    "serviceId": "svc_101",
-    "startTime": "2024-01-15T14:00:00Z",
-    "endTime": "2024-01-15T15:00:00Z",
-    "status": "pending",
-    "totalAmount": "150.00",
-    "currency": "USD",
-    "paymentStatus": "pending",
-    "client": {
-      "firstName": "Alice",
-      "lastName": "Johnson",
-      "email": "alice@example.com"
-    },
-    "createdAt": "2024-01-01T00:00:00Z"
-  },
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-### Get Booking
-
-```http
-GET /bookings/{bookingId}
-Authorization: Bearer <token>
-```
-
-### Update Booking
-
-```http
-PUT /bookings/{bookingId}
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "status": "confirmed",
-  "notes": "Updated notes"
-}
-```
-
-### Cancel Booking
-
-```http
-DELETE /bookings/{bookingId}
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "reason": "Client requested cancellation",
-  "refundAmount": 150.00
-}
-```
-
-### List Bookings
-
-```http
-GET /bookings?businessId=biz_789&status=confirmed&startDate=2024-01-01&endDate=2024-01-31
-Authorization: Bearer <token>
-```
-
-### Get Availability
-
-```http
-GET /availability?businessId=biz_789&serviceId=svc_101&startDate=2024-01-15&endDate=2024-01-21&timezone=America/New_York
-Authorization: Bearer <token>
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "businessId": "biz_789",
-    "serviceId": "svc_101",
-    "timezone": "America/New_York",
-    "slots": [
-      {
-        "startTime": "2024-01-15T09:00:00Z",
-        "endTime": "2024-01-15T10:00:00Z",
-        "isAvailable": true
-      },
-      {
-        "startTime": "2024-01-15T10:00:00Z",
-        "endTime": "2024-01-15T11:00:00Z",
-        "isAvailable": false,
-        "reason": "Already booked"
-      }
-    ],
-    "generatedAt": "2024-01-01T00:00:00Z"
-  },
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-### Create Availability Rule
-
-```http
-POST /availability/rules
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "businessId": "biz_789",
-  "serviceId": "svc_101",
-  "dayOfWeek": 1,
-  "startTime": "09:00",
-  "endTime": "17:00",
-  "priority": 1
-}
-```
+For detailed API specification, please see the [Scheduling Service OpenAPI Documentation](./scheduling-service-api.yaml).
 
 ## 📧 Notification Service API
 
-### Send Notification
+The Notification Service is responsible for handling and dispatching various types of notifications, such as email, SMS, and push notifications (though current API focuses on generic dispatch). It also manages templates and tracks notification statuses.
 
-```http
-POST /notifications
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "recipientId": "user_123",
-  "type": "booking_confirmation",
-  "channel": "email",
-  "templateId": "booking_confirmation_template",
-  "templateData": {
-    "bookingId": "booking_202",
-    "serviceName": "Strategy Consultation",
-    "startTime": "2025-01-15T14:00:00Z"
-  },
-  "priority": "normal"
-}
-```
-
-### Get Notification Status
-
-```http
-GET /notifications/{notificationId}
-Authorization: Bearer <token>
-```
-
-### List Notifications
-
-```http
-GET /notifications?recipientId=user_123&type=booking_confirmation&status=sent
-Authorization: Bearer <token>
-```
+For detailed API specification, please see the [Notification Service OpenAPI Documentation](./notification-service-api.yaml).
 
 ## 🚦 Rate Limiting
 
