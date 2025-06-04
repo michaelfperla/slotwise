@@ -120,3 +120,37 @@ func (r *BookingRepository) FindConflictingBookings(ctx context.Context, busines
 	}
 	return conflictingBookings, nil
 }
+
+// GetBookingsForBusinessByDateRangeAndStatuses fetches all bookings for a given businessID
+// that are active between startDate (inclusive) and endDate (exclusive)
+// and match one of the provided statuses.
+// Overlap condition: (booking.start_time < endDate AND booking.end_time > startDate)
+func (r *BookingRepository) GetBookingsForBusinessByDateRangeAndStatuses(
+	ctx context.Context,
+	businessID string,
+	startDate time.Time,
+	endDate time.Time,
+	statuses []models.BookingStatus,
+) ([]models.Booking, error) {
+	var bookings []models.Booking
+
+	if businessID == "" {
+		return nil, fmt.Errorf("businessID cannot be empty")
+	}
+	if len(statuses) == 0 {
+		return nil, fmt.Errorf("statuses cannot be empty")
+	}
+
+	err := r.db.WithContext(ctx).
+		Where("business_id = ?", businessID).
+		Where("status IN (?)", statuses).
+		Where("start_time < ?", endDate).   // Existing booking starts before the query period ends
+		Where("end_time > ?", startDate). // Existing booking ends after the query period starts
+		Order("start_time asc").
+		Find(&bookings).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("error fetching bookings for business %s by date range and statuses: %w", businessID, err)
+	}
+	return bookings, nil
+}

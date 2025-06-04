@@ -15,6 +15,7 @@ import (
 	"github.com/slotwise/scheduling-service/internal/database"
 	"github.com/slotwise/scheduling-service/internal/handlers"
 	"github.com/slotwise/scheduling-service/internal/middleware"
+	"github.com/slotwise/scheduling-service/internal/realtime" // Import for WebSocket manager
 	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/internal/service"
 	"github.com/slotwise/scheduling-service/internal/subscribers" // Added import
@@ -81,14 +82,26 @@ func main() {
 	availabilityHandler := handlers.NewAvailabilityHandler(availabilityService, logger)
 	healthHandler := handlers.NewHealthHandler(db, redisClient, natsConn, logger)
 
+	// Setup event subscribers first, as SubscriptionManager needs it.
+	eventSubscriber := events.NewSubscriber(natsConn, logger)
+
+	// Initialize WebSocket SubscriptionManager and run it
+	subscriptionManager := realtime.NewSubscriptionManager(logger, eventSubscriber) // Pass eventSubscriber
+	go subscriptionManager.Run()
+	subscriptionManager.StartEventSubscriptions() // Start NATS subscriptions for the manager
+
+	// Initialize WebSocket handler
+	webSocketHandler := handlers.NewWebSocketHandler(subscriptionManager, logger)
+
 	// Initialize NATS event handlers (from subscribers package)
 	natsEventHandlers := subscribers.NewNatsEventHandlers(db, logger)
 
-	// Setup event subscribers
-	eventSubscriber := events.NewSubscriber(natsConn, logger)
+	// Setup other event subscribers (those not handled by SubscriptionManager directly)
 	if err := setupEventSubscribers(eventSubscriber, bookingService, availabilityService, natsEventHandlers); err != nil { // Pass natsEventHandlers
 		logger.Fatal("Failed to setup event subscribers", "error", err)
 	}
+	// Note: `setupEventSubscribers` might need adjustment if some subscriptions
+	// are now handled by SubscriptionManager. For now, assuming it's for other event handlers.
 
 	// Setup Gin router
 	if cfg.Environment == "production" {
@@ -105,6 +118,9 @@ func main() {
 	router.GET("/health", healthHandler.Health)
 	router.GET("/health/ready", healthHandler.Ready)
 	router.GET("/health/live", healthHandler.Live)
+
+	// WebSocket route (can be outside /api/v1 if preferred)
+	router.GET("/ws/availability", webSocketHandler.HandleConnections)
 
 	// API routes
 	v1 := router.Group("/api/v1")
@@ -133,10 +149,13 @@ func main() {
 			availability.GET("/", availabilityHandler.GetAvailability) // Existing general availability endpoint
 			// Add other existing availability rule/exception routes if they are still relevant
 			// For example:
-			// availability.POST("/rules", availabilityHandler.CreateAvailabilityRule)
+			availability.POST("/rules", availabilityHandler.CreateAvailabilityRule) // Registering the new endpoint
 			// availability.PUT("/rules/:id", availabilityHandler.UpdateAvailabilityRule)
 			// ...
 		}
+
+		// Route for business calendar
+		v1.GET("/businesses/:businessId/calendar", availabilityHandler.GetBusinessCalendarHandler)
 
 		// Internal API for scheduling service (e.g. for slot generation)
 		internal := v1.Group("/internal")

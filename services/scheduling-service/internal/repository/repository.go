@@ -38,17 +38,38 @@ func (r *AvailabilityRepository) GetServiceDefinition(ctx context.Context, servi
 	return &serviceDef, nil
 }
 
-// GetAvailabilityRulesFiltered retrieves all availability rules for a given business and day of the week.
+// GetAvailabilityRulesFiltered retrieves availability rules for a given business.
+// If dayOfWeek is empty, it fetches all rules for the business, ordered by day_of_week then start_time.
+// Otherwise, it filters by businessID AND dayOfWeek, ordered by start_time.
 func (r *AvailabilityRepository) GetAvailabilityRulesFiltered(ctx context.Context, businessID string, dayOfWeek models.DayOfWeekString) ([]models.AvailabilityRule, error) {
 	var rules []models.AvailabilityRule
-	err := r.db.WithContext(ctx).
-		Where("business_id = ? AND day_of_week = ?", businessID, dayOfWeek).
-		Order("start_time asc"). // Order by start time for predictable processing
-		Find(&rules).Error
+	query := r.db.WithContext(ctx).Where("business_id = ?", businessID)
+
+	if dayOfWeek == "" {
+		// Fetch all rules for the business, order by day_of_week, then start_time
+		query = query.Order("day_of_week asc").Order("start_time asc")
+	} else {
+		// Fetch rules for a specific day_of_week, order by start_time
+		query = query.Where("day_of_week = ?", dayOfWeek).Order("start_time asc")
+	}
+
+	err := query.Find(&rules).Error
 	if err != nil {
+		if dayOfWeek == "" {
+			return nil, fmt.Errorf("error fetching all availability rules for business %s: %w", businessID, err)
+		}
 		return nil, fmt.Errorf("error fetching availability rules for business %s on %s: %w", businessID, dayOfWeek, err)
 	}
 	return rules, nil
+}
+
+// CreateAvailabilityRule persists a new AvailabilityRule to the database.
+func (r *AvailabilityRepository) CreateAvailabilityRule(ctx context.Context, rule *models.AvailabilityRule) error {
+	if err := r.db.WithContext(ctx).Create(rule).Error; err != nil {
+		// TODO: Consider checking for specific DB errors, like unique constraint violations if applicable
+		return fmt.Errorf("error creating availability rule for business %s on %s: %w", rule.BusinessID, rule.DayOfWeek, err)
+	}
+	return nil
 }
 
 

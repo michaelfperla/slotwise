@@ -290,14 +290,16 @@ func NewAvailabilityService(
 	}
 }
 
-// TimeSlot represents a single available time slot
-type TimeSlot struct {
-	StartTime time.Time `json:"startTime"`
-	EndTime   time.Time `json:"endTime"`
+// APISlot represents a single time slot for API responses
+type APISlot struct {
+	StartTime      time.Time `json:"startTime"`
+	EndTime        time.Time `json:"endTime"`
+	Available      bool      `json:"available"`
+	ConflictReason string    `json:"conflictReason,omitempty"`
 }
 
 // GetAvailableSlots gets available time slots
-func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID string, serviceID string, dateToSchedule time.Time) ([]TimeSlot, error) {
+func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID string, serviceID string, dateToSchedule time.Time) ([]APISlot, error) {
 	s.logger.Info("Getting available slots", "businessID", businessID, "serviceID", serviceID, "date", dateToSchedule.Format("2006-01-02"))
 
 	// 1. Get Service Definition to find duration
@@ -335,84 +337,78 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 
 	if len(rules) == 0 {
 		s.logger.Info("No availability rules found for business", "businessID", businessID, "dayOfWeek", dayOfWeekToSchedule)
-		return []TimeSlot{}, nil // No rules means no slots
+		return []APISlot{}, nil // No rules means no slots
 	}
 
-	var availableSlots []TimeSlot
+	// 4. Fetch existing bookings for the day for conflict checking
+	// Define the start and end of the day for fetching bookings
+	dayStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), 0, 0, 0, 0, dateToSchedule.Location())
+	dayEnd := dayStart.Add(24 * time.Hour)
 
-	// 4. Generate slots based on rules and service duration
+	// Fetch relevant bookings that are CONFIRMED or PENDING_PAYMENT
+	relevantBookingStatuses := []models.BookingStatus{models.BookingStatusConfirmed, models.BookingStatusPendingPayment}
+	existingBookings, err := s.bookingRepo.GetBookingsForBusinessByDateRangeAndStatuses(ctx, businessID, dayStart, dayEnd, relevantBookingStatuses)
+	if err != nil {
+		s.logger.Error("Failed to fetch existing bookings for conflict checking", "businessID", businessID, "date", dateToSchedule.Format("2006-01-02"), "error", err)
+		return nil, fmt.Errorf("could not fetch existing bookings: %w", err)
+	}
+
+	var generatedSlots []APISlot
 	serviceDuration := time.Duration(serviceDef.DurationMinutes) * time.Minute
 
 	for _, rule := range rules {
-		// Parse rule's StartTime and EndTime (HH:MM) for the specific dateToSchedule
-		ruleStartTimeStr := rule.StartTime // e.g., "09:00"
-		ruleEndTimeStr := rule.EndTime     // e.g., "17:00"
+		ruleStartTimeStr := rule.StartTime
+		ruleEndTimeStr := rule.EndTime
+		loc := dateToSchedule.Location()
 
-		loc := dateToSchedule.Location() // Use the location of the input date
-
-		// Parse HH:MM from rule.StartTime
 		stH, stM, errSt := parseHHMM(ruleStartTimeStr)
 		if errSt != nil {
 			s.logger.Error("Invalid rule start time format", "ruleId", rule.ID, "startTime", ruleStartTimeStr, "error", errSt)
-			continue // Skip this rule
+			continue
 		}
-		// Parse HH:MM from rule.EndTime
 		etH, etM, errEt := parseHHMM(ruleEndTimeStr)
 		if errEt != nil {
 			s.logger.Error("Invalid rule end time format", "ruleId", rule.ID, "endTime", ruleEndTimeStr, "error", errEt)
-			continue // Skip this rule
+			continue
 		}
 
 		periodStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), stH, stM, 0, 0, loc)
 		periodEnd := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), etH, etM, 0, 0, loc)
+		bufferDuration := time.Duration(rule.BufferMinutes) * time.Minute
 
-		currentSlotStart := periodStart
+		currentPotentialSlotStart := periodStart
 		for {
-			currentSlotEnd := currentSlotStart.Add(serviceDuration)
-			if currentSlotEnd.After(periodEnd) { // If currentSlotEnd exceeds periodEnd, break
+			slotActualEnd := currentPotentialSlotStart.Add(serviceDuration)
+			if slotActualEnd.After(periodEnd) {
 				break
 			}
 
-			availableSlots = append(availableSlots, TimeSlot{
-				StartTime: currentSlotStart,
-				EndTime:   currentSlotEnd,
-			})
-			currentSlotStart = currentSlotEnd // Next slot starts right after the current one ends
+			// Check for conflicts with existing bookings
+			isConflict := false
+			for _, booking := range existingBookings {
+				// Check if [currentPotentialSlotStart, slotActualEnd) overlaps with [booking.StartTime, booking.EndTime)
+				if currentPotentialSlotStart.Before(booking.EndTime) && slotActualEnd.After(booking.StartTime) {
+					isConflict = true
+					s.logger.Debug("Slot conflict detected", "slotStart", currentPotentialSlotStart, "slotEnd", slotActualEnd, "bookingID", booking.ID)
+					break
+				}
+			}
+
+			if !isConflict {
+				generatedSlots = append(generatedSlots, APISlot{
+					StartTime: currentPotentialSlotStart,
+					EndTime:   slotActualEnd,
+					Available: true, // By definition, if we're adding it, it's available
+				})
+			}
+
+			// Advance to the next potential slot start time, including buffer
+			currentPotentialSlotStart = slotActualEnd.Add(bufferDuration)
 		}
 	}
 
-	// 5. Conflict Detection with existing bookings
-	// Fetch relevant bookings for the entire day to minimize DB calls.
-	// Bookings could potentially span across the start/end of the day if they are long.
-	// For simplicity, fetching bookings that overlap with the dateToSchedule's full day range.
-	// dayStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), 0, 0, 0, 0, dateToSchedule.Location()) // Unused
-	// dayEnd := dayStart.Add(24 * time.Hour) // Unused
-
-	// FindConflictingBookings needs to be adjusted or a new method in bookingRepo created
-	// to fetch bookings for a business in a given time range (e.g., dayStart to dayEnd)
-	// that are 'CONFIRMED' or 'PENDING_PAYMENT'.
-	// Let's assume bookingRepo.FindBookingsInTimeRangeForBusiness(ctx, businessID, dayStart, dayEnd)
-	// For now, I'll use the existing FindConflictingBookings and iterate, which is less efficient.
-	// A better approach would be to fetch all confirmed/pending bookings for the day once.
-
-	var finalSlots []TimeSlot
-	for _, slot := range availableSlots {
-		// Check conflict for this specific slot
-		// FindConflictingBookings checks for a specific proposedStartTime and proposedEndTime.
-		// This is okay if we check each generated slot individually.
-		conflicts, err := s.bookingRepo.FindConflictingBookings(ctx, businessID, serviceID, slot.StartTime, slot.EndTime)
-		if err != nil {
-			s.logger.Error("Error checking conflicts for a slot", "slotStartTime", slot.StartTime, "error", err)
-			// Decide: skip slot or return error? For now, skip slot.
-			continue
-		}
-		if len(conflicts) == 0 {
-			finalSlots = append(finalSlots, slot)
-		}
-	}
-
-	s.logger.Info("Generated and filtered available slots", "count", len(finalSlots), "businessID", businessID, "serviceID", serviceID, "date", dateToSchedule.Format("2006-01-02"))
-	return finalSlots, nil
+	s.logger.Info("Generated available slots", "count", len(generatedSlots), "businessID", businessID, "serviceID", serviceID, "date", dateToSchedule.Format("2006-01-02"))
+	return generatedSlots, nil
 }
 
 // parseHHMM is a helper to parse "HH:MM" string to hours and minutes
@@ -449,3 +445,289 @@ func (s *AvailabilityService) HandleServiceUpdated(data []byte) error {
 	// For now, this remains a stub for its original unspecified purpose.
 	return nil
 }
+
+// CreateAvailabilityRuleRequest defines the input for creating an availability rule.
+type CreateAvailabilityRuleRequest struct {
+	BusinessID    string                 `json:"businessId"`
+	DayOfWeek     models.DayOfWeekString `json:"dayOfWeek"`
+	StartTime     string                 `json:"startTime"` // "HH:MM"
+	EndTime       string                 `json:"endTime"`   // "HH:MM"
+	BufferMinutes int                    `json:"bufferMinutes"`
+}
+
+// CreateAvailabilityRule creates a new availability rule for a business.
+func (s *AvailabilityService) CreateAvailabilityRule(ctx context.Context, req CreateAvailabilityRuleRequest) (*models.AvailabilityRule, error) {
+	s.logger.Info("Creating availability rule", "businessID", req.BusinessID, "day", req.DayOfWeek)
+
+	// TODO: Add validation for StartTime < EndTime, valid HH:MM format, valid DayOfWeek enum, etc.
+	// For example, using parseHHMM to validate time formats.
+	_, _, errSt := parseHHMM(req.StartTime)
+	if errSt != nil {
+		s.logger.Error("Invalid StartTime format for new rule", "startTime", req.StartTime, "error", errSt)
+		return nil, fmt.Errorf("invalid startTime format: %w", errSt)
+	}
+	_, _, errEt := parseHHMM(req.EndTime)
+	if errEt != nil {
+		s.logger.Error("Invalid EndTime format for new rule", "endTime", req.EndTime, "error", errEt)
+		return nil, fmt.Errorf("invalid endTime format: %w", errEt)
+	}
+	// Basic validation: StartTime must be before EndTime
+	if req.StartTime >= req.EndTime {
+		s.logger.Warn("Rule creation failed: startTime must be before endTime", "startTime", req.StartTime, "endTime", req.EndTime)
+		return nil, fmt.Errorf("startTime (%s) must be before endTime (%s)", req.StartTime, req.EndTime)
+	}
+
+	rule := &models.AvailabilityRule{
+		BusinessID:    req.BusinessID,
+		DayOfWeek:     req.DayOfWeek,
+		StartTime:     req.StartTime,
+		EndTime:       req.EndTime,
+		BufferMinutes: req.BufferMinutes,
+	}
+
+	if err := s.availabilityRepo.CreateAvailabilityRule(ctx, rule); err != nil {
+		s.logger.Error("Failed to create availability rule in repository", "error", err)
+		return nil, fmt.Errorf("could not save availability rule: %w", err)
+	}
+
+	s.logger.Info("Availability rule created successfully", "ruleId", rule.ID)
+
+	// Publish NATS event for availability rule update
+	eventPayload := map[string]interface{}{
+		"businessId":    req.BusinessID,
+		"ruleId":        rule.ID, // Send the ID of the created rule
+		"dayOfWeek":     req.DayOfWeek,
+		"startTime":     req.StartTime,
+		"endTime":       req.EndTime,
+		"bufferMinutes": req.BufferMinutes,
+		// Add a generic message or let subscriber decide
+		"message": "Availability rule has been created/updated.",
+	}
+	if err := s.eventPublisher.Publish(events.AvailabilityRuleUpdatedEvent, eventPayload); err != nil {
+		s.logger.Error("Failed to publish AvailabilityRuleUpdatedEvent", "ruleId", rule.ID, "businessId", req.BusinessID, "error", err)
+		// Non-fatal error, rule is created, but real-time update might not happen.
+	} else {
+		s.logger.Info("Published AvailabilityRuleUpdatedEvent", "ruleId", rule.ID, "businessId", req.BusinessID)
+	}
+
+	return rule, nil
+}
+
+// GetBusinessCalendarRequest defines the input for fetching the business calendar.
+// (This is a placeholder, actual params might be businessID, startDate, endDate directly in method signature)
+type GetBusinessCalendarRequest struct {
+	BusinessID string    `json:"businessId"`
+	StartDate  time.Time `json:"startDate"`
+	EndDate    time.Time `json:"endDate"`
+}
+
+// DailyCalendarSlotSummary provides a summary of slots for a specific day.
+type DailyCalendarSlotSummary struct {
+	Date           string `json:"date"` // "YYYY-MM-DD"
+	TotalSlots     int    `json:"totalSlots"`
+	BookedSlots    int    `json:"bookedSlots"`
+	AvailableSlots int    `json:"availableSlots"` // TotalSlots - BookedSlots (considering only whole slot bookings)
+}
+
+// BusinessCalendarResponse is the structure for the business calendar API response.
+type BusinessCalendarResponse struct {
+	BusinessID string                     `json:"businessId"`
+	StartDate  string                     `json:"startDate"` // "YYYY-MM-DD"
+	EndDate    string                     `json:"endDate"`   // "YYYY-MM-DD"
+	Days       []DailyCalendarSlotSummary `json:"days"`
+	// TODO: Consider adding overall summary statistics if useful
+}
+
+// GetBusinessCalendar generates a daily summary of slot availability for a business.
+func (s *AvailabilityService) GetBusinessCalendar(ctx context.Context, businessID string, startDate time.Time, endDate time.Time) (*BusinessCalendarResponse, error) {
+	s.logger.Info("Getting business calendar", "businessID", businessID, "startDate", startDate.Format("2006-01-02"), "endDate", endDate.Format("2006-01-02"))
+
+	if businessID == "" {
+		return nil, fmt.Errorf("businessID cannot be empty")
+	}
+	if startDate.After(endDate) {
+		return nil, fmt.Errorf("startDate cannot be after endDate")
+	}
+
+	// 1. Fetch all availability rules for the business.
+	// No day filter here, as we need rules for all days to iterate through the date range.
+	allRules, err := s.availabilityRepo.GetAvailabilityRulesFiltered(ctx, businessID, "") // Empty dayOfWeek means get all for business
+	if err != nil {
+		s.logger.Error("Failed to get all availability rules for business", "businessID", businessID, "error", err)
+		return nil, fmt.Errorf("could not get availability rules for %s: %w", businessID, err)
+	}
+	if len(allRules) == 0 {
+		s.logger.Info("No availability rules found for business, calendar will be empty", "businessID", businessID)
+		// Return an empty calendar response for the date range
+		resp := &BusinessCalendarResponse{
+			BusinessID: businessID,
+			StartDate:  startDate.Format("2006-01-02"),
+			EndDate:    endDate.Format("2006-01-02"),
+			Days:       []DailyCalendarSlotSummary{},
+		}
+		// Populate 'Days' with entries for each day in the range, showing 0 slots
+		currentDate := startDate
+		for !currentDate.After(endDate) {
+			resp.Days = append(resp.Days, DailyCalendarSlotSummary{
+				Date:           currentDate.Format("2006-01-02"),
+				TotalSlots:     0,
+				BookedSlots:    0,
+				AvailableSlots: 0,
+			})
+			currentDate = currentDate.AddDate(0, 0, 1)
+		}
+		return resp, nil
+	}
+
+	// Group rules by DayOfWeek for easier lookup
+	rulesByDay := make(map[models.DayOfWeekString][]models.AvailabilityRule)
+	for _, rule := range allRules {
+		rulesByDay[rule.DayOfWeek] = append(rulesByDay[rule.DayOfWeek], rule)
+	}
+
+	// 2. Fetch all relevant bookings (CONFIRMED, PENDING_PAYMENT) for the business within the startDate and endDate.
+	bookingStatuses := []models.BookingStatus{models.BookingStatusConfirmed, models.BookingStatusPendingPayment}
+	// Ensure endDate for bookings covers the entire last day.
+	queryEndDate := endDate.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+	allBookings, err := s.bookingRepo.GetBookingsForBusinessByDateRangeAndStatuses(ctx, businessID, startDate, queryEndDate, bookingStatuses)
+	if err != nil {
+		s.logger.Error("Failed to fetch bookings for calendar", "businessID", businessID, "error", err)
+		return nil, fmt.Errorf("could not fetch bookings for calendar: %w", err)
+	}
+
+	// Group bookings by date for faster lookup
+	bookingsByDate := make(map[string][]models.Booking)
+	for _, booking := range allBookings {
+		dateStr := booking.StartTime.Format("2006-01-02")
+		bookingsByDate[dateStr] = append(bookingsByDate[dateStr], booking)
+	}
+
+	var dailySummaries []DailyCalendarSlotSummary
+	currentDate := startDate
+	loc := startDate.Location() // Assuming all dates/times should be in this location.
+
+	// This requires knowledge of all service definitions for the business to calculate slots accurately.
+	// This is a simplification: it assumes an average or a specific service's duration.
+	// For a truly accurate calendar, we'd need to know WHICH service's slots are being counted,
+	// or calculate based on a 'standard' service duration for the business.
+	// Let's assume, for now, we need a way to get service definitions.
+	// This is a complex part: GetAvailableSlots is for a *specific* service. The calendar is for the *business*.
+	// One approach: iterate through services, get slots, then aggregate. Complex.
+	// Simpler (but less accurate) approach: use a fixed or average duration to estimate "total slots".
+	// For now, this implementation will count slots based on a hardcoded/configurable "standard service duration"
+	// if a specific service context isn't provided. This is a known limitation.
+	// Let's assume a default/average service duration (e.g., 30 minutes) for generating potential total slots.
+	// A more robust solution would be to associate rules with specific services or use a default business service duration.
+	// For now, GetBusinessCalendar CANNOT accurately calculate total slots without a service definition.
+	// The GetAvailableSlots method is service-specific.
+	// This method needs rethink or simplification.
+	// OPTION: We can count "occupied time blocks" rather than "slots" if service duration is variable.
+	// Or, the request could be for a *specific service's* calendar view for the business.
+	// The current API GET /api/v1/businesses/{businessId}/calendar doesn't specify a service.
+	//
+	// Let's assume for now the task implies using the GetAvailableSlots logic repeatedly for each day,
+	// for a *default* or *most common* service of the business. This is a big assumption.
+	// The problem is that GetAvailableSlots requires a serviceID.
+	// If no serviceID is provided, we cannot calculate slots.
+	//
+	// Revised approach for GetBusinessCalendar:
+	// It will count "booked blocks" based on actual bookings.
+	// For "total slots" and "available slots", it's more complex without a reference service.
+	// Let's focus on reporting booked time and leave "total/available slots" as a conceptual challenge
+	// for this iteration or assume a "standard" service for slot calculation.
+	//
+	// For now, let's make a placeholder for "total slots" and "available slots" and focus on booked slots.
+	// To truly implement total/available, we need a reference service ID for the calendar.
+	// The API contract implies these numbers, so we must provide something.
+	//
+	// Let's assume we need to iterate through *all* services for the business, calculate their slots for each day,
+	// and then aggregate. This could be very computationally intensive.
+	//
+	// Alternative: The business might have a "standard slot duration" (e.g. 30 min).
+	// We can use this to calculate total theoretical slots based on availability rules.
+	// Then count how many of these standard slots are booked.
+	// This seems like a more plausible interpretation for a general business calendar.
+	// Let's assume a hypothetical "standard service duration" for the business, e.g., 30 minutes.
+	// This value should ideally come from business settings, not hardcoded.
+	// For now, I'll use a placeholder. This is a critical point for requirements clarification.
+	const standardServiceDurationMinutes = 30 // Placeholder!
+	standardServiceDuration := time.Duration(standardServiceDurationMinutes) * time.Minute
+
+	for !currentDate.After(endDate) {
+		dayOfWeek := models.DayOfWeekString(strings.ToUpper(currentDate.Weekday().String()))
+		dailyTotalSlots := 0
+		dailyBookedSlots := 0
+
+		daySpecificRules, hasRules := rulesByDay[dayOfWeek]
+		if hasRules {
+			for _, rule := range daySpecificRules {
+				stH, stM, _ := parseHHMM(rule.StartTime)
+				etH, etM, _ := parseHHMM(rule.EndTime)
+				periodStart := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), stH, stM, 0, 0, loc)
+				periodEnd := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), etH, etM, 0, 0, loc)
+				bufferDuration := time.Duration(rule.BufferMinutes) * time.Minute
+
+				slotStart := periodStart
+				for {
+					slotEnd := slotStart.Add(standardServiceDuration)
+					if slotEnd.After(periodEnd) {
+						break
+					}
+					dailyTotalSlots++
+
+					// Check if this "standard slot" is booked
+					// This is also a simplification. A booking might partially overlap or span multiple standard slots.
+					// A more accurate way is to check the time range of the slot against all bookings for the day.
+					isBooked := false
+					dateStr := currentDate.Format("2006-01-02")
+					if dayBookings, found := bookingsByDate[dateStr]; found {
+						for _, booking := range dayBookings {
+							// Check if [slotStart, slotEnd) overlaps with [booking.StartTime, booking.EndTime)
+							if slotStart.Before(booking.EndTime) && slotEnd.After(booking.StartTime) {
+								isBooked = true
+								break
+							}
+						}
+					}
+					if isBooked {
+						dailyBookedSlots++
+					}
+					slotStart = slotEnd.Add(bufferDuration)
+				}
+			}
+		}
+
+		dailySummaries = append(dailySummaries, DailyCalendarSlotSummary{
+			Date:           currentDate.Format("2006-01-02"),
+			TotalSlots:     dailyTotalSlots,
+			BookedSlots:    dailyBookedSlots,
+			AvailableSlots: dailyTotalSlots - dailyBookedSlots,
+		})
+		currentDate = currentDate.AddDate(0, 0, 1) // Move to next day
+	}
+
+	response := &BusinessCalendarResponse{
+		BusinessID: businessID,
+		StartDate:  startDate.Format("2006-01-02"),
+		EndDate:    endDate.Format("2006-01-02"),
+		Days:       dailySummaries,
+	}
+
+	s.logger.Info("Business calendar generated", "businessID", businessID, "daysCount", len(dailySummaries))
+	return response, nil
+}
+
+// HandleServiceUpdated handles service update events (stub)
+// func (s *AvailabilityService) HandleServiceUpdated(data []byte) error {
+// This handler is for the "service.updated" event.
+// The new "business.service.created" event is handled by NatsEventHandlers.HandleBusinessServiceCreated.
+// This might need to be updated or removed if its functionality is covered by HandleBusinessServiceCreated's upsert.
+// For now, keeping it as a distinct handler for a potentially different "service.updated" event.
+// s.logger.Info("Handling service.updated event (distinct from business.service.created)")
+// Example: payload might only contain changes, not full service definition
+// Or it might be an event internal to scheduling service.
+// If it's from Business Service and implies an update to ServiceDefinition, its logic would be similar
+// to HandleBusinessServiceCreated (i.e., unmarshal and upsert).
+// For now, this remains a stub for its original unspecified purpose.
+// return nil
+// }

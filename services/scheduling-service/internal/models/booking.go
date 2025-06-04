@@ -22,9 +22,9 @@ const (
 type Booking struct {
 	ID              string        `gorm:"type:uuid;primary_key;" json:"id"`
 	BusinessID      string        `gorm:"index;type:varchar(255);not null" json:"businessId"`
-	ServiceID       string        `gorm:"index;type:varchar(255);not null" json:"serviceId"` // Links to ServiceDefinition.ID
+	ServiceID       string        `gorm:"index:idx_bookings_service_time,priority:1;type:varchar(255);not null" json:"serviceId"` // Links to ServiceDefinition.ID
 	CustomerID      string        `gorm:"index;type:varchar(255);not null" json:"customerId"` // User ID of the customer
-	StartTime       time.Time     `gorm:"index;not null" json:"startTime"`
+	StartTime       time.Time     `gorm:"index:idx_bookings_service_time,priority:2;not null" json:"startTime"`
 	EndTime         time.Time     `gorm:"index;not null" json:"endTime"`
 	Status          BookingStatus `gorm:"type:varchar(50);not null" json:"status"`
 	PaymentIntentID *string       `gorm:"type:varchar(255);index" json:"paymentIntentId,omitempty"` // For Stripe or other payment integration

@@ -152,53 +152,154 @@ func (h *AvailabilityHandler) GetPublicSlotsForService(c *gin.Context) {
 	}
 	
 	// For public view, we might want to simplify the TimeSlot struct or ensure it's what frontend expects.
-	// Current TimeSlot: { StartTime time.Time, EndTime time.Time } - this is fine.
+	// Current service.APISlot: { StartTime time.Time, EndTime time.Time, Available bool, ConflictReason string }
+	// The API contract requires a "lastUpdated" field in the response.
+	response := gin.H{
+		"slots":       slots, // slots will be an array of APISlot
+		"lastUpdated": time.Now().UTC().Format(time.RFC3339),
+	}
+
 	if len(slots) == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "No slots available for the selected service and date.", "slots": []service.TimeSlot{}})
+		// To ensure "slots" is always an array in JSON, even if empty.
+		response["slots"] = []service.APISlot{}
+		// Optionally, include a message if desired, but the primary data is the empty slots array.
+		// response["message"] = "No slots available for the selected service and date."
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateAvailabilityRule handles POST /api/v1/availability/rules
+func (h *AvailabilityHandler) CreateAvailabilityRule(c *gin.Context) {
+	var req service.CreateAvailabilityRuleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error("Failed to bind JSON for CreateAvailabilityRule", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"slots": slots})
+
+	// Basic validation, more can be added in the service layer
+	if req.BusinessID == "" || req.DayOfWeek == "" || req.StartTime == "" || req.EndTime == "" {
+		h.logger.Warn("Missing required fields for CreateAvailabilityRule", "request", req)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields: businessId, dayOfWeek, startTime, endTime"})
+		return
+	}
+
+	h.logger.Info("Attempting to create availability rule", "businessId", req.BusinessID, "day", req.DayOfWeek)
+
+	rule, err := h.service.CreateAvailabilityRule(c.Request.Context(), req)
+	if err != nil {
+		h.logger.Error("Failed to create availability rule via service", "error", err)
+		if strings.Contains(err.Error(), "invalid") || strings.Contains(err.Error(), "must be before") { // crude way to check for validation errors
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create availability rule: " + err.Error()})
+		}
+		return
+	}
+
+	h.logger.Info("Availability rule created successfully", "ruleId", rule.ID)
+	c.JSON(http.StatusCreated, rule)
 }
 
+// GetBusinessCalendarHandler handles GET /api/v1/businesses/{businessId}/calendar
+// Query params: start, end (YYYY-MM-DD)
+func (h *AvailabilityHandler) GetBusinessCalendarHandler(c *gin.Context) {
+	businessID := c.Param("businessId")
+	startDateStr := c.Query("start")
+	endDateStr := c.Query("end")
 
-// CreateAvailabilityRule handles POST /availability/rules
-func (h *AvailabilityHandler) CreateAvailabilityRule(c *gin.Context) {
-	h.logger.Info("Creating availability rule")
-	c.JSON(http.StatusCreated, gin.H{"message": "Availability rule created (stub)"})
+	if businessID == "" {
+		h.logger.Warn("GetBusinessCalendarHandler called with no businessId")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Business ID is required"})
+		return
+	}
+	if startDateStr == "" || endDateStr == "" {
+		h.logger.Warn("GetBusinessCalendarHandler called without start or end date", "businessId", businessID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Start and end dates are required (YYYY-MM-DD)"})
+		return
+	}
+
+	startDate, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local) // Assuming server local time for date parsing
+	if err != nil {
+		h.logger.Error("Invalid start date format for GetBusinessCalendarHandler", "startDate", startDateStr, "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start date format, please use YYYY-MM-DD"})
+		return
+	}
+	endDate, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local) // Assuming server local time
+	if err != nil {
+		h.logger.Error("Invalid end date format for GetBusinessCalendarHandler", "endDate", endDateStr, "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end date format, please use YYYY-MM-DD"})
+		return
+	}
+
+	// It's common to want the endDate to be inclusive for the whole day.
+	// The service layer currently handles this by adding 23h59m59s for booking queries.
+	// For the date range itself, startDate and endDate are sufficient.
+
+	h.logger.Info("Getting business calendar", "businessId", businessID, "start", startDateStr, "end", endDateStr)
+
+	calendarResponse, err := h.service.GetBusinessCalendar(c.Request.Context(), businessID, startDate, endDate)
+	if err != nil {
+		h.logger.Error("Failed to get business calendar from service", "businessId", businessID, "error", err)
+		// Distinguish between not found / bad input vs internal errors
+		if strings.Contains(err.Error(), "cannot be after") || strings.Contains(err.Error(), "cannot be empty") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve business calendar: " + err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, calendarResponse)
 }
+
 
 // UpdateAvailabilityRule handles PUT /availability/rules/:id
 func (h *AvailabilityHandler) UpdateAvailabilityRule(c *gin.Context) {
 	id := c.Param("id")
-	h.logger.Info("Updating availability rule", "id", id)
-	c.JSON(http.StatusOK, gin.H{"message": "Availability rule updated (stub)"})
+	// TODO: Implement actual update logic
+	// 1. Bind JSON to an update request struct
+	// 2. Call a service method e.g., h.service.UpdateAvailabilityRule(ctx, id, updateReq)
+	// 3. Return updated rule or error
+	h.logger.Info("Updating availability rule (stub)", "id", id)
+	c.JSON(http.StatusOK, gin.H{"message": "Availability rule updated (stub) - NOT IMPLEMENTED", "id": id})
 }
 
 // DeleteAvailabilityRule handles DELETE /availability/rules/:id
 func (h *AvailabilityHandler) DeleteAvailabilityRule(c *gin.Context) {
 	id := c.Param("id")
-	h.logger.Info("Deleting availability rule", "id", id)
-	c.JSON(http.StatusOK, gin.H{"message": "Availability rule deleted (stub)"})
+	// TODO: Implement actual delete logic
+	// 1. Call a service method e.g., h.service.DeleteAvailabilityRule(ctx, id)
+	// 2. Return success (e.g., 204 No Content) or error
+	h.logger.Info("Deleting availability rule (stub)", "id", id)
+	c.JSON(http.StatusOK, gin.H{"message": "Availability rule deleted (stub) - NOT IMPLEMENTED", "id": id})
 }
 
 // CreateAvailabilityException handles POST /availability/exceptions
 func (h *AvailabilityHandler) CreateAvailabilityException(c *gin.Context) {
-	h.logger.Info("Creating availability exception")
-	c.JSON(http.StatusCreated, gin.H{"message": "Availability exception created (stub)"})
+	// TODO: Implement actual exception creation logic
+	// 1. Bind JSON to a create exception request struct
+	// 2. Call a service method e.g., h.service.CreateAvailabilityException(ctx, createReq)
+	// 3. Return created exception or error
+	h.logger.Info("Creating availability exception (stub)")
+	c.JSON(http.StatusCreated, gin.H{"message": "Availability exception created (stub) - NOT IMPLEMENTED"})
 }
 
 // UpdateAvailabilityException handles PUT /availability/exceptions/:id
 func (h *AvailabilityHandler) UpdateAvailabilityException(c *gin.Context) {
 	id := c.Param("id")
-	h.logger.Info("Updating availability exception", "id", id)
-	c.JSON(http.StatusOK, gin.H{"message": "Availability exception updated (stub)"})
+	// TODO: Implement actual exception update logic
+	h.logger.Info("Updating availability exception (stub)", "id", id)
+	c.JSON(http.StatusOK, gin.H{"message": "Availability exception updated (stub) - NOT IMPLEMENTED", "id": id})
 }
 
 // DeleteAvailabilityException handles DELETE /availability/exceptions/:id
 func (h *AvailabilityHandler) DeleteAvailabilityException(c *gin.Context) {
 	id := c.Param("id")
-	h.logger.Info("Deleting availability exception", "id", id)
-	c.JSON(http.StatusOK, gin.H{"message": "Availability exception deleted (stub)"})
+	// TODO: Implement actual exception delete logic
+	h.logger.Info("Deleting availability exception (stub)", "id", id)
+	c.JSON(http.StatusOK, gin.H{"message": "Availability exception deleted (stub) - NOT IMPLEMENTED", "id": id})
 }
 
 // NewHealthHandler creates a new health handler
