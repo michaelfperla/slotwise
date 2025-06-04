@@ -345,12 +345,9 @@ func (s *AvailabilityService) GetAvailableSlots(ctx context.Context, businessID 
 	dayStart := time.Date(dateToSchedule.Year(), dateToSchedule.Month(), dateToSchedule.Day(), 0, 0, 0, 0, dateToSchedule.Location())
 	dayEnd := dayStart.Add(24 * time.Hour)
 
-	// Assuming a method in bookingRepo to fetch relevant bookings.
-	// GetBookingsInTimeRangeForBusinessAndStatuses fetches bookings that are CONFIRMED or PENDING_PAYMENT
-	// This method needs to be implemented in the repository layer. For now, we define its expected signature.
-	// If this method doesn't exist, this part would need adjustment or use a less optimal approach.
+	// Fetch relevant bookings that are CONFIRMED or PENDING_PAYMENT
 	relevantBookingStatuses := []models.BookingStatus{models.BookingStatusConfirmed, models.BookingStatusPendingPayment}
-	existingBookings, err := s.bookingRepo.GetBookingsInTimeRangeForBusinessAndStatuses(ctx, businessID, dayStart, dayEnd, relevantBookingStatuses)
+	existingBookings, err := s.bookingRepo.GetBookingsForBusinessByDateRangeAndStatuses(ctx, businessID, dayStart, dayEnd, relevantBookingStatuses)
 	if err != nil {
 		s.logger.Error("Failed to fetch existing bookings for conflict checking", "businessID", businessID, "date", dateToSchedule.Format("2006-01-02"), "error", err)
 		return nil, fmt.Errorf("could not fetch existing bookings: %w", err)
@@ -451,11 +448,11 @@ func (s *AvailabilityService) HandleServiceUpdated(data []byte) error {
 
 // CreateAvailabilityRuleRequest defines the input for creating an availability rule.
 type CreateAvailabilityRuleRequest struct {
-	BusinessID    string                `json:"businessId"`
+	BusinessID    string                 `json:"businessId"`
 	DayOfWeek     models.DayOfWeekString `json:"dayOfWeek"`
-	StartTime     string                `json:"startTime"` // "HH:MM"
-	EndTime       string                `json:"endTime"`   // "HH:MM"
-	BufferMinutes int                   `json:"bufferMinutes"`
+	StartTime     string                 `json:"startTime"` // "HH:MM"
+	EndTime       string                 `json:"endTime"`   // "HH:MM"
+	BufferMinutes int                    `json:"bufferMinutes"`
 }
 
 // CreateAvailabilityRule creates a new availability rule for a business.
@@ -479,7 +476,6 @@ func (s *AvailabilityService) CreateAvailabilityRule(ctx context.Context, req Cr
 		s.logger.Warn("Rule creation failed: startTime must be before endTime", "startTime", req.StartTime, "endTime", req.EndTime)
 		return nil, fmt.Errorf("startTime (%s) must be before endTime (%s)", req.StartTime, req.EndTime)
 	}
-
 
 	rule := &models.AvailabilityRule{
 		BusinessID:    req.BusinessID,
@@ -536,8 +532,8 @@ type DailyCalendarSlotSummary struct {
 // BusinessCalendarResponse is the structure for the business calendar API response.
 type BusinessCalendarResponse struct {
 	BusinessID string                     `json:"businessId"`
-	StartDate  string                     `json:"startDate"`  // "YYYY-MM-DD"
-	EndDate    string                     `json:"endDate"`    // "YYYY-MM-DD"
+	StartDate  string                     `json:"startDate"` // "YYYY-MM-DD"
+	EndDate    string                     `json:"endDate"`   // "YYYY-MM-DD"
 	Days       []DailyCalendarSlotSummary `json:"days"`
 	// TODO: Consider adding overall summary statistics if useful
 }
@@ -593,7 +589,7 @@ func (s *AvailabilityService) GetBusinessCalendar(ctx context.Context, businessI
 	bookingStatuses := []models.BookingStatus{models.BookingStatusConfirmed, models.BookingStatusPendingPayment}
 	// Ensure endDate for bookings covers the entire last day.
 	queryEndDate := endDate.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
-	allBookings, err := s.bookingRepo.GetBookingsInTimeRangeForBusinessAndStatuses(ctx, businessID, startDate, queryEndDate, bookingStatuses)
+	allBookings, err := s.bookingRepo.GetBookingsForBusinessByDateRangeAndStatuses(ctx, businessID, startDate, queryEndDate, bookingStatuses)
 	if err != nil {
 		s.logger.Error("Failed to fetch bookings for calendar", "businessID", businessID, "error", err)
 		return nil, fmt.Errorf("could not fetch bookings for calendar: %w", err)
@@ -605,7 +601,6 @@ func (s *AvailabilityService) GetBusinessCalendar(ctx context.Context, businessI
 		dateStr := booking.StartTime.Format("2006-01-02")
 		bookingsByDate[dateStr] = append(bookingsByDate[dateStr], booking)
 	}
-
 
 	var dailySummaries []DailyCalendarSlotSummary
 	currentDate := startDate

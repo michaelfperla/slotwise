@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"encoding/json"
-	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/slotwise/scheduling-service/pkg/events" // Added for NATS subscriber
@@ -105,19 +105,19 @@ func (m *SubscriptionManager) Run() {
 				m.Logger.Info("Client unregistered", "clientId", client.ID)
 			}
 			m.mu.Unlock()
-		// Example of broadcasting to all clients (not used for targeted business messages)
-		// case message := <-m.broadcast:
-		// 	m.mu.RLock()
-		// 	for client := range m.clients {
-		// 		select {
-		// 		case client.Send <- message:
-		// 		default:
-		// 			close(client.Send)
-		// 			delete(m.clients, client) // Consider moving to unregister logic
-		// 			m.Logger.Warn("Client send channel full or closed, removing client", "clientId", client.ID)
-		// 		}
-		// 	}
-		// 	m.mu.RUnlock()
+			// Example of broadcasting to all clients (not used for targeted business messages)
+			// case message := <-m.broadcast:
+			// 	m.mu.RLock()
+			// 	for client := range m.clients {
+			// 		select {
+			// 		case client.Send <- message:
+			// 		default:
+			// 			close(client.Send)
+			// 			delete(m.clients, client) // Consider moving to unregister logic
+			// 			m.Logger.Warn("Client send channel full or closed, removing client", "clientId", client.ID)
+			// 		}
+			// 	}
+			// 	m.mu.RUnlock()
 		}
 	}
 }
@@ -240,7 +240,6 @@ func (m *SubscriptionManager) handleAvailabilityRuleEvent(data []byte) {
 	if msg, found := eventData["message"].(string); found && msg != "" {
 		messageText = msg
 	}
-
 
 	wsPayload := map[string]interface{}{
 		"businessId": businessID,

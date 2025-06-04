@@ -309,11 +309,4 @@ func (h *WebSocketHandler) writePump(client *realtime.Client) {
 // In websocket.go's HandleConnections:
 // h.Manager.EnqueueClientRegistration(client)
 // This is cleaner.
-// The rest of the logic seems sound.The `websocket.go` handler file has been created.
-During generation, I noted a small refinement for how the client is passed to the manager's registration channel.
-In `HandleConnections`, instead of `client.Manager.Register(client)` (which was a placeholder comment and not an actual method for sending to the channel), it should ideally be a method on the manager that sends to its internal `register` channel.
-
-I will first add this helper method `EnqueueClientRegistration` to `services/scheduling-service/internal/realtime/manager.go`.
-Then, I will ensure `services/scheduling-service/internal/handlers/websocket.go` uses this method in `HandleConnections`.
-
-Let's modify `manager.go`.
+// The rest of the logic seems sound.
