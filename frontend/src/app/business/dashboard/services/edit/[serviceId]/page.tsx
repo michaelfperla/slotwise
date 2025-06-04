@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
 
 interface ServiceData {
   id: string;
@@ -17,7 +17,7 @@ interface ServiceData {
 export default function EditServicePage() {
   const router = useRouter();
   const params = useParams();
-  const serviceId = params.serviceId as string;
+  const serviceId = params?.serviceId as string;
 
   const [formData, setFormData] = useState<Partial<ServiceData>>({}); // Partial as it's loaded
   const [isLoading, setIsLoading] = useState(true);

@@ -1,7 +1,7 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 interface BookingDetails {
   serviceId: string;
@@ -28,12 +28,12 @@ function ConfirmBookingPageContent() {
   } | null>(null);
 
   useEffect(() => {
-    const serviceId = searchParams.get('serviceId');
-    const serviceName = searchParams.get('serviceName');
-    const businessId = searchParams.get('businessId');
-    const startTime = searchParams.get('startTime');
-    const endTime = searchParams.get('endTime');
-    const price = searchParams.get('price');
+    const serviceId = searchParams?.get('serviceId');
+    const serviceName = searchParams?.get('serviceName');
+    const businessId = searchParams?.get('businessId');
+    const startTime = searchParams?.get('startTime');
+    const endTime = searchParams?.get('endTime');
+    const price = searchParams?.get('price');
 
     if (serviceId && serviceName && businessId && startTime && endTime && price) {
       setBookingDetails({ serviceId, serviceName, businessId, startTime, endTime, price });

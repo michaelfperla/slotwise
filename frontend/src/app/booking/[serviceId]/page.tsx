@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface ServiceDetails {
   // Simplified, fetch actual details if needed
@@ -23,8 +23,8 @@ export default function BookServicePage() {
   const params = useParams();
   const searchParams = useSearchParams(); // To get businessId from query
 
-  const serviceId = params.serviceId as string;
-  const businessId = searchParams.get('businessId'); // Crucial query param
+  const serviceId = params?.serviceId as string;
+  const businessId = searchParams?.get('businessId'); // Crucial query param
 
   const [serviceDetails, setServiceDetails] = useState<ServiceDetails | null>(null); // For displaying service info
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
