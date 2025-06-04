@@ -74,11 +74,11 @@ components:
       required:
         - type
         - recipient
-        # content or templateId must be present
+        - content # Added content to required
       properties:
         type:
           type: string
-          enum: [email, sms, in_app, push] # from sendNotificationSchema
+          enum: [email, sms, push] # Removed in_app
           description: Type of notification.
         recipient:
           type: string # In schema, it's recipientId, but handler uses recipient
@@ -90,12 +90,12 @@ components:
           description: Subject line for the notification (primarily for email).
         content:
           type: string
-          nullable: true # Content or templateId should be required, handled by oneOf/anyOf if strictly enforced
-          description: Plain text content for the notification. Required if templateId is not provided.
+          # removed nullable: true
+          description: Plain text content for the notification.
         templateId:
           type: string
           nullable: true
-          description: ID of the pre-defined template to use. Required if content is not provided.
+          description: ID of the pre-defined template to use.
         templateData:
           type: object
           additionalProperties: true
@@ -104,9 +104,9 @@ components:
           example: {"name": "John Doe", "booking_time": "10:00 AM"}
         priority:
           type: string
-          enum: [low, medium, high]
-          default: "medium"
-          nullable: true
+          enum: [low, normal, high] # Changed medium to normal
+          default: "normal" # Changed medium to normal
+          nullable: true # Retaining nullable as Zod schema has .optional() which implies nullability if not default
         scheduledAt:
           type: string
           format: date-time # z.string().datetime()
@@ -131,12 +131,12 @@ components:
           nullable: true
         type:
           type: string
-          enum: [email, sms, in_app, push]
+          enum: [email, sms, push] # Removed in_app
           nullable: true
           description: Filter by notification type.
         status:
           type: string
-          enum: [pending, sent, failed, delivered, read] # Example statuses
+          enum: [pending, sent, failed, delivered] # Removed read
           nullable: true
           description: Filter by notification status.
         recipient: # Changed from recipientId in schema to recipient for consistency with SendNotificationRequest
@@ -199,9 +199,9 @@ components:
           example: true
         data:
           type: object # Actual data varies
-        timestamp:
+        message:
           type: string
-          format: date-time
+          description: "Descriptive message about the outcome."
 
     StandardErrorResponse:
       type: object
@@ -401,8 +401,7 @@ paths:
           required: true
           description: Unique identifier of the notification.
           schema:
-            type: string
-            format: uuid
+            type: string # format: uuid removed
       responses:
         '200':
           description: Successfully retrieved the notification.
