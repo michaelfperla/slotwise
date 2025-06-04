@@ -1,61 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import useAuth from '@/hooks/useAuth'; // Assuming @ path alias
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string | null>(null); // Assuming token might contain email or user info
-
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      router.push('/login');
-    } else {
-      // Optional: Decode token to get user info (client-side decoding is not secure for verification)
-      // For MVP, we can just assume if token exists, user is "logged in"
-      // In a real app, you'd verify the token with the backend or use a client-side library to decode it for display purposes
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
-        setUserEmail(payload.email || 'User'); // Adjust 'email' if your JWT payload uses a different key
-      } catch (e) {
-        console.error('Failed to parse token:', e);
-        // If token is malformed, treat as unauthenticated
-        localStorage.removeItem('authToken');
-        router.push('/login');
-      }
-    }
-  }, [router]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    router.push('/login');
-  };
-
-  if (!userEmail) {
-    // This state will be brief as useEffect redirects, or could show a loader
-    return <p>Loading...</p>;
-  }
+const DashboardPage: React.FC = () => {
+  const { user } = useAuth(); // Optionally use user data
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>User Dashboard</h1>
-      <p>Welcome, {userEmail}!</p>
-      <p>This is your personal dashboard. More features coming soon.</p>
-      <button
-        onClick={handleLogout}
-        style={{
-          marginTop: '20px',
-          padding: '10px',
-          backgroundColor: 'red',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        }}
-      >
-        Logout
-      </button>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Welcome to your Dashboard</h1>
+      {user && (
+        <div>
+          <p>Hello, {user.email}!</p>
+          {/* Display other user information if available in the token */}
+        </div>
+      )}
+      <p>This is your protected dashboard area.</p>
+      {/* Add more dashboard content here */}
     </div>
   );
-}
+};
+
+export default DashboardPage;
