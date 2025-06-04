@@ -1,6 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
-import { businessNotificationSettingsRoutes } from '../businessNotificationSettingsRoutes.js'; // Assuming .js
-import { logger } from '../../utils/logger.js';
+import { businessNotificationSettingsRoutes } from '../businessNotificationSettingsRoutes';
+// import { logger } from '../../utils/logger.js'; // Commented out as it's not used in tests
 
 // Suppress logger output during tests if desired
 // jest.spyOn(logger, 'info').mockImplementation(() => {});

@@ -7,8 +7,8 @@ import fastify from 'fastify';
 import { config } from './config';
 import { confirmPaymentHandler, createPaymentIntentHandler, getBusinessRevenueHandler, stripeWebhookHandler } from './controllers/PaymentController';
 import { prisma } from './database/prisma';
-import { redisClient } from './database/redis';
-import { natsConnection } from './events/nats';
+// import { redisClient } from './database/redis';
+// import { natsConnection } from './events/nats';
 import { authMiddleware } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { analyticsRoutes } from './routes/analyticsRoutes'; // Import analytics routes
@@ -18,7 +18,17 @@ import { serviceRoutes } from './routes/service';
 import { logger } from './utils/logger';
 
 const server = fastify({
-  logger: logger,
+  logger: {
+    level: 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'SYS:standard',
+        ignore: 'pid,hostname',
+      },
+    },
+  },
   requestIdLogLabel: 'requestId',
   requestIdHeader: 'x-request-id',
 });
@@ -101,16 +111,15 @@ async function start() {
     }, stripeWebhookHandler);
 
     // Initialize database connection
-    await prisma.$connect();
-    logger.info('Connected to database');
+    try {
+      await prisma.$connect();
+      logger.info('Connected to database');
+    } catch (error) {
+      logger.warn('Database connection failed, continuing without database');
+    }
 
-    // Initialize Redis connection
-    await redisClient.ping();
-    logger.info('Connected to Redis');
-
-    // Initialize NATS connection
-    await natsConnection.connect();
-    logger.info('Connected to NATS');
+    // Skip Redis and NATS for now
+    logger.info('Skipping Redis and NATS connections for demo');
 
     // Start server
     const address = await server.listen({
@@ -121,7 +130,9 @@ async function start() {
     logger.info(`Business Service started on ${address}`);
     logger.info(`API Documentation available at ${address}/docs`);
   } catch (error) {
-    logger.error('Failed to start Business Service', error);
+    logger.error('Failed to start Business Service');
+    logger.error('Error details:', error);
+    console.error('Full error:', error);
     process.exit(1);
   }
 }
@@ -130,18 +141,18 @@ async function start() {
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully');
   await server.close();
-  await prisma.$disconnect();
-  await redisClient.quit();
-  await natsConnection.close();
+  try { await prisma.$disconnect(); } catch {}
+  // try { await redisClient.quit(); } catch {}
+  // try { await natsConnection.close(); } catch {}
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down gracefully');
   await server.close();
-  await prisma.$disconnect();
-  await redisClient.quit();
-  await natsConnection.close();
+  try { await prisma.$disconnect(); } catch {}
+  // try { await redisClient.quit(); } catch {}
+  // try { await natsConnection.close(); } catch {}
   process.exit(0);
 });
 

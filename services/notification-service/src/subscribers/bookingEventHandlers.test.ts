@@ -1,10 +1,10 @@
-import { emailService } from '../services/emailService';
+import * as emailService from '../services/emailService';
 import { templateService } from '../services/templateService';
 import { logger } from '../utils/logger';
 import {
-  handleBookingCancelled,
-  handleBookingConfirmed,
-  initializeBookingEventSubscribers,
+    handleBookingCancelled,
+    handleBookingConfirmed,
+    initializeBookingEventSubscribers,
 } from './bookingEventHandlers'; // Assuming direct import for test
 
 // Mock services

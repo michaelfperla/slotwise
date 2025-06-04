@@ -1,9 +1,9 @@
-import nodemailer from 'nodemailer';
-import handlebars from 'handlebars';
+// import nodemailer from 'nodemailer'; // Commented out as it's not used in tests
 import fs from 'fs/promises';
-import { config } from '../config/config.js';
-import { logger } from '../utils/logger.js';
-import { sendEmail, emailNotificationLog, getEmailNotificationLog } from './emailService.js'; // Import specific functions
+import handlebars from 'handlebars';
+import { config } from '../config/config';
+import { logger } from '../utils/logger';
+import { emailNotificationLog, getEmailNotificationLog, sendEmail } from './emailService'; // Import specific functions
 
 // Mocking nodemailer
 let mockSendMail = jest.fn();

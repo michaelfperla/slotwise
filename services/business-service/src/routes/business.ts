@@ -1,13 +1,11 @@
 import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { prisma } from '../database/prisma';
-import { natsConnection } from '../events/nats';
 import { AvailabilityService } from '../services/AvailabilityService'; // Import AvailabilityService
 import { BusinessService } from '../services/BusinessService';
 import { zodToJsonSchema } from '../utils/schema';
 
-const businessService = new BusinessService(prisma, natsConnection);
+const businessService = new BusinessService();
 const availabilityService = new AvailabilityService(); // Instantiate AvailabilityService
 
 // Validation schemas

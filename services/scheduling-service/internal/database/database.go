@@ -21,19 +21,51 @@ func Connect(cfg config.DatabaseConfig) (*gorm.DB, error) {
 
 // Migrate runs database migrations
 func Migrate(db *gorm.DB) error {
-	// Auto-migrate models
-	// Import models package: _ "github.com/slotwise/scheduling-service/internal/models"
-	// or ensure models are accessible. Assuming they are in current scope as 'models.ServiceDefinition' etc.
-	// For this tool, explicit import in the file being modified is not needed, but it is for Go compiler.
-	// The tool operates on file content directly.
+	// Enable UUID extension (required for gen_random_uuid())
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
+		return fmt.Errorf("failed to create uuid extension: %w", err)
+	}
+
+	// Auto-migrate models in proper order
 	err := db.AutoMigrate(
 		&models.ServiceDefinition{},
 		&models.AvailabilityRule{},
-		&models.Booking{}, // Add Booking model to migrations
+		&models.Booking{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to run auto-migrations: %w", err)
 	}
+
+	// Create indexes for performance
+	if err := createIndexes(db); err != nil {
+		return fmt.Errorf("failed to create indexes: %w", err)
+	}
+
+	return nil
+}
+
+// createIndexes creates additional indexes for performance
+func createIndexes(db *gorm.DB) error {
+	// Booking indexes for common query patterns
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_bookings_business_status ON bookings(business_id, status)",
+		"CREATE INDEX IF NOT EXISTS idx_bookings_customer_status ON bookings(customer_id, status)",
+		"CREATE INDEX IF NOT EXISTS idx_bookings_start_time ON bookings(start_time)",
+		"CREATE INDEX IF NOT EXISTS idx_bookings_status_start_time ON bookings(status, start_time)",
+
+		// ServiceDefinition indexes
+		"CREATE INDEX IF NOT EXISTS idx_service_definitions_business_active ON service_definitions(business_id, is_active)",
+
+		// AvailabilityRule indexes
+		"CREATE INDEX IF NOT EXISTS idx_availability_rules_business_day ON availability_rules(business_id, day_of_week)",
+	}
+
+	for _, indexSQL := range indexes {
+		if err := db.Exec(indexSQL).Error; err != nil {
+			return fmt.Errorf("failed to create index: %w", err)
+		}
+	}
+
 	return nil
 }
 

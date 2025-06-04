@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js'; // Assuming logger might be used
 
@@ -55,15 +55,36 @@ export async function businessNotificationSettingsRoutes(fastify: FastifyInstanc
     '/businesses/:businessId/notifications/settings',
     {
       schema: {
-        params: paramsSchema,
-        response: {
-          200: businessNotificationSettingsSchema,
-          404: z.object({ success: z.boolean(), message: z.string() }),
-          // Consider adding 500 response schema for completeness
+        params: {
+          type: 'object',
+          properties: {
+            businessId: { type: 'string', minLength: 1 }
+          },
+          required: ['businessId']
         },
-        // Add tags and summary for Swagger documentation if used
-        // tags: ['Business Notifications'],
-        // summary: 'Get notification settings for a specific business',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              businessId: { type: 'string' },
+              receiveBookingConfirmations: { type: 'boolean' },
+              reminderLeadTimeHours: { type: 'number', minimum: 1 },
+              preferredChannels: {
+                type: 'array',
+                items: { type: 'string', enum: ['email', 'sms'] }
+              }
+            },
+            required: ['businessId', 'receiveBookingConfirmations', 'reminderLeadTimeHours', 'preferredChannels']
+          },
+          404: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' }
+            },
+            required: ['success', 'message']
+          }
+        }
       },
     },
     async (

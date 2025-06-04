@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { sendEmail } from '../services/emailService.js'; // Adjusted import
 import { logger } from '../utils/logger.js'; // Assuming logger is used or will be
@@ -81,15 +81,24 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     '/send',
     {
       schema: {
-        body: sendEmailNotificationSchema,
+        body: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['booking_confirmation', 'booking_reminder', 'booking_cancellation'] },
+            recipientEmail: { type: 'string', format: 'email' },
+            templateData: { type: 'object' },
+            subject: { type: 'string' }
+          },
+          required: ['type', 'recipientEmail', 'templateData']
+        },
         response: {
           200: {
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              messageId: { type: 'string', nullable: true }, // Match nullability with schema
+              messageId: { type: 'string' },
               message: { type: 'string' },
-              error: { type: 'string', nullable: true }, // Match nullability with schema
+              error: { type: 'string' },
             },
           },
         },
@@ -140,7 +149,18 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     '/schedule',
     {
       schema: {
-        body: scheduleEmailNotificationSchema,
+        body: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['booking_confirmation', 'booking_reminder', 'booking_cancellation'] },
+            recipientEmail: { type: 'string', format: 'email' },
+            templateData: { type: 'object' },
+            subject: { type: 'string' },
+            scheduledFor: { type: 'string', format: 'date-time' },
+            bookingId: { type: 'string', minLength: 1 }
+          },
+          required: ['type', 'recipientEmail', 'templateData', 'scheduledFor', 'bookingId']
+        },
         response: {
           201: {
             type: 'object',
@@ -208,14 +228,22 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/',
     {
-      schema: { // Assuming this is for general notification querying, might need its own schema
-        querystring: notificationQuerySchema, // This schema might need adjustment for scheduled items too
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'number', minimum: 1, default: 1 },
+            limit: { type: 'number', minimum: 1, maximum: 100, default: 20 },
+            status: { type: 'string', enum: ['pending', 'sent', 'failed', 'delivered'] },
+            recipient: { type: 'string' }
+          }
+        },
         response: {
           200: {
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              data: { type: 'array' }, // Consider what data to return (sent logs, scheduled items?)
+              data: { type: 'array' },
               pagination: { type: 'object' },
               message: { type: 'string' },
             },

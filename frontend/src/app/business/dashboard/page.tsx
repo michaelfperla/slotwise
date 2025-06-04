@@ -94,10 +94,12 @@ const BusinessDashboardPage = () => {
   }
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Business Dashboard</h1>
-      <p>Welcome, {businessName}!</p>
-      <hr />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Business Dashboard</h1>
+          <p className="text-xl text-gray-600">Welcome, {businessName}!</p>
+        </header>
 
       {/* Revenue Widget */}
       <div className="revenue-widget" style={{ marginTop: '20px', padding: '15px', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>

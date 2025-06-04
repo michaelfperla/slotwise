@@ -33,8 +33,8 @@ const LoginPage = () => {
         throw new Error(data.message || data.error || 'Login failed');
       }
 
-      if (data.accessToken && data.refreshToken) {
-        await authLogin(data.accessToken, data.refreshToken);
+      if (data.data?.accessToken && data.data?.refreshToken) {
+        await authLogin(data.data.accessToken, data.data.refreshToken);
         // Redirect is handled by useEffect below
       } else {
         throw new Error('Tokens not found in response');
@@ -115,6 +115,18 @@ const LoginPage = () => {
             </button>
           </div>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <button
+              onClick={() => router.push('/register')}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Sign up here
+            </button>
+          </p>
+        </div>
       </div>
       <footer className="mt-8 text-center text-sm text-gray-500">
         &copy; {new Date().getFullYear()} Your Company. All rights reserved.

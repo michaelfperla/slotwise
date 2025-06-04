@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/slotwise/scheduling-service/internal/client"
 	"github.com/slotwise/scheduling-service/internal/models"
 	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/internal/service"
@@ -37,6 +38,27 @@ func (m *MockEventPublisher) Publish(subject string, data interface{}) error {
 }
 func (m *MockEventPublisher) Reset() {
 	m.PublishedEvents = nil
+}
+
+// MockNotificationClient for BookingService tests
+type MockNotificationClient struct {
+	SentNotifications      []client.SendNotificationRequest
+	ScheduledNotifications []client.ScheduleNotificationRequest
+}
+
+func (m *MockNotificationClient) SendNotification(req client.SendNotificationRequest) (*client.NotificationResponse, error) {
+	m.SentNotifications = append(m.SentNotifications, req)
+	return &client.NotificationResponse{Success: true}, nil
+}
+
+func (m *MockNotificationClient) ScheduleNotification(req client.ScheduleNotificationRequest) (*client.NotificationResponse, error) {
+	m.ScheduledNotifications = append(m.ScheduledNotifications, req)
+	return &client.NotificationResponse{Success: true}, nil
+}
+
+func (m *MockNotificationClient) Reset() {
+	m.SentNotifications = nil
+	m.ScheduledNotifications = nil
 }
 
 type BookingServiceTestSuite struct {
@@ -75,11 +97,15 @@ func (suite *BookingServiceTestSuite) SetupSuite() {
 	// Initialize AvailabilityService (mocked or minimal if not directly used by BookingService's core logic being tested)
 	// For CreateBooking, BookingService needs to fetch ServiceDefinition, so AvailabilityRepo is used as serviceDefRepo.
 	// An actual AvailabilityService instance isn't strictly needed if we directly use AvailabilityRepo for setup.
+	// Create a mock notification client
+	mockNotificationClient := &MockNotificationClient{}
+
 	suite.BookingService = service.NewBookingService(
 		suite.BookingRepo,
 		nil,                    // No direct call to AvailabilityService methods in BookingService yet
 		suite.AvailabilityRepo, // Passed as the serviceDefRepo
 		suite.MockNatsPublisher,
+		mockNotificationClient, // Add the missing notification client parameter
 		suite.TestLogger,
 	)
 }

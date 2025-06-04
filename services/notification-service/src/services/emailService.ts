@@ -81,18 +81,37 @@ const getTransporter = () => {
 const transporter = getTransporter();
 
 const loadAndCompileTemplate = async (templateName: string, data: Record<string, unknown>): Promise<string> => {
-  // Determine path relative to the current file's directory (__dirname is not available in ES modules)
-  // Correctly construct path from 'services/notification-service/src/services/' to 'services/notification-service/src/templates/emails/'
-  const baseDir = path.resolve(new URL(import.meta.url).pathname, '..', '..', 'templates', 'emails');
-  const templatePath = path.join(baseDir, `${templateName}.hbs`);
-
   try {
-    const source = await fs.readFile(templatePath, 'utf-8');
-    const template = handlebars.compile(source);
-    // Add currentYear and potentially other global helpers/data
-    return template({ ...data, currentYear: new Date().getFullYear() });
+    // Load the base template
+    const baseTemplateDir = path.resolve(process.cwd(), 'src', 'templates');
+    const baseTemplatePath = path.join(baseTemplateDir, 'email-base.hbs');
+    const baseTemplateSource = await fs.readFile(baseTemplatePath, 'utf-8');
+
+    // Load the content template
+    const contentTemplateDir = path.resolve(process.cwd(), 'src', 'templates', 'emails');
+    const contentTemplatePath = path.join(contentTemplateDir, `${templateName}.hbs`);
+    const contentTemplateSource = await fs.readFile(contentTemplatePath, 'utf-8');
+
+    // Compile both templates
+    const baseTemplate = handlebars.compile(baseTemplateSource);
+    const contentTemplate = handlebars.compile(contentTemplateSource);
+
+    // Render the content template first
+    const contentHtml = contentTemplate({ ...data, currentYear: new Date().getFullYear() });
+
+    // Then render the base template with the content
+    const fullHtml = baseTemplate({
+      ...data,
+      content: contentHtml,
+      currentYear: new Date().getFullYear()
+    });
+
+    // Inline CSS for better email client compatibility
+    const inlinedHtml = juice(fullHtml);
+
+    return inlinedHtml;
   } catch (error) {
-    logger.error({ err: error, templatePath }, `Error loading or compiling email template ${templateName}`);
+    logger.error({ err: error, templateName }, `Error loading or compiling email template ${templateName}`);
     throw new Error(`Could not load or compile email template: ${templateName}`);
   }
 };

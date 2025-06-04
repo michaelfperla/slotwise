@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/slotwise/auth-service/internal/config"
 	"github.com/slotwise/auth-service/internal/database"
 	"github.com/slotwise/auth-service/internal/repository"
@@ -44,30 +45,39 @@ func main() {
 	}
 	appLogger.Info("Database migrations completed successfully")
 
-	// Connect to Redis
-	redis, err := database.ConnectRedis(cfg.Redis)
+	// Connect to Redis (optional for development)
+	var redis *redis.Client
+	redis, err = database.ConnectRedis(cfg.Redis)
 	if err != nil {
-		appLogger.Fatal("Failed to connect to Redis", "error", err)
+		if cfg.Environment == "development" {
+			appLogger.Warn("Failed to connect to Redis, continuing without Redis", "error", err)
+			redis = nil
+		} else {
+			appLogger.Fatal("Failed to connect to Redis", "error", err)
+		}
+	} else {
+		appLogger.Info("Connected to Redis successfully")
 	}
-	appLogger.Info("Connected to Redis successfully")
 
-	// Connect to NATS
+	// Connect to NATS (optional for MVP)
+	var eventPublisher events.Publisher
+
 	natsConn, err := events.Connect(cfg.NATS)
 	if err != nil {
-		appLogger.Fatal("Failed to connect to NATS", "error", err)
+		appLogger.Warn("Failed to connect to NATS, continuing without event publishing", "error", err)
+		eventPublisher = events.NewNullPublisher(appLogger) // Create a null publisher
+	} else {
+		defer natsConn.Close()
+		appLogger.Info("Connected to NATS successfully")
+		eventPublisher = events.NewPublisher(natsConn, appLogger)
+		appLogger.Info("Event publisher initialized")
 	}
-	defer natsConn.Close()
-	appLogger.Info("Connected to NATS successfully")
 
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	sessionRepo := repository.NewSessionRepository(redis)
 	businessRepo := repository.NewBusinessRepository(db, appLogger) // Initialize BusinessRepository
 	appLogger.Info("Repositories initialized")
-
-	// Initialize event publisher
-	eventPublisher := events.NewPublisher(natsConn, appLogger)
-	appLogger.Info("Event publisher initialized")
 
 	// Initialize JWT manager
 	jwtManager := jwt.NewManager(cfg.JWT)

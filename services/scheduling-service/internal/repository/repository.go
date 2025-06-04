@@ -6,9 +6,11 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+
 	// "time" // No longer needed here if Booking struct is removed
-	"github.com/slotwise/scheduling-service/internal/models" // For models.DayOfWeekString
 	"fmt" // For fmt.Errorf
+
+	"github.com/slotwise/scheduling-service/internal/models" // For models.DayOfWeekString
 )
 
 // AvailabilityRepository handles availability data operations
@@ -72,20 +74,27 @@ func (r *AvailabilityRepository) CreateAvailabilityRule(ctx context.Context, rul
 	return nil
 }
 
-
 // NewCacheRepository creates a new cache repository
 func NewCacheRepository(client *redis.Client) *CacheRepository {
 	return &CacheRepository{client: client}
 }
 
-// Set sets a value in cache (stub)
+// Set sets a value in cache
 func (r *CacheRepository) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	// TODO: Implement actual cache operations
+	// Handle nil Redis client (development mode)
+	if r.client == nil {
+		return nil // No-op for development
+	}
+	// TODO: Implement actual cache operations with Redis
 	return nil
 }
 
-// Get gets a value from cache (stub)
+// Get gets a value from cache
 func (r *CacheRepository) Get(ctx context.Context, key string) (string, error) {
-	// TODO: Implement actual cache operations
+	// Handle nil Redis client (development mode)
+	if r.client == nil {
+		return "", nil // Return empty for development
+	}
+	// TODO: Implement actual cache operations with Redis
 	return "", nil
 }

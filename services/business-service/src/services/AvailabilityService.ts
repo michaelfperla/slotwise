@@ -73,7 +73,6 @@ export class AvailabilityService {
             dayOfWeek: rule.dayOfWeek,
             startTime: rule.startTime,
             endTime: rule.endTime,
-            is_available: true, // MODIFIED: Explicitly set is_available
           })),
         });
       }

@@ -1,9 +1,9 @@
 "use client";
 
-import React from 'react';
+import useAuth from '@/hooks/useAuth'; // Assuming @ path alias for src
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import useAuth from '@/hooks/useAuth'; // Assuming @ path alias for src
+import React from 'react';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, logout: authLogout, isLoading } = useAuth();
@@ -34,7 +34,7 @@ const Navbar: React.FC = () => {
     <nav className="bg-indigo-600 text-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-xl font-bold hover:text-indigo-200">
-          MyApp
+          SlotWise
         </Link>
         <div className="flex items-center space-x-4">
           {isLoading ? (

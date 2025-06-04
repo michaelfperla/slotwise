@@ -1,11 +1,11 @@
 import Fastify, { FastifyInstance } from 'fastify';
-import { notificationRoutes } from '../notification.js'; // Assuming .js due to "type": "module"
-import * as emailService from '../../services/emailService.js'; // To mock sendEmail
-import { logger } from '../../utils/logger.js';
+import * as emailService from '../../services/emailService'; // To mock sendEmail
+import { notificationRoutes } from '../notification';
+// import { logger } from '../../utils/logger.js'; // Commented out as it's not used in tests
 
 // Mock the emailService.sendEmail function
-jest.mock('../../services/emailService.js', () => ({
-  ...jest.requireActual('../../services/emailService.js'), // Import and retain other exports
+jest.mock('../../services/emailService', () => ({
+  ...jest.requireActual('../../services/emailService'), // Import and retain other exports
   sendEmail: jest.fn(),
 }));
 

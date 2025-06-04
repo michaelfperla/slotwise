@@ -7,12 +7,12 @@ import (
 
 // Config holds all configuration for the scheduling service
 type Config struct {
-	Environment string
-	Port        int
-	LogLevel    string
-	Database    DatabaseConfig
-	Redis       RedisConfig
-	NATS        NATSConfig
+	Environment            string
+	Port                   int
+	LogLevel               string
+	Database               DatabaseConfig
+	Redis                  RedisConfig
+	NATS                   NATSConfig
 	NotificationServiceURL string
 }
 
@@ -43,7 +43,7 @@ func Load() (*Config, error) {
 		Port:        port,
 		LogLevel:    getEnv("LOG_LEVEL", "info"),
 		Database: DatabaseConfig{
-			URL: getEnv("DATABASE_URL", "postgres://localhost:5432/slotwise_scheduling?sslmode=disable"),
+			URL: getEnv("DATABASE_URL", "postgres://slotwise_scheduling_user:slotwise_scheduling_password@localhost:5432/slotwise_scheduling?sslmode=disable"),
 		},
 		Redis: RedisConfig{
 			URL: getEnv("REDIS_URL", "redis://localhost:6379"),

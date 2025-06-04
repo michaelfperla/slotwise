@@ -9,15 +9,15 @@ import (
 
 // Business represents a business entity in the system
 type Business struct {
-	ID        string    `gorm:"type:uuid;primary_key;" json:"id"`
-	OwnerID   string    `gorm:"type:uuid;not null;index" json:"ownerId"` // Foreign key to User
-	Name      string    `gorm:"type:varchar(255);not null" json:"name"`
-	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"createdAt"`
-	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updatedAt"`
+	ID        string         `gorm:"type:uuid;primary_key;" json:"id"`
+	OwnerID   string         `gorm:"type:uuid;not null;index" json:"ownerId"` // Foreign key to User
+	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
+	CreatedAt time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // Soft delete
 
-	// Relationships
-	Owner *User `gorm:"foreignKey:OwnerID" json:"owner,omitempty"` // Belongs to User
+	// Relationships - temporarily disabled for initial migration
+	// Owner *User `gorm:"foreignKey:OwnerID" json:"owner,omitempty"` // Belongs to User
 }
 
 // BeforeCreate will set a UUID rather than numeric ID.

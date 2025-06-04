@@ -15,6 +15,11 @@ type Publisher struct {
 	logger *logger.Logger
 }
 
+// NullPublisher is a no-op publisher for development when NATS is not available
+type NullPublisher struct {
+	logger *logger.Logger
+}
+
 // Subscriber handles event subscriptions
 type Subscriber struct {
 	conn   *nats.Conn
@@ -38,8 +43,22 @@ func NewPublisher(conn *nats.Conn, logger *logger.Logger) *Publisher {
 	}
 }
 
+// NewNullPublisher creates a new null publisher for development
+func NewNullPublisher(logger *logger.Logger) *Publisher {
+	return &Publisher{
+		conn:   nil,
+		logger: logger,
+	}
+}
+
 // Publish publishes an event
 func (p *Publisher) Publish(subject string, data interface{}) error {
+	// Handle null publisher (development mode without NATS)
+	if p.conn == nil {
+		p.logger.Debug("Event publishing skipped (no NATS connection)", "subject", subject)
+		return nil
+	}
+
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal event data: %w", err)
@@ -68,7 +87,7 @@ func (s *Subscriber) Subscribe(subject string, handler func([]byte) error) error
 			s.logger.Error("Failed to handle event", "subject", subject, "error", err)
 		}
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to subject %s: %w", subject, err)
 	}

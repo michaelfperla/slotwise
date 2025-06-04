@@ -32,12 +32,12 @@ type AuthService interface {
 
 // Request/Response types
 type RegisterRequest struct {
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=8"`
-	FirstName string `json:"firstName" validate:"required"`
-	LastName  string `json:"lastName" validate:"required"`
-	Timezone  string `json:"timezone" validate:"required"`
-	Role      string `json:"role,omitempty"`
+	Email        string  `json:"email" validate:"required,email"`
+	Password     string  `json:"password" validate:"required,min=8"`
+	FirstName    string  `json:"firstName" validate:"required"`
+	LastName     string  `json:"lastName" validate:"required"`
+	Timezone     string  `json:"timezone" validate:"required"`
+	Role         string  `json:"role,omitempty"`
 	BusinessName *string `json:"businessName,omitempty"` // Added for business registration
 }
 
@@ -190,7 +190,6 @@ func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		}
 	}
 
-
 	// Generate email verification token
 	verificationToken, err := s.generateToken()
 	if err != nil {
@@ -264,9 +263,10 @@ func (s *authService) Login(req *LoginRequest) (*AuthResponse, error) {
 
 	session.RefreshToken = tokenPair.RefreshToken
 
-	// Save session
+	// Save session (optional in development without Redis)
 	if err := s.sessionRepo.Create(session); err != nil {
-		return nil, fmt.Errorf("failed to create session: %w", err)
+		s.logger.Warn("Failed to create session (continuing without session storage)", "error", err, "user_id", user.ID)
+		// Don't fail the login if Redis is not available in development
 	}
 
 	// Update last login

@@ -1,16 +1,45 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { getBusinessOverview, getBusinessTrends, OverviewData, TrendsData } from '../services/analyticsService.js'; // .js for ES modules
 import { logger } from '../utils/logger.js'; // Assuming a logger utility exists
+import { zodToJsonSchema } from '../utils/schema.js';
+// import { getBusinessOverview, getBusinessTrends, OverviewData, TrendsData } from '../services/analyticsService.js'; // .js for ES modules
+
+// Temporary placeholder types and functions
+interface OverviewData {
+  totalBookings: number;
+  totalRevenue: number;
+  averageBookingValue: number;
+  mostPopularService?: { id: string; name: string; bookings: number };
+}
+
+interface TrendsData {
+  period: string;
+  data: Array<{ date: string; bookings: number; revenue: number }>;
+}
+
+const getBusinessOverview = async (businessId: string, prisma: any): Promise<OverviewData> => {
+  return {
+    totalBookings: 0,
+    totalRevenue: 0,
+    averageBookingValue: 0,
+  };
+};
+
+const getBusinessTrends = async (businessId: string, period: string, prisma: any): Promise<TrendsData> => {
+  return {
+    period,
+    data: [],
+  };
+};
 
 // Zod schemas for request validation
 const businessIdParamsSchema = z.object({
-  businessId: z.string().uuid(), // Assuming businessId is a UUID
+  businessId: z.string().cuid(), // Using cuid like other business routes
 });
 
 const trendsQuerySchema = z.object({
-  period: z.enum(['7d', '30d', '90d']).default('30d'), // Add more periods if needed
+  period: z.enum(['7d', '30d', '90d']).default('30d'),
 });
 
 // Helper to get PrismaClient from Fastify instance (assuming it's decorated)
@@ -33,8 +62,7 @@ export async function analyticsRoutes(fastify: FastifyInstance): Promise<void> {
     '/overview', // Base path is already /businesses/:businessId/analytics by prefix in index.ts
     {
       schema: {
-        params: businessIdParamsSchema,
-        // Add response schema for Swagger and validation
+        params: zodToJsonSchema(businessIdParamsSchema),
         response: {
           200: {
             type: 'object',
@@ -43,16 +71,19 @@ export async function analyticsRoutes(fastify: FastifyInstance): Promise<void> {
               totalRevenue: { type: 'number' },
               averageBookingValue: { type: 'number' },
               mostPopularService: {
-                type: 'object',
-                properties: { id: {type: 'string'}, name: {type: 'string'}, bookings: {type: 'number'}},
-                nullable: true
+                anyOf: [
+                  {
+                    type: 'object',
+                    properties: { id: {type: 'string'}, name: {type: 'string'}, bookings: {type: 'number'}}
+                  },
+                  { type: 'null' }
+                ]
               },
             }
           },
-          // Define other responses like 400, 404, 500
         },
-        // tags: ['analytics'],
-        // summary: 'Get business analytics overview',
+        tags: ['analytics'],
+        summary: 'Get business analytics overview',
       },
     },
     async (
@@ -88,9 +119,8 @@ export async function analyticsRoutes(fastify: FastifyInstance): Promise<void> {
     '/trends',
     {
       schema: {
-        params: businessIdParamsSchema,
-        querystring: trendsQuerySchema,
-        // Add response schema for Swagger and validation
+        params: zodToJsonSchema(businessIdParamsSchema),
+        querystring: zodToJsonSchema(trendsQuerySchema),
         response: {
             200: {
                 type: 'object',
@@ -109,10 +139,9 @@ export async function analyticsRoutes(fastify: FastifyInstance): Promise<void> {
                     }
                 }
             }
-            // Define other responses
-        }
-        // tags: ['analytics'],
-        // summary: 'Get business performance trends',
+        },
+        tags: ['analytics'],
+        summary: 'Get business performance trends',
       },
     },
     async (

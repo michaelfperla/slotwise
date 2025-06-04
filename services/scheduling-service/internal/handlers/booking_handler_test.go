@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/slotwise/scheduling-service/internal/client"
 	"github.com/slotwise/scheduling-service/internal/handlers"
 	"github.com/slotwise/scheduling-service/internal/models"
 	"github.com/slotwise/scheduling-service/internal/repository"
@@ -37,6 +38,27 @@ func (m *MockNatsPublisherForHandler) Publish(subject string, data interface{}) 
 	return nil
 }
 func (m *MockNatsPublisherForHandler) Reset() { m.PublishedEvents = nil }
+
+// MockNotificationClientForHandler implements NotificationSender interface
+type MockNotificationClientForHandler struct {
+	SentNotifications      []client.SendNotificationRequest
+	ScheduledNotifications []client.ScheduleNotificationRequest
+}
+
+func (m *MockNotificationClientForHandler) SendNotification(req client.SendNotificationRequest) (*client.NotificationResponse, error) {
+	m.SentNotifications = append(m.SentNotifications, req)
+	return &client.NotificationResponse{Success: true}, nil
+}
+
+func (m *MockNotificationClientForHandler) ScheduleNotification(req client.ScheduleNotificationRequest) (*client.NotificationResponse, error) {
+	m.ScheduledNotifications = append(m.ScheduledNotifications, req)
+	return &client.NotificationResponse{Success: true}, nil
+}
+
+func (m *MockNotificationClientForHandler) Reset() {
+	m.SentNotifications = nil
+	m.ScheduledNotifications = nil
+}
 
 type BookingHandlerTestSuite struct {
 	suite.Suite
@@ -69,7 +91,9 @@ func (suite *BookingHandlerTestSuite) SetupSuite() {
 	// AvailabilityService needs BookingRepo for conflict check in GetAvailableSlots
 	suite.AvailabilityService = service.NewAvailabilityService(suite.AvailabilityRepo, suite.BookingRepo, nil, suite.MockNatsPub, suite.TestLogger)
 	// BookingService needs AvailabilityRepo (as serviceDefRepo)
-	suite.BookingService = service.NewBookingService(suite.BookingRepo, suite.AvailabilityService, suite.AvailabilityRepo, suite.MockNatsPub, suite.TestLogger)
+	// Create a mock notification client
+	mockNotificationClient := &MockNotificationClientForHandler{}
+	suite.BookingService = service.NewBookingService(suite.BookingRepo, suite.AvailabilityService, suite.AvailabilityRepo, suite.MockNatsPub, mockNotificationClient, suite.TestLogger)
 
 	// Router and Handlers
 	gin.SetMode(gin.TestMode)

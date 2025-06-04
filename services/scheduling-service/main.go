@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nats-io/nats.go"
+	"github.com/redis/go-redis/v9"
 	"github.com/slotwise/scheduling-service/internal/client"
 	"github.com/slotwise/scheduling-service/internal/config"
 	"github.com/slotwise/scheduling-service/internal/database"
@@ -46,25 +48,41 @@ func main() {
 		logger.Fatal("Failed to run database migrations", "error", err)
 	}
 
-	// Initialize Redis
-	redisClient, err := database.ConnectRedis(cfg.Redis)
+	// Initialize Redis (optional for development)
+	var redisClient *redis.Client
+	redisClient, err = database.ConnectRedis(cfg.Redis)
 	if err != nil {
-		logger.Fatal("Failed to connect to Redis", "error", err)
+		if cfg.Environment == "development" {
+			logger.Warn("Failed to connect to Redis, continuing without Redis", "error", err)
+			redisClient = nil
+		} else {
+			logger.Fatal("Failed to connect to Redis", "error", err)
+		}
 	}
 
-	// Initialize NATS
-	natsConn, err := events.Connect(cfg.NATS)
-	if err != nil {
-		logger.Fatal("Failed to connect to NATS", "error", err)
-	}
-	defer natsConn.Close()
+	// Initialize NATS (optional for development)
+	var natsConn *nats.Conn
+	var eventPublisher *events.Publisher
 
-	// Initialize event publisher
-	eventPublisher := events.NewPublisher(natsConn, logger)
+	natsConn, err = events.Connect(cfg.NATS)
+	if err != nil {
+		if cfg.Environment == "development" {
+			logger.Warn("Failed to connect to NATS, continuing without NATS", "error", err)
+			natsConn = nil
+			eventPublisher = events.NewNullPublisher(logger) // Create a null publisher for development
+		} else {
+			logger.Fatal("Failed to connect to NATS", "error", err)
+		}
+	} else {
+		defer natsConn.Close()
+		eventPublisher = events.NewPublisher(natsConn, logger)
+	}
 
 	// Initialize repositories
 	bookingRepo := repository.NewBookingRepository(db)
 	availabilityRepo := repository.NewAvailabilityRepository(db)
+
+	// Initialize cache repository
 	cacheRepo := repository.NewCacheRepository(redisClient)
 
 	// Initialize services
@@ -88,12 +106,18 @@ func main() {
 	healthHandler := handlers.NewHealthHandler(db, redisClient, natsConn, logger)
 
 	// Setup event subscribers first, as SubscriptionManager needs it.
-	eventSubscriber := events.NewSubscriber(natsConn, logger)
+	var eventSubscriber *events.Subscriber
+	var subscriptionManager *realtime.SubscriptionManager
 
-	// Initialize WebSocket SubscriptionManager and run it
-	subscriptionManager := realtime.NewSubscriptionManager(logger, eventSubscriber) // Pass eventSubscriber
-	go subscriptionManager.Run()
-	subscriptionManager.StartEventSubscriptions() // Start NATS subscriptions for the manager
+	if natsConn != nil {
+		eventSubscriber = events.NewSubscriber(natsConn, logger)
+		// Initialize WebSocket SubscriptionManager and run it
+		subscriptionManager = realtime.NewSubscriptionManager(logger, eventSubscriber) // Pass eventSubscriber
+		go subscriptionManager.Run()
+		subscriptionManager.StartEventSubscriptions() // Start NATS subscriptions for the manager
+	} else {
+		logger.Warn("Skipping WebSocket SubscriptionManager setup (no NATS connection)")
+	}
 
 	// Initialize WebSocket handler
 	webSocketHandler := handlers.NewWebSocketHandler(subscriptionManager, logger)
@@ -102,8 +126,12 @@ func main() {
 	natsEventHandlers := subscribers.NewNatsEventHandlers(db, logger)
 
 	// Setup other event subscribers (those not handled by SubscriptionManager directly)
-	if err := setupEventSubscribers(eventSubscriber, bookingService, availabilityService, natsEventHandlers); err != nil { // Pass natsEventHandlers
-		logger.Fatal("Failed to setup event subscribers", "error", err)
+	if natsConn != nil {
+		if err := setupEventSubscribers(eventSubscriber, bookingService, availabilityService, natsEventHandlers); err != nil { // Pass natsEventHandlers
+			logger.Fatal("Failed to setup event subscribers", "error", err)
+		}
+	} else {
+		logger.Warn("Skipping NATS event subscribers setup (no NATS connection)")
 	}
 	// Note: `setupEventSubscribers` might need adjustment if some subscriptions
 	// are now handled by SubscriptionManager. For now, assuming it's for other event handlers.

@@ -132,6 +132,35 @@ func (p *publisher) Close() error {
 	return nil
 }
 
+// NullPublisher is a no-op publisher for when NATS is not available
+type nullPublisher struct {
+	logger logger.Logger
+}
+
+// NewNullPublisher creates a new null publisher
+func NewNullPublisher(logger logger.Logger) Publisher {
+	return &nullPublisher{
+		logger: logger,
+	}
+}
+
+// Publish does nothing (no-op)
+func (np *nullPublisher) Publish(eventType string, data map[string]interface{}) error {
+	np.logger.Debug("Event publishing disabled (NATS not available)", "event_type", eventType)
+	return nil
+}
+
+// PublishWithCorrelation does nothing (no-op)
+func (np *nullPublisher) PublishWithCorrelation(eventType string, data map[string]interface{}, correlationID, causationID string) error {
+	np.logger.Debug("Event publishing disabled (NATS not available)", "event_type", eventType)
+	return nil
+}
+
+// Close does nothing (no-op)
+func (np *nullPublisher) Close() error {
+	return nil
+}
+
 // Subscriber implementation
 type subscriber struct {
 	conn          *nats.Conn

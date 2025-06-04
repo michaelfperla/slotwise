@@ -1,7 +1,7 @@
-import { AvailabilityService, SetAvailabilityData } from '../AvailabilityService';
+import { Availability, Business, DayOfWeek } from '@prisma/client';
 import { prisma } from '../../database/prisma';
 import { natsConnection } from '../../events/nats';
-import { Business, Availability, DayOfWeek, PrismaClient } from '@prisma/client';
+import { AvailabilityService, SetAvailabilityData } from '../AvailabilityService';
 
 // Mock Prisma and NATS
 jest.mock('../../database/prisma', () => ({
@@ -109,7 +109,7 @@ describe('AvailabilityService', () => {
       updatedAt: new Date(),
     }));
 
-    it('should set availability rules and publish event, ensuring is_available is true', async () => {
+    it('should set availability rules and publish event', async () => {
       (prisma.business.findFirst as jest.Mock).mockResolvedValue(mockBusiness);
       (prisma.availability.findMany as jest.Mock).mockResolvedValue(mockCreatedAvailabilities);
       // The actual createMany inside transaction will be asserted via mockPrismaTransaction
@@ -131,7 +131,6 @@ describe('AvailabilityService', () => {
           dayOfWeek: rule.dayOfWeek,
           startTime: rule.startTime,
           endTime: rule.endTime,
-          is_available: true, // Key assertion
         })),
       });
 

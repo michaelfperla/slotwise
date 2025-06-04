@@ -55,12 +55,13 @@ func Migrate(db *gorm.DB) error {
 		return fmt.Errorf("failed to create uuid extension: %w", err)
 	}
 
-	// Auto-migrate models
-	if err := db.AutoMigrate(
-		&models.User{},
-		&models.Business{}, // Add Business model to migrations
-	); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
+	// Auto-migrate models in correct order (User first, then Business)
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		return fmt.Errorf("failed to migrate User model: %w", err)
+	}
+
+	if err := db.AutoMigrate(&models.Business{}); err != nil {
+		return fmt.Errorf("failed to migrate Business model: %w", err)
 	}
 
 	// Create indexes

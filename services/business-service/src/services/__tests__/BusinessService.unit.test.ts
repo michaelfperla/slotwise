@@ -1,7 +1,7 @@
-import { BusinessService } from '../BusinessService';
+import { Business } from '@prisma/client';
 import { prisma } from '../../database/prisma';
 import { natsConnection } from '../../events/nats';
-import { Business, PrismaClient } from '@prisma/client'; // Keep PrismaClient for type if needed by mocks
+import { BusinessService } from '../BusinessService';
 
 // Mock Prisma and NATS
 jest.mock('../../database/prisma', () => ({
