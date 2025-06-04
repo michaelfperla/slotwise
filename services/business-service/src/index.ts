@@ -12,6 +12,7 @@ import { redisClient } from './database/redis';
 import { businessRoutes } from './routes/business';
 import { serviceRoutes } from './routes/service';
 import { healthRoutes } from './routes/health';
+import { createPaymentIntentHandler, confirmPaymentHandler, getBusinessRevenueHandler, stripeWebhookHandler } from './controllers/PaymentController';
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
 
@@ -76,7 +77,22 @@ async function start() {
       await fastify.register(authMiddleware);
       await fastify.register(businessRoutes, { prefix: '/api/v1/businesses' });
       await fastify.register(serviceRoutes, { prefix: '/api/v1/services' });
+      // Payment routes
+      fastify.post('/api/v1/payments/create-intent', createPaymentIntentHandler);
+      fastify.post('/api/v1/payments/confirm', confirmPaymentHandler);
+      fastify.get('/api/v1/businesses/:businessId/revenue', getBusinessRevenueHandler);
+
+      // Stripe Webhook - Publicly accessible, no standard auth middleware from this app
+      // Stripe verifies via signature. Ensure rawBody is available.
     });
+    // Register webhook route separately if it needs different body parsing rules
+    // or should not be under the '/api/v1' prefix or auth.
+    // For now, adding it here for simplicity, assuming rawBody handling is addressed.
+    server.post('/api/v1/stripe-webhook', {
+      // config: { rawBody: true } // This is a conceptual representation of enabling rawBody.
+      // Actual Fastify setup for rawBody can vary, e.g. via addContentTypeParser
+      // or by ensuring no global parser consumes the body before this route.
+    }, stripeWebhookHandler);
 
     // Initialize database connection
     await prisma.$connect();
