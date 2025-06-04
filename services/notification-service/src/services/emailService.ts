@@ -1,16 +1,11 @@
-import nodemailer from 'nodemailer';
-import handlebars from 'handlebars';
 import fs from 'fs/promises';
+import handlebars from 'handlebars';
+import nodemailer from 'nodemailer';
 import path from 'path';
 import { config } from '../config/config.js';
 import { logger } from '../utils/logger.js';
 
-interface EmailOptions {
-  to: string;
-  subject: string;
-  templateName: string;
-  templateData: Record<string, unknown>;
-}
+
 
 // Basic in-memory notification log for email sending
 export const emailNotificationLog: Array<{ // Exported for potential external access/admin UI
