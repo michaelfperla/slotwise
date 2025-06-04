@@ -26,10 +26,11 @@ const (
 // These are used by the Scheduling Service to determine open time slots.
 type AvailabilityRule struct {
 	ID         uint            `gorm:"primaryKey;autoIncrement" json:"id"`
-	BusinessID string          `gorm:"index;type:varchar(255);not null" json:"businessId"`
-	DayOfWeek  DayOfWeekString `gorm:"type:varchar(10);not null" json:"dayOfWeek"`   // e.g., "MONDAY", "TUESDAY"
+	BusinessID string          `gorm:"index:idx_availability_business_day,priority:1;type:varchar(255);not null" json:"businessId"`
+	DayOfWeek  DayOfWeekString `gorm:"index:idx_availability_business_day,priority:2;type:varchar(10);not null" json:"dayOfWeek"`   // e.g., "MONDAY", "TUESDAY"
 	StartTime  string          `gorm:"type:varchar(5);not null" json:"startTime"` // "HH:MM" format, e.g., "09:00"
 	EndTime    string          `gorm:"type:varchar(5);not null" json:"endTime"`   // "HH:MM" format, e.g., "17:00"
+	BufferMinutes int          `gorm:"default:0" json:"bufferMinutes"` // Buffer time in minutes after a service
 
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`

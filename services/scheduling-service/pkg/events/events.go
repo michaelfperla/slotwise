@@ -83,5 +83,7 @@ const (
 	BookingConfirmedEvent = "booking.confirmed"
 	BookingCancelledEvent = "booking.cancelled"
 	SlotReservedEvent     = "slot.reserved"
+	// AvailabilityRuleUpdatedEvent is published when availability rules change
+	AvailabilityRuleUpdatedEvent = "availability.rule.updated"
 	// Add other event subjects as needed
 )
