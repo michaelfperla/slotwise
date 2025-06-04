@@ -342,9 +342,9 @@ deployment, and maintenance:
 
 - **Business Service**: ✅ http://localhost:8003/docs (Swagger/OpenAPI
   available)
-- **Auth Service**: ⚠️ Documentation in progress
-- **Scheduling Service**: ⚠️ Documentation in progress
-- **Notification Service**: ⚠️ Documentation in progress
+- **Auth Service**: ✅ Documentation updated
+- **Scheduling Service**: ✅ Documentation updated
+- **Notification Service**: ✅ Documentation updated
 
 ### Comprehensive API Documentation
 

@@ -109,9 +109,6 @@ components:
           type: string
           format: date-time
           example: "2024-08-15T10:00:00Z"
-        isAvailable: # Assuming this might be part of the slot info from handlers
-          type: boolean
-          example: true
 
     Pagination:
       type: object
@@ -190,6 +187,25 @@ components:
           type: string
           format: date-time
           example: "2024-01-01T12:00:00Z"
+
+    SlotsResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Optional message, e.g., if no slots are available.
+          nullable: true
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+      example:
+        slots:
+          - startTime: "2024-08-15T09:00:00Z"
+            endTime: "2024-08-15T09:30:00Z"
+          - startTime: "2024-08-15T14:00:00Z"
+            endTime: "2024-08-15T14:30:00Z"
+        message: "Displaying available slots."
 
   securitySchemes:
     BearerAuth:
@@ -512,14 +528,7 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/StandardSuccessResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/TimeSlot'
+                $ref: '#/components/schemas/SlotsResponse'
         '400':
           description: Invalid query parameters (e.g., malformed date, missing required params).
           content:
@@ -575,14 +584,7 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/StandardSuccessResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/TimeSlot'
+                $ref: '#/components/schemas/SlotsResponse'
         '400':
           description: Invalid query parameters (e.g., malformed date, missing required params).
           content:
@@ -601,5 +603,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/v1/availability/:
+    get:
+      tags:
+        - Availability
+      summary: General availability check
+      description: Provides a general check for the availability service or can be expanded for more complex general availability queries. Currently, it may act as a placeholder or simple status endpoint.
+      responses:
+        '200':
+          description: Availability service is active and responding.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Availability service is active."
+                  timestamp:
+                    type: string
+                    format: date-time
+              examples:
+                success:
+                  value:
+                    message: "Availability service is active."
+                    timestamp: "2024-01-01T12:00:00Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError' # Assuming a standard error response component exists or can be added
 
 # End of OpenAPI specification
