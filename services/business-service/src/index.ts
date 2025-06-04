@@ -9,17 +9,21 @@ import { logger } from './utils/logger';
 import { prisma } from './database/prisma';
 import { natsConnection } from './events/nats';
 import { redisClient } from './database/redis';
-import { businessRoutes } from './routes/business';
-import { serviceRoutes } from './routes/service';
-import { healthRoutes } from './routes/health';
-import { errorHandler } from './middleware/errorHandler';
-import { authMiddleware } from './middleware/auth';
+import { businessRoutes } from './routes/business.js';
+import { serviceRoutes } from './routes/service.js';
+import { analyticsRoutes } from './routes/analyticsRoutes.js'; // Import analytics routes
+import { healthRoutes } from './routes/health.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { authMiddleware } from './middleware/auth.js';
 
 const server = fastify({
   logger: logger,
   requestIdLogLabel: 'requestId',
   requestIdHeader: 'x-request-id',
 });
+
+// Decorate Fastify instance with Prisma Client
+server.decorate('prisma', prisma);
 
 async function start() {
   try {
@@ -76,6 +80,9 @@ async function start() {
       await fastify.register(authMiddleware);
       await fastify.register(businessRoutes, { prefix: '/api/v1/businesses' });
       await fastify.register(serviceRoutes, { prefix: '/api/v1/services' });
+      // Register analytics routes under a specific business context
+      // The :businessId param will be available to all routes in analyticsRoutes
+      await fastify.register(analyticsRoutes, { prefix: '/api/v1/businesses/:businessId/analytics' });
     });
 
     // Initialize database connection

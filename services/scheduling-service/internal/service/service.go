@@ -7,6 +7,7 @@ import (
 	"strings" // Added import
 	"time"
 
+	"github.com/slotwise/scheduling-service/internal/client"
 	"github.com/slotwise/scheduling-service/internal/models" // Added import
 	"github.com/slotwise/scheduling-service/internal/repository"
 	"github.com/slotwise/scheduling-service/pkg/events"
@@ -19,7 +20,15 @@ type BookingService struct {
 	availabilityService *AvailabilityService
 	serviceDefRepo      *repository.AvailabilityRepository // To get service definitions (duration)
 	eventPublisher      EventPublisher                     // Interface
+	notificationClient  NotificationSender                 // Interface for notification client
 	logger              *logger.Logger
+}
+
+// NotificationSender defines an interface for sending notifications.
+// This allows for using the actual NotificationServiceClient or a mock.
+type NotificationSender interface {
+	SendNotification(req client.SendNotificationRequest) (*client.NotificationResponse, error)
+	ScheduleNotification(req client.ScheduleNotificationRequest) (*client.NotificationResponse, error)
 }
 
 // AvailabilityService handles availability business logic
@@ -43,6 +52,7 @@ func NewBookingService(
 	availabilityService *AvailabilityService,
 	serviceDefRepo *repository.AvailabilityRepository, // For fetching service definitions
 	eventPublisher EventPublisher, // Interface
+	notificationClient NotificationSender, // Use the interface here
 	logger *logger.Logger,
 ) *BookingService {
 	return &BookingService{
@@ -50,6 +60,7 @@ func NewBookingService(
 		availabilityService: availabilityService,
 		serviceDefRepo:      serviceDefRepo,
 		eventPublisher:      eventPublisher,
+		notificationClient:  notificationClient, // Initialize the field
 		logger:              logger,
 	}
 }
@@ -159,7 +170,7 @@ type UpdateBookingStatusRequest struct {
 }
 
 // UpdateBookingStatus changes the status of a booking.
-func (s *BookingService) UpdateBookingStatus(ctx context.Context, bookingID string, newStatus models.BookingStatus) (*models.Booking, error) {
+func (s *BookingService) UpdateBookingStatus(ctx context.Context, bookingID string, newStatus models.BookingStatus) (*models.Booking, error) { // Add import for client "github.com/slotwise-app/services/scheduling-service/internal/client"
 	s.logger.Info("Updating booking status", "bookingId", bookingID, "newStatus", newStatus)
 
 	// Validate newStatus if necessary (e.g., allowed transitions)
@@ -177,6 +188,30 @@ func (s *BookingService) UpdateBookingStatus(ctx context.Context, bookingID stri
 
 	// TODO: Add logic to check if status transition is valid, e.g. cannot confirm a cancelled booking.
 	// oldStatus := booking.Status
+
+	// Fetch service definition for service name and duration (needed for notifications)
+	var serviceName, businessName string
+	var customerEmail string = "customer@example.com" // Placeholder
+	var businessEmail string = "business@example.com" // Placeholder for business copy
+
+	if booking.ServiceID != "" {
+		serviceDef, errService := s.serviceDefRepo.GetServiceDefinition(ctx, booking.ServiceID)
+		if errService == nil && serviceDef != nil {
+			serviceName = serviceDef.Name
+			// Potentially fetch Business Name via businessId from serviceDef or booking.BusinessID
+			// For now, using placeholder:
+			businessName = fmt.Sprintf("Business %s", booking.BusinessID)
+		} else {
+			s.logger.Warn("Could not fetch service details for notification data", "bookingId", bookingID, "serviceId", booking.ServiceID, "error", errService)
+			serviceName = "Unknown Service"
+			businessName = fmt.Sprintf("Business %s", booking.BusinessID)
+		}
+	}
+	// TODO: Fetch actual customer email and business email/details
+	// customer, errCust := s.customerRepo.GetCustomer(ctx, booking.CustomerID)
+	// if errCust == nil && customer != nil { customerEmail = customer.Email }
+	// businessDetails, errBiz := s.businessRepo.GetBusiness(ctx, booking.BusinessID)
+	// if errBiz == nil && businessDetails != nil { businessName = businessDetails.Name; businessEmail = businessDetails.NotificationEmailOrDefault() }
 
 	if err := s.bookingRepo.UpdateBookingStatus(ctx, bookingID, newStatus); err != nil {
 		s.logger.Error("Failed to update booking status in database", "bookingId", bookingID, "error", err)
@@ -198,29 +233,103 @@ func (s *BookingService) UpdateBookingStatus(ctx context.Context, bookingID stri
 		"endTime":    booking.EndTime.Format(time.RFC3339),
 	}
 
-	switch newStatus {
-	case models.BookingStatusConfirmed:
-		eventSubject = events.BookingConfirmedEvent
-		// Also publish slot.reserved
-		slotReservedPayload := map[string]interface{}{
-			"bookingId":  booking.ID,
-			"serviceId":  booking.ServiceID,
-			"businessId": booking.BusinessID,
-			"startTime":  booking.StartTime.Format(time.RFC3339),
-			"endTime":    booking.EndTime.Format(time.RFC3339),
+	// ---- Notification Logic ----
+	if s.notificationClient != nil {
+		commonTemplateData := map[string]interface{}{
+			"userName":     fmt.Sprintf("Customer %s", booking.CustomerID), // Placeholder
+			"businessName": businessName,
+			"serviceName":  serviceName,
+			"bookingId":    booking.ID,
+			"bookingDate":  booking.StartTime.Format("January 2, 2006"),
+			"bookingTime":  booking.StartTime.Format("3:04 PM"),
+			"duration":     booking.EndTime.Sub(booking.StartTime).Minutes(),
+			// "resourceName": // If applicable
+			// "notes": booking.Notes, // If applicable
 		}
-		if errPub := s.eventPublisher.Publish(events.SlotReservedEvent, slotReservedPayload); errPub != nil {
-			s.logger.Error("Failed to publish slot.reserved event", "bookingId", booking.ID, "error", errPub)
-		} else {
-			s.logger.Info("Published slot.reserved event", "bookingId", booking.ID)
+
+		switch newStatus {
+		case models.BookingStatusConfirmed:
+			eventSubject = events.BookingConfirmedEvent
+			// Also publish slot.reserved (existing logic)
+			slotReservedPayload := map[string]interface{}{
+				"bookingId": booking.ID, "serviceId": booking.ServiceID, "businessId": booking.BusinessID,
+				"startTime": booking.StartTime.Format(time.RFC3339), "endTime": booking.EndTime.Format(time.RFC3339),
+			}
+			if errPub := s.eventPublisher.Publish(events.SlotReservedEvent, slotReservedPayload); errPub != nil {
+				s.logger.Error("Failed to publish slot.reserved event", "bookingId", booking.ID, "error", errPub)
+			} else {
+				s.logger.Info("Published slot.reserved event", "bookingId", booking.ID)
+			}
+
+			// 1. Send Booking Confirmation to Customer
+			customerConfirmationReq := client.SendNotificationRequest{
+				Type:           "booking_confirmation",
+				RecipientEmail: customerEmail, // Placeholder
+				TemplateData:   commonTemplateData,
+			}
+			_, err := s.notificationClient.SendNotification(customerConfirmationReq)
+			if err != nil {
+				s.logger.Error("Failed to send booking confirmation to customer", "bookingId", booking.ID, "error", err)
+				// Non-critical, log and continue
+			}
+
+			// 2. Send Booking Confirmation to Business (optional, if configured)
+			// Assuming businessEmail is fetched or configured
+			businessConfirmationReq := client.SendNotificationRequest{
+				Type:           "booking_confirmation", // Could be a different template like "new_booking_alert"
+				RecipientEmail: businessEmail,          // Placeholder
+				TemplateData:   commonTemplateData,     // Might need different data for business
+				Subject:        func(s string) *string { return &s }(fmt.Sprintf("New Booking Confirmed: %s for %s", serviceName, commonTemplateData["userName"])),
+			}
+			_, err = s.notificationClient.SendNotification(businessConfirmationReq)
+			if err != nil {
+				s.logger.Error("Failed to send booking confirmation to business", "bookingId", booking.ID, "error", err)
+			}
+
+			// 3. Schedule Booking Reminder for Customer
+			// Example: 24 hours before booking.StartTime
+			reminderTime := booking.StartTime.Add(-24 * time.Hour)
+			// Ensure reminderTime is in the future
+			if reminderTime.After(time.Now()) {
+				scheduleReq := client.ScheduleNotificationRequest{
+					Type:           "booking_reminder",
+					RecipientEmail: customerEmail, // Placeholder
+					TemplateData:   commonTemplateData,
+					ScheduledFor:   reminderTime,
+					BookingID:      booking.ID,
+				}
+				_, err = s.notificationClient.ScheduleNotification(scheduleReq)
+				if err != nil {
+					s.logger.Error("Failed to schedule booking reminder", "bookingId", booking.ID, "error", err)
+				}
+			} else {
+				s.logger.Info("Booking reminder time is in the past, not scheduling.", "bookingId", booking.ID, "reminderTime", reminderTime)
+			}
+
+		case models.BookingStatusCancelled:
+			eventSubject = events.BookingCancelledEvent
+			// eventPayload["reason"] = "..." // Add reason if available
+
+			cancellationTemplateData := commonTemplateData
+			// cancellationTemplateData["cancellationReason"] = "Your reason here" // If available
+
+			// Send Booking Cancellation to Customer
+			customerCancellationReq := client.SendNotificationRequest{
+				Type:           "booking_cancellation",
+				RecipientEmail: customerEmail, // Placeholder
+				TemplateData:   cancellationTemplateData,
+			}
+			_, err := s.notificationClient.SendNotification(customerCancellationReq)
+			if err != nil {
+				s.logger.Error("Failed to send booking cancellation to customer", "bookingId", booking.ID, "error", err)
+			}
+			// Optionally, notify business about cancellation
+
+		default:
+			s.logger.Info("No specific NATS event or notification for status update", "bookingId", booking.ID, "newStatus", newStatus)
 		}
-	case models.BookingStatusCancelled:
-		eventSubject = events.BookingCancelledEvent
-		// eventPayload["reason"] = "..." // Add reason if available
-	default:
-		s.logger.Info("No specific NATS event for status update", "bookingId", booking.ID, "newStatus", newStatus)
-		// Potentially a generic booking.updated event if needed
 	}
+	// ---- End Notification Logic ----
 
 	if eventSubject != "" {
 		if errPub := s.eventPublisher.Publish(eventSubject, eventPayload); errPub != nil {

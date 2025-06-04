@@ -1,11 +1,12 @@
 import Fastify from 'fastify';
-import { config } from './config/config';
-import { logger } from './utils/logger';
-import { healthRoutes } from './routes/health';
-import { notificationRoutes } from './routes/notification';
-import { errorHandler } from './middleware/errorHandler';
-import { authMiddleware } from './middleware/auth';
-import { natsClient } from './events/natsClient';
+import { config } from './config/config.js';
+import { logger } from './utils/logger.js';
+import { healthRoutes } from './routes/health.js';
+import { notificationRoutes } from './routes/notification.js';
+import { businessNotificationSettingsRoutes } from './routes/businessNotificationSettingsRoutes.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { authMiddleware } from './middleware/auth.js';
+import { natsClient } from './events/natsClient.js';
 
 const fastify = Fastify({
   logger: false, // We'll use our custom logger
@@ -21,7 +22,10 @@ async function start() {
 
     // Register routes
     await fastify.register(healthRoutes, { prefix: '/health' });
-    await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
+    // Prefixing all notification related routes with /api/v1
+    await fastify.register(notificationRoutes, { prefix: '/api/v1/notifications' });
+    await fastify.register(businessNotificationSettingsRoutes, { prefix: '/api/v1' }); // The routes themselves contain /businesses/...
+
 
     // Connect to NATS
     await natsClient.connect();
@@ -29,7 +33,7 @@ async function start() {
 
     // Initialize NATS event subscribers
     const { initializeBookingEventSubscribers } = await import(
-      './subscribers/bookingEventHandlers'
+      './subscribers/bookingEventHandlers.js'
     );
     initializeBookingEventSubscribers();
     // Add other subscriber initializers if any (e.g. for user events, etc.)

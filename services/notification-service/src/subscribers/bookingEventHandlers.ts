@@ -1,7 +1,6 @@
 import { config } from '../config/config'; // For fromEmail if needed, though emailService handles it
 import { natsClient } from '../events/natsClient'; // To register subscribers
-import { emailService } from '../services/emailService';
-import { templateService } from '../services/templateService';
+import { sendEmail } from '../services/emailService';
 import { logger } from '../utils/logger';
 
 // --- Event Payload Interfaces ---
@@ -84,11 +83,11 @@ export async function handleBookingConfirmed(payload: BookingConfirmedPayload): 
       currency: payload.service.currency,
       businessPhone: payload.business.phone,
     };
-    const customerHtml = await templateService.render('booking-confirmation', customerEmailData);
-    await emailService.sendEmail(
+    await sendEmail(
       payload.customer.email,
       `Your Booking for ${payload.service.name} is Confirmed! (ID: ${payload.bookingId.substring(0, 8)})`,
-      customerHtml
+      'bookingConfirmation',
+      customerEmailData
     );
     logger.info('Booking confirmation email sent to customer', {
       bookingId: payload.bookingId,
@@ -116,11 +115,11 @@ export async function handleBookingConfirmed(payload: BookingConfirmedPayload): 
       price: payload.service.price,
       currency: payload.service.currency,
     };
-    const businessHtml = await templateService.render('new-booking-to-business', businessEmailData);
-    await emailService.sendEmail(
+    await sendEmail(
       payload.business.ownerEmail,
       `New Booking Received: ${payload.service.name} (ID: ${payload.bookingId.substring(0, 8)})`,
-      businessHtml
+      'new-booking-to-business',
+      businessEmailData
     );
     logger.info('New booking notification email sent to business', {
       bookingId: payload.bookingId,
@@ -170,14 +169,11 @@ export async function handleBookingCancelled(payload: BookingCancelledPayload): 
           ? '#'
           : process.env.FRONTEND_URL || 'https://slotwise.com', // Placeholder for actual booking link
     };
-    const customerHtml = await templateService.render(
-      'booking-cancellation-customer',
-      customerEmailData
-    );
-    await emailService.sendEmail(
+    await sendEmail(
       payload.customer.email,
       `Your Booking for ${payload.service.name} has been Cancelled (ID: ${payload.bookingId.substring(0, 8)})`,
-      customerHtml
+      'booking-cancellation-customer',
+      customerEmailData
     );
     logger.info('Booking cancellation email sent to customer', {
       bookingId: payload.bookingId,
@@ -204,14 +200,11 @@ export async function handleBookingCancelled(payload: BookingCancelledPayload): 
       cancellationReason: payload.cancellationReason || 'Not provided',
       cancelledBy: payload.cancelledBy || 'N/A',
     };
-    const businessHtml = await templateService.render(
-      'booking-cancellation-business',
-      businessEmailData
-    );
-    await emailService.sendEmail(
+    await sendEmail(
       payload.business.ownerEmail,
       `Booking Cancelled: ${payload.service.name} by ${payload.customer.name || 'customer'} (ID: ${payload.bookingId.substring(0, 8)})`,
-      businessHtml
+      'booking-cancellation-business',
+      businessEmailData
     );
     logger.info('Booking cancellation notification email sent to business', {
       bookingId: payload.bookingId,

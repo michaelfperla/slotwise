@@ -13,6 +13,7 @@ type Config struct {
 	Database    DatabaseConfig
 	Redis       RedisConfig
 	NATS        NATSConfig
+	NotificationServiceURL string
 }
 
 // DatabaseConfig holds database configuration
@@ -50,6 +51,7 @@ func Load() (*Config, error) {
 		NATS: NATSConfig{
 			URL: getEnv("NATS_URL", "nats://localhost:4222"),
 		},
+		NotificationServiceURL: getEnv("NOTIFICATION_SERVICE_URL", "http://localhost:8004"), // Default for local dev
 	}, nil
 }
 

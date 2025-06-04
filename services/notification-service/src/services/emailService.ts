@@ -1,109 +1,196 @@
-import sgMail from '@sendgrid/mail';
-import { config } from '../config/config';
-import { logger } from '../utils/logger';
+import fs from 'fs/promises';
+import handlebars from 'handlebars';
+import nodemailer from 'nodemailer';
+import path from 'path';
+import { config } from '../config/config.js';
+import { logger } from '../utils/logger.js';
 
-class EmailService {
-  private emailProvider: string;
-  private fromEmail: string;
 
-  constructor() {
-    this.emailProvider = config.email.provider;
-    if (this.emailProvider === 'sendgrid') {
-      if (!config.email.sendgrid.apiKey) {
-        logger.warn('SendGrid API key is missing. Email sending will likely fail.');
-      } else {
-        sgMail.setApiKey(config.email.sendgrid.apiKey);
-      }
-      this.fromEmail = config.email.sendgrid.fromEmail || 'noreply@slotwise.com';
-    } else if (this.emailProvider === 'ses') {
-      // AWS SES setup would go here using aws-sdk v3
-      // e.g. import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-      // this.sesClient = new SESClient({ region: config.email.ses.region, credentials: {...} });
-      logger.warn(
-        'SES email provider is configured but not fully implemented in this MVP EmailService example.'
+
+// Basic in-memory notification log for email sending
+export const emailNotificationLog: Array<{ // Exported for potential external access/admin UI
+  id: string;
+  recipientEmail: string;
+  subject: string;
+  templateName: string;
+  status: 'sent' | 'failed';
+  error?: string;
+  sentAt: Date;
+  messageId?: string;
+}> = [];
+
+const getTransporter = () => {
+  if (config.email.provider === 'smtp') {
+    if (
+      !config.email.smtp.host ||
+      !config.email.smtp.user ||
+      !config.email.smtp.pass
+    ) {
+      logger.error(
+        'SMTP configuration is incomplete (host, user, or pass missing). Email sending via SMTP will be disabled.'
       );
-      this.fromEmail = config.email.ses.fromEmail || 'noreply@slotwise.com';
-    } else {
-      // Default to console
-      this.fromEmail = 'console-sender@slotwise.com'; // From address for console logs
-      logger.info(`Email provider set to 'console'. Emails will be logged to the console.`);
+      return null;
     }
+    return nodemailer.createTransport({
+      host: config.email.smtp.host,
+      port: config.email.smtp.port,
+      secure: config.email.smtp.secure, // true for 465, false for other ports
+      auth: {
+        user: config.email.smtp.user,
+        pass: config.email.smtp.pass,
+      },
+      // Adding a timeout
+      connectionTimeout: 5000, // 5 seconds
+      greetingTimeout: 5000, // 5 seconds
+      socketTimeout: 10000, // 10 seconds
+    });
+  } else if (config.email.provider === 'console') {
+    logger.info('Using "console" email provider. Emails will be logged to the console.');
+    return {
+      sendMail: async (mailOptions: nodemailer.SendMailOptions) => {
+        logger.info('--- MOCK EMAIL (CONSOLE PROVIDER) ---');
+        logger.info(`To: ${mailOptions.to}`);
+        logger.info(`From: ${mailOptions.from}`);
+        logger.info(`Subject: ${mailOptions.subject}`);
+        logger.info('Body (HTML):');
+        logger.info(mailOptions.html);
+        logger.info('--- MOCK EMAIL END ---');
+        return { messageId: `mock-${Date.now()}` };
+      },
+    };
+  }
+  // TODO: Implement other providers like SendGrid, SES if needed from config
+  logger.warn(
+    `Email provider "${config.email.provider}" is not explicitly supported by emailService.ts or is misconfigured. Falling back to console output for emails.`
+  );
+  // Fallback console logger if no valid provider is set up
+  return {
+      sendMail: async (mailOptions: nodemailer.SendMailOptions) => {
+        logger.info('--- MOCK EMAIL START (Fallback/Unsupported Provider) ---');
+        logger.info(`To: ${mailOptions.to}`);
+        logger.info(`From: ${mailOptions.from}`);
+        logger.info(`Subject: ${mailOptions.subject}`);
+        logger.info('Body (HTML):');
+        logger.info(mailOptions.html);
+        logger.info('--- MOCK EMAIL END ---');
+        return { messageId: `mock-fallback-${Date.now()}` };
+      },
+    };
+};
+
+const transporter = getTransporter();
+
+const loadAndCompileTemplate = async (templateName: string, data: Record<string, unknown>): Promise<string> => {
+  // Determine path relative to the current file's directory (__dirname is not available in ES modules)
+  // Correctly construct path from 'services/notification-service/src/services/' to 'services/notification-service/src/templates/emails/'
+  const baseDir = path.resolve(new URL(import.meta.url).pathname, '..', '..', 'templates', 'emails');
+  const templatePath = path.join(baseDir, `${templateName}.hbs`);
+
+  try {
+    const source = await fs.readFile(templatePath, 'utf-8');
+    const template = handlebars.compile(source);
+    // Add currentYear and potentially other global helpers/data
+    return template({ ...data, currentYear: new Date().getFullYear() });
+  } catch (error) {
+    logger.error({ err: error, templatePath }, `Error loading or compiling email template ${templateName}`);
+    throw new Error(`Could not load or compile email template: ${templateName}`);
+  }
+};
+
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  templateName: string,
+  templateData: Record<string, unknown>
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  const logEntryBase = {
+    recipientEmail: to,
+    subject,
+    templateName,
+    sentAt: new Date(),
+  };
+
+  if (!transporter) {
+    const errorMessage = 'Email transporter is not configured (likely due to missing SMTP settings). Cannot send email.';
+    logger.error(errorMessage);
+    emailNotificationLog.push({
+      ...logEntryBase,
+      id: `log-no-transporter-${Date.now()}`,
+      status: 'failed',
+      error: errorMessage,
+    });
+    return { success: false, error: errorMessage };
   }
 
-  async sendEmail(to: string, subject: string, htmlBody: string, textBody?: string): Promise<void> {
-    logger.info(`Attempting to send email`, { to, subject, provider: this.emailProvider });
+  try {
+    const htmlContent = await loadAndCompileTemplate(templateName, templateData);
 
-    if (this.emailProvider === 'sendgrid') {
-      if (!config.email.sendgrid.apiKey) {
-        logger.error('Cannot send email via SendGrid: API key not configured.');
-        // Fallback to console to ensure notification is not lost in dev if key is missing
-        this.logToConsole(to, subject, htmlBody, textBody);
-        return;
-      }
-      const msg = {
-        to: to,
-        from: this.fromEmail,
-        subject: subject,
-        text: textBody, // Optional plain text version
-        html: htmlBody,
-      };
-      try {
-        await sgMail.send(msg);
-        logger.info(`Email sent successfully via SendGrid to ${to}`, { subject });
-      } catch (error: unknown) {
-        // Changed from any to unknown
-        let errorMessage = 'An unknown error occurred';
-        if (error instanceof Error) {
-          // Standard Error object
-          errorMessage = error.message;
-          // Check if it's a SendGrid specific error structure
-          interface SendGridError {
-            // Define interface for SendGrid error shape
-            response?: {
-              body?: unknown; // Body can be complex, stringify it
-            };
-          }
-          // Check if error has SendGrid-like properties before asserting
-          if (typeof error === 'object' && error !== null && 'response' in error) {
-            const sgError = error as SendGridError;
-            if (sgError.response?.body) {
-              errorMessage = JSON.stringify(sgError.response.body);
-            }
-          }
-        } else {
-          errorMessage = JSON.stringify(error);
-        }
-        logger.error('Error sending email via SendGrid', { error: errorMessage });
-        // Optionally, implement a fallback or re-queue mechanism here
-        throw error; // Re-throw to indicate failure, or throw new Error(errorMessage)
-      }
-    } else if (this.emailProvider === 'ses') {
-      // TODO: Implement AWS SES sending logic
-      logger.warn(
-        `SES provider selected, but sending not implemented. Logging to console instead.`
-      );
-      this.logToConsole(to, subject, htmlBody, textBody);
-    } else {
-      // 'console' or any other provider falls back to console
-      this.logToConsole(to, subject, htmlBody, textBody);
+    let fromEmail = 'noreply@slotwise.com'; // Default
+    if (config.email.provider === 'smtp' && config.email.smtp.fromEmail) {
+      fromEmail = config.email.smtp.fromEmail;
+    } else if (config.email.provider === 'sendgrid' && config.email.sendgrid.fromEmail) {
+      // This part is for future expansion if sendgrid is directly used here
+      fromEmail = config.email.sendgrid.fromEmail;
     }
-  }
 
-  private logToConsole(to: string, subject: string, htmlBody: string, textBody?: string): void {
-    logger.info('--- CONSOLE EMAIL ---');
-    logger.info(`To: ${to}`);
-    logger.info(`From: ${this.fromEmail}`);
-    logger.info(`Subject: ${subject}`);
-    if (textBody) {
-      logger.info('Text Body:\n', textBody);
-    }
-    logger.info(
-      'HTML Body (first 200 chars):\n',
-      htmlBody.substring(0, Math.min(htmlBody.length, 200)) + '...'
-    );
-    // In a real console logger, you might write the HTML to a temp file or avoid logging very large bodies.
-    logger.info('--- END CONSOLE EMAIL ---');
-  }
-}
 
-export const emailService = new EmailService();
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: fromEmail,
+      to,
+      subject,
+      html: htmlContent,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    const messageId = typeof info.messageId === 'string' ? info.messageId : `sent-${Date.now()}`;
+    logger.info(`Email sent successfully to ${to}. Message ID: ${messageId}`);
+    emailNotificationLog.push({
+      ...logEntryBase,
+      id: messageId,
+      messageId: messageId,
+      status: 'sent',
+    });
+    return { success: true, messageId: messageId };
+  } catch (error: any) {
+    logger.error({ err: error, recipient: to, subject }, `Error sending email to ${to}`);
+    emailNotificationLog.push({
+      ...logEntryBase,
+      id: `log-send-error-${Date.now()}`,
+      status: 'failed',
+      error: error.message || 'Unknown error sending email',
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+// Register Handlebars helpers
+// (These are already registered in the original file, keeping them here for completeness if this file is a fresh overwrite)
+handlebars.registerHelper('eq', (a, b) => a === b);
+handlebars.registerHelper('neq', (a, b) => a !== b);
+handlebars.registerHelper('gt', (a, b) => a > b);
+handlebars.registerHelper('lt', (a, b) => a < b);
+handlebars.registerHelper('gte', (a, b) => a >= b);
+handlebars.registerHelper('lte', (a, b) => a <= b);
+handlebars.registerHelper('formatDate', (date, format) => {
+  try {
+    // Placeholder for a more robust date formatting library if needed
+    return new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric'});
+  } catch (e) {
+    logger.warn({ date, format }, "Handlebars formatDate helper failed.");
+    return String(date); // Fallback
+  }
+});
+handlebars.registerHelper('formatTime', (date) => {
+   try {
+       // Placeholder for a more robust time formatting library if needed
+       return new Date(date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+   } catch (e) {
+       logger.warn({ date }, "Handlebars formatTime helper failed.");
+       return String(date); // Fallback
+   }
+});
+
+// Function to get the log (can be expanded for filtering, pagination etc.)
+export const getEmailNotificationLog = (limit: number = 50) => {
+  return emailNotificationLog.slice(-limit);
+};

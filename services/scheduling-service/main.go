@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/slotwise/scheduling-service/internal/client"
 	"github.com/slotwise/scheduling-service/internal/config"
 	"github.com/slotwise/scheduling-service/internal/database"
 	"github.com/slotwise/scheduling-service/internal/handlers"
@@ -69,9 +70,13 @@ func main() {
 	// Initialize services
 	// AvailabilityService now needs BookingRepository
 	availabilityService := service.NewAvailabilityService(availabilityRepo, bookingRepo, cacheRepo, eventPublisher, logger)
-	// BookingService now needs AvailabilityRepository for service definitions
-	bookingService := service.NewBookingService(bookingRepo, availabilityService, availabilityRepo, eventPublisher, logger)
-	
+
+	// Initialize Notification Client
+	notificationClient := client.NewNotificationServiceClient(cfg)
+
+	// BookingService now needs AvailabilityRepository for service definitions and NotificationClient
+	bookingService := service.NewBookingService(bookingRepo, availabilityService, availabilityRepo, eventPublisher, notificationClient, logger)
+
 	// Initialize background scheduler
 	cronScheduler := scheduler.New(bookingService, logger)
 	cronScheduler.Start()
@@ -130,9 +135,9 @@ func main() {
 		// TODO: Add appropriate auth middleware for these routes.
 		// Example: bookings.Use(middleware.RequireAuth())
 		{
-			bookings.POST("", bookingHandler.CreateBooking)          // POST /api/v1/bookings
-			bookings.GET("/:bookingId", bookingHandler.GetBookingByID) // GET /api/v1/bookings/:bookingId
-			bookings.GET("", bookingHandler.ListBookings)             // GET /api/v1/bookings?customerId=... or ?businessId=...
+			bookings.POST("", bookingHandler.CreateBooking)                        // POST /api/v1/bookings
+			bookings.GET("/:bookingId", bookingHandler.GetBookingByID)             // GET /api/v1/bookings/:bookingId
+			bookings.GET("", bookingHandler.ListBookings)                          // GET /api/v1/bookings?customerId=... or ?businessId=...
 			bookings.PUT("/:bookingId/status", bookingHandler.UpdateBookingStatus) // PUT /api/v1/bookings/:bookingId/status
 
 			// Remove or update old stubbed routes if they are different:

@@ -27,7 +27,15 @@ export const config = {
 
   // Email
   email: {
-    provider: process.env.EMAIL_PROVIDER || 'console', // console, sendgrid, ses
+    provider: process.env.EMAIL_PROVIDER || 'console', // console, sendgrid, ses, smtp
+    smtp: {
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+      fromEmail: process.env.SMTP_FROM_EMAIL || 'noreply@slotwise.com',
+    },
     sendgrid: {
       apiKey: process.env.SENDGRID_API_KEY,
       fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@slotwise.com',
