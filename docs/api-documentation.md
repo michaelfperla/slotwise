@@ -304,40 +304,9 @@ For detailed API specification, please see the [Scheduling Service OpenAPI Docum
 
 ## 📧 Notification Service API
 
-### Send Notification
+The Notification Service is responsible for handling and dispatching various types of notifications, such as email, SMS, and push notifications (though current API focuses on generic dispatch). It also manages templates and tracks notification statuses.
 
-```http
-POST /notifications
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "recipientId": "user_123",
-  "type": "booking_confirmation",
-  "channel": "email",
-  "templateId": "booking_confirmation_template",
-  "templateData": {
-    "bookingId": "booking_202",
-    "serviceName": "Strategy Consultation",
-    "startTime": "2025-01-15T14:00:00Z"
-  },
-  "priority": "normal"
-}
-```
-
-### Get Notification Status
-
-```http
-GET /notifications/{notificationId}
-Authorization: Bearer <token>
-```
-
-### List Notifications
-
-```http
-GET /notifications?recipientId=user_123&type=booking_confirmation&status=sent
-Authorization: Bearer <token>
-```
+For detailed API specification, please see the [Notification Service OpenAPI Documentation](./notification-service-api.yaml).
 
 ## 🚦 Rate Limiting
 

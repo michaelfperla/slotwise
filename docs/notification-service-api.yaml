@@ -1,0 +1,437 @@
+openapi: 3.0.0
+info:
+  title: Notification Service API
+  version: v1
+  description: API specification for the Notification Service, handling all user notifications.
+servers:
+  - url: http://localhost:8004 # Port for Notification Service
+    description: Local Notification Service
+tags:
+  - name: Health
+    description: Health Check Endpoints
+  - name: Notifications
+    description: Notification Management Endpoints
+
+components:
+  schemas:
+    Notification: # Placeholder structure
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the notification.
+          example: "notif_123abc"
+        type:
+          type: string
+          enum: [email, sms, push, system] # Example types
+          description: Type of notification.
+          example: "email"
+        recipient:
+          type: string # Could be email, phone number, user ID, etc.
+          description: The recipient of the notification.
+          example: "user@example.com"
+        subject:
+          type: string
+          nullable: true
+          description: Subject of the notification (e.g., for email).
+          example: "Your booking confirmation"
+        content:
+          type: string
+          description: Main content of the notification.
+          example: "Your booking for Service X at 10 AM is confirmed."
+        status:
+          type: string
+          enum: [pending, sent, delivered, failed, read] # Example statuses
+          description: Current status of the notification.
+          example: "sent"
+        templateId:
+          type: string
+          nullable: true
+          description: Identifier of the template used for this notification.
+          example: "booking_confirmation_v1"
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+          nullable: true
+        scheduledAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: If the notification is scheduled for a future time.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of notification creation.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of last notification update.
+
+    SendNotificationRequest:
+      type: object
+      required:
+        - type
+        - recipient
+        # content or templateId must be present
+      properties:
+        type:
+          type: string
+          enum: [email, sms, in_app, push] # from sendNotificationSchema
+          description: Type of notification.
+        recipient:
+          type: string # In schema, it's recipientId, but handler uses recipient
+          description: Identifier for the recipient (e.g., userId, email address, phone number).
+          example: "user_123xyz"
+        subject:
+          type: string
+          nullable: true
+          description: Subject line for the notification (primarily for email).
+        content:
+          type: string
+          nullable: true # Content or templateId should be required, handled by oneOf/anyOf if strictly enforced
+          description: Plain text content for the notification. Required if templateId is not provided.
+        templateId:
+          type: string
+          nullable: true
+          description: ID of the pre-defined template to use. Required if content is not provided.
+        templateData:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Data to populate the template.
+          example: {"name": "John Doe", "booking_time": "10:00 AM"}
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: "medium"
+          nullable: true
+        scheduledAt:
+          type: string
+          format: date-time # z.string().datetime()
+          nullable: true
+          description: Optional ISO 8601 date-time to schedule the notification.
+
+    NotificationQuery: # Derived from notificationQuerySchema
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 1
+          minimum: 1
+          nullable: true
+        limit:
+          type: integer
+          format: int32
+          default: 10
+          minimum: 1
+          maximum: 100 # Example reasonable max
+          nullable: true
+        type:
+          type: string
+          enum: [email, sms, in_app, push]
+          nullable: true
+          description: Filter by notification type.
+        status:
+          type: string
+          enum: [pending, sent, failed, delivered, read] # Example statuses
+          nullable: true
+          description: Filter by notification status.
+        recipient: # Changed from recipientId in schema to recipient for consistency with SendNotificationRequest
+          type: string
+          nullable: true
+          description: Filter by recipient identifier.
+
+    Pagination:
+      type: object
+      properties:
+        totalItems: # Renaming 'total' to be more specific
+          type: integer
+          format: int64
+          example: 100
+        currentPage: # Renaming 'page'
+          type: integer
+          format: int32
+          example: 1
+        pageSize: # Renaming 'limit'
+          type: integer
+          format: int32
+          example: 10
+        totalPages:
+          type: integer
+          format: int32
+          example: 10
+
+    PaginatedNotifications:
+      type: object
+      properties:
+        items: # Renaming 'data' to 'items' for clarity
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    APIError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "UNAUTHORIZED"
+        message:
+          type: string
+          example: "Authentication required."
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    StandardSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object # Actual data varies
+        timestamp:
+          type: string
+          format: date-time
+
+    StandardErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/APIError'
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service Health Check (Root)
+      description: Checks if the service is running and healthy.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  message:
+                    type: string
+                    example: "Notification service is healthy"
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness Probe
+      description: Checks if the application is ready to accept traffic.
+      responses:
+        '200':
+          description: Application is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "READY"
+                  message:
+                    type: string
+                    example: "Notification service is ready"
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness Probe
+      description: Checks if the application is live.
+      responses:
+        '200':
+          description: Application is live
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ALIVE"
+                  message:
+                    type: string
+                    example: "Notification service is alive"
+
+  /api/notifications:
+    post:
+      tags:
+        - Notifications
+      summary: Send a notification
+      description: Creates and sends a new notification. Requires authentication.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendNotificationRequest'
+      responses:
+        '201': # Assuming 201 for successful creation
+          description: Notification created/sent successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data: # Placeholder, actual response might differ
+                        $ref: '#/components/schemas/Notification'
+                        # example: {"id": "notif_newly_created", "status": "pending"}
+        '400':
+          description: Invalid input data (e.g., validation error based on Zod schema).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+    get:
+      tags:
+        - Notifications
+      summary: List notifications
+      description: Retrieves a list of notifications, with optional filters and pagination. Requires authentication.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationQuery/properties/page'
+        - name: limit
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationQuery/properties/limit'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationQuery/properties/type'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationQuery/properties/status'
+        - name: recipient
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationQuery/properties/recipient'
+      responses:
+        '200':
+          description: Successfully retrieved list of notifications.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedNotifications'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+  /api/notifications/{id}:
+    get:
+      tags:
+        - Notifications
+      summary: Get a notification by ID
+      description: Retrieves a specific notification by its unique identifier. Requires authentication.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the notification.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successfully retrieved the notification.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '404':
+          description: Notification not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+# End of OpenAPI specification
