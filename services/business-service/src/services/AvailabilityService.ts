@@ -14,7 +14,7 @@ export interface SetAvailabilityData {
 }
 
 export class AvailabilityService {
-  private prisma: PrismaClient;
+  private prisma: PrismaClient; // This remains as it's typed for the global prisma instance
 
   constructor() {
     this.prisma = prisma;
@@ -73,6 +73,7 @@ export class AvailabilityService {
             dayOfWeek: rule.dayOfWeek,
             startTime: rule.startTime,
             endTime: rule.endTime,
+            is_available: true, // MODIFIED: Explicitly set is_available
           })),
         });
       }
@@ -93,6 +94,7 @@ export class AvailabilityService {
           dayOfWeek: rule.dayOfWeek,
           startTime: rule.startTime,
           endTime: rule.endTime,
+          // Note: is_available from fullNewRules could also be mapped here if needed for the event
         })),
       };
       await natsConnection.publish('business.availability.updated', eventPayload);
@@ -126,7 +128,7 @@ export class AvailabilityService {
       where: { businessId: businessId },
       orderBy: [
         // Sort by day of week (requires mapping enum to sort order or handling in client)
-        { dayOfWeek: 'asc' }, // This will sort alphabetically by enum name. Custom sort order might be needed.
+        { dayOfWeek: 'asc' },
         { startTime: 'asc' },
       ],
     });

@@ -1,7 +1,8 @@
-import { Business, PrismaClient } from '@prisma/client';
+import { Business } from '@prisma/client'; // MODIFIED: PrismaClient removed
 import { nanoid } from 'nanoid';
-import { natsConnection } from '../events/nats'; // Import natsConnection
+import { natsConnection } from '../events/nats';
 import { logger } from '../utils/logger';
+import { prisma } from '../database/prisma'; // MODIFIED: Added import for global Prisma client
 
 interface CreateBusinessData {
   name: string;
@@ -51,15 +52,12 @@ interface PaginatedResult<T> {
 }
 
 export class BusinessService {
-  constructor(
-    private prisma: PrismaClient,
-    private eventPublisher: typeof natsConnection // Changed from any
-  ) {}
+  constructor() {} // MODIFIED: Empty constructor
 
   async createBusiness(data: CreateBusinessData): Promise<Business> {
     try {
       // Check if subdomain is already taken
-      const existingBusiness = await this.prisma.business.findUnique({
+      const existingBusiness = await prisma.business.findUnique({ // MODIFIED: this.prisma -> prisma
         where: { subdomain: data.subdomain },
       });
 
@@ -68,7 +66,7 @@ export class BusinessService {
       }
 
       // Create business (let Prisma auto-generate the ID)
-      const business = await this.prisma.business.create({
+      const business = await prisma.business.create({ // MODIFIED: this.prisma -> prisma
         data: {
           name: data.name,
           description: data.description,
@@ -89,7 +87,7 @@ export class BusinessService {
       });
 
       // Publish business created event
-      await this.publishEvent('business.created', {
+      await this.publishEvent('business.created', { // Stays this.publishEvent
         businessId: business.id,
         name: business.name,
         subdomain: business.subdomain,
@@ -107,7 +105,7 @@ export class BusinessService {
 
   async getBusinessById(id: string, userId: string): Promise<Business> {
     try {
-      const business = await this.prisma.business.findFirst({
+      const business = await prisma.business.findFirst({ // MODIFIED: this.prisma -> prisma
         where: {
           id,
           ownerId: userId,
@@ -130,7 +128,7 @@ export class BusinessService {
 
   async getBusinessBySubdomain(subdomain: string): Promise<Partial<Business>> {
     try {
-      const business = await this.prisma.business.findUnique({
+      const business = await prisma.business.findUnique({ // MODIFIED: this.prisma -> prisma
         where: { subdomain },
         select: {
           id: true,
@@ -178,7 +176,7 @@ export class BusinessService {
   async updateBusiness(id: string, data: UpdateBusinessData, userId: string): Promise<Business> {
     try {
       // Verify ownership
-      const existingBusiness = await this.prisma.business.findFirst({
+      const existingBusiness = await prisma.business.findFirst({ // MODIFIED: this.prisma -> prisma
         where: {
           id,
           ownerId: userId,
@@ -189,7 +187,7 @@ export class BusinessService {
         throw new Error('Business not found');
       }
 
-      const business = await this.prisma.business.update({
+      const business = await prisma.business.update({ // MODIFIED: this.prisma -> prisma
         where: { id },
         data: {
           ...data,
@@ -198,7 +196,7 @@ export class BusinessService {
       });
 
       // Publish business updated event
-      await this.publishEvent('business.updated', {
+      await this.publishEvent('business.updated', { // Stays this.publishEvent
         businessId: business.id,
         changes: data,
       });
@@ -221,7 +219,7 @@ export class BusinessService {
       const skip = (page - 1) * limit;
 
       const [businesses, total] = await Promise.all([
-        this.prisma.business.findMany({
+        prisma.business.findMany({ // MODIFIED: this.prisma -> prisma
           where: { ownerId: userId },
           include: {
             services: {
@@ -236,7 +234,7 @@ export class BusinessService {
           take: limit,
           orderBy: { createdAt: 'desc' },
         }),
-        this.prisma.business.count({
+        prisma.business.count({ // MODIFIED: this.prisma -> prisma
           where: { ownerId: userId },
         }),
       ]);
@@ -259,7 +257,7 @@ export class BusinessService {
   async deleteBusiness(id: string, userId: string): Promise<void> {
     try {
       // Verify ownership
-      const business = await this.prisma.business.findFirst({
+      const business = await prisma.business.findFirst({ // MODIFIED: this.prisma -> prisma
         where: {
           id,
           ownerId: userId,
@@ -271,12 +269,12 @@ export class BusinessService {
       }
 
       // Delete business (cascade will handle services)
-      await this.prisma.business.delete({
+      await prisma.business.delete({ // MODIFIED: this.prisma -> prisma
         where: { id },
       });
 
       // Publish business deleted event
-      await this.publishEvent('business.deleted', {
+      await this.publishEvent('business.deleted', { // Stays this.publishEvent
         businessId: id,
         ownerId: userId,
       });
@@ -289,7 +287,6 @@ export class BusinessService {
   }
 
   private async publishEvent(eventType: string, data: Record<string, unknown>): Promise<void> {
-    // Changed data from any
     try {
       const event = {
         id: nanoid(),
@@ -300,7 +297,7 @@ export class BusinessService {
         data,
       };
 
-      await this.eventPublisher.publish(`slotwise.${eventType}`, event);
+      await natsConnection.publish(`slotwise.${eventType}`, event); // MODIFIED: this.eventPublisher -> natsConnection
     } catch (error) {
       logger.error('Failed to publish event', { error, eventType, data });
       // Don't throw here to avoid breaking the main operation
