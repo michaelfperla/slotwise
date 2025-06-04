@@ -108,3 +108,28 @@ enum DayOfWeek {
 // BusinessStatus: "ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_SETUP"
 // SubscriptionPlan: "FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"
 // SubscriptionStatus: "ACTIVE", "PAST_DUE", "CANCELED", "UNPAID"
+
+model Payment {
+  id                    String    @id @default(uuid())
+  bookingId             String? // Assuming bookingId can be nullable initially or relationships handled later
+  stripePaymentIntentId String?   @unique
+  amount                Decimal   @db.Decimal(10, 2)
+  currency              String
+  status                String // e.g., "succeeded", "pending", "failed"
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  businessId            String? // Added field
+  // If Business model exists and a relation is desired:
+  // business   Business? @relation(fields: [businessId], references: [id])
+
+
+  // Define relation to Booking if a Booking model exists and is appropriate here
+  // booking   Booking? @relation(fields: [bookingId], references: [id])
+  // For now, keeping bookingId as String? as per task description simplicity
+  // If Booking model exists:
+  // booking   Booking @relation(fields: [bookingId], references: [id])
+  // bookingId String  // Then bookingId should not be optional, or handled based on app logic
+
+  @@map("payments")
+}

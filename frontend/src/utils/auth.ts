@@ -42,7 +42,7 @@ export const removeTokens = (): void => {
   }
 };
 
-export const decodeToken = <T = any>(token: string): T | null => {
+export const decodeToken = <T = unknown>(token: string): T | null => {
   try {
     if (!token) {
       return null;
@@ -78,7 +78,7 @@ export const safeRemoveTokens = (): void => {
   }
 };
 
-export const safeDecodeToken = <T = any>(token: string): T | null => {
+export const safeDecodeToken = <T = unknown>(token: string): T | null => {
   if (isBrowser) {
     return decodeToken(token);
   }

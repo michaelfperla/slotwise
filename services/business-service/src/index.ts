@@ -1,20 +1,21 @@
-import fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import fastify from 'fastify';
 import { config } from './config';
-import { logger } from './utils/logger';
+import { confirmPaymentHandler, createPaymentIntentHandler, getBusinessRevenueHandler, stripeWebhookHandler } from './controllers/PaymentController';
 import { prisma } from './database/prisma';
-import { natsConnection } from './events/nats';
 import { redisClient } from './database/redis';
-import { businessRoutes } from './routes/business.js';
-import { serviceRoutes } from './routes/service.js';
-import { analyticsRoutes } from './routes/analyticsRoutes.js'; // Import analytics routes
-import { healthRoutes } from './routes/health.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { authMiddleware } from './middleware/auth.js';
+import { natsConnection } from './events/nats';
+import { authMiddleware } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler';
+import { analyticsRoutes } from './routes/analyticsRoutes'; // Import analytics routes
+import { businessRoutes } from './routes/business';
+import { healthRoutes } from './routes/health';
+import { serviceRoutes } from './routes/service';
+import { logger } from './utils/logger';
 
 const server = fastify({
   logger: logger,
@@ -80,10 +81,24 @@ async function start() {
       await fastify.register(authMiddleware);
       await fastify.register(businessRoutes, { prefix: '/api/v1/businesses' });
       await fastify.register(serviceRoutes, { prefix: '/api/v1/services' });
+
       // Register analytics routes under a specific business context
       // The :businessId param will be available to all routes in analyticsRoutes
       await fastify.register(analyticsRoutes, { prefix: '/api/v1/businesses/:businessId/analytics' });
+
+      // Payment routes
+      fastify.post('/api/v1/payments/create-intent', createPaymentIntentHandler);
+      fastify.post('/api/v1/payments/confirm', confirmPaymentHandler);
+      fastify.get('/api/v1/businesses/:businessId/revenue', getBusinessRevenueHandler);
     });
+    // Register webhook route separately if it needs different body parsing rules
+    // or should not be under the '/api/v1' prefix or auth.
+    // For now, adding it here for simplicity, assuming rawBody handling is addressed.
+    server.post('/api/v1/stripe-webhook', {
+      // config: { rawBody: true } // This is a conceptual representation of enabling rawBody.
+      // Actual Fastify setup for rawBody can vary, e.g. via addContentTypeParser
+      // or by ensuring no global parser consumes the body before this route.
+    }, stripeWebhookHandler);
 
     // Initialize database connection
     await prisma.$connect();
