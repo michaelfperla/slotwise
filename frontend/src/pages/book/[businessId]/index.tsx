@@ -1,12 +1,12 @@
 import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useState, useRef, useCallback } from 'react'; // Added useRef
-import BusinessProfile from '../../../components/booking/BusinessProfile';
-import ServiceSelection from '../../../components/booking/ServiceSelection';
-import TimeSelection from '../../../components/booking/TimeSelection';
+import { useCallback, useRef, useState } from 'react'; // Added useRef
 import BookingForm, { BookingFormHandles, CustomerInfo } from '../../../components/booking/BookingForm'; // Import BookingFormHandles and CustomerInfo
 import BookingSummary from '../../../components/booking/BookingSummary';
+import BusinessProfile from '../../../components/booking/BusinessProfile';
 import ConfirmationPage from '../../../components/booking/ConfirmationPage';
+import ServiceSelection from '../../../components/booking/ServiceSelection';
+import TimeSelection from '../../../components/booking/TimeSelection';
 
 // Mock Data
 const mockBusiness = {
@@ -84,27 +84,6 @@ const BookingPage: NextPage<BookingPageProps> = ({ business }) => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null); // To store validated info
   const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
 
-  if (router.isFallback) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg">Loading...</p></div>;
-  }
-
-  if (!business) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-red-500">Business not found.</p></div>;
-  }
-
-  const handleServiceSelect = (service: Service) => {
-    setSelectedService(service);
-    setSelectedDateTime(null);
-    setCustomerInfo(null);
-    setBookingResponse(null);
-    setBookingStep('selectTime');
-  };
-
-  const handleTimeSelect = (date: Date, slot: TimeSlot) => {
-    setSelectedDateTime({ date, slot });
-    setBookingStep('enterDetails');
-  };
-
   // This function is called by BookingForm AFTER its internal validation passes
   const handleCustomerInfoSubmit = useCallback((formData: CustomerInfo) => {
     setCustomerInfo(formData); // Store the validated customer info
@@ -137,6 +116,28 @@ const BookingPage: NextPage<BookingPageProps> = ({ business }) => {
       // Potentially reset or show an error
     }
   }, [business, selectedService, selectedDateTime]); // Dependencies for useCallback
+
+  // Early returns after all hooks
+  if (router.isFallback) {
+    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg">Loading...</p></div>;
+  }
+
+  if (!business) {
+    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-red-500">Business not found.</p></div>;
+  }
+
+  const handleServiceSelect = (service: Service) => {
+    setSelectedService(service);
+    setSelectedDateTime(null);
+    setCustomerInfo(null);
+    setBookingResponse(null);
+    setBookingStep('selectTime');
+  };
+
+  const handleTimeSelect = (date: Date, slot: TimeSlot) => {
+    setSelectedDateTime({ date, slot });
+    setBookingStep('enterDetails');
+  };
 
   const handleBookAnother = () => {
     setSelectedService(null);

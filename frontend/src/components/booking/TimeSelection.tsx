@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css'; // Default styling for react-calendar
 
@@ -48,6 +48,7 @@ const TimeSelection: React.FC<TimeSelectionProps> = ({ selectedService, onTimeSe
     }
   }, [selectedDate]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDateChange = (value: any) => {
     if (value instanceof Date) {
       setSelectedDate(value);
