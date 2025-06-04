@@ -19,10 +19,10 @@ model Business {
   website     String?
   phone       String?
   email       String
-  timezone    String
+  timezone    String   @default("UTC")
   currency    String   @default("USD")
   ownerId     String
-  status      String @default("PENDING_SETUP")
+  status      String   @default("PENDING_SETUP")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -34,41 +34,41 @@ model Business {
   country    String
 
   // Settings (JSON fields stored as String for SQLite compatibility)
-  bookingSettings     String @default("{}")
-  paymentSettings     String @default("{}")
+  bookingSettings      String @default("{}")
+  paymentSettings      String @default("{}")
   notificationSettings String @default("{}")
   availabilitySettings String @default("{}")
 
   // Subscription
-  subscriptionPlan   String @default("FREE")
-  subscriptionStatus String @default("ACTIVE")
-  currentPeriodStart DateTime           @default(now())
-  currentPeriodEnd   DateTime           @default(now())
-  cancelAtPeriodEnd  Boolean            @default(false)
+  subscriptionPlan   String   @default("FREE")
+  subscriptionStatus String   @default("ACTIVE")
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime @default(now())
+  cancelAtPeriodEnd  Boolean  @default(false)
 
   // Relations
-  services      Service[]
+  services       Service[]
   availabilities Availability[] // Added relation to Availability
 
   @@map("businesses")
 }
 
 model Service {
-  id                    String  @id @default(cuid())
-  businessId            String
-  name                  String
-  description           String?
-  duration              Int     // minutes
-  price                 Float
-  currency              String  @default("USD")
-  category              String?
-  isActive              Boolean @default(true)
-  maxAdvanceBookingDays Int     @default(30)
-  minAdvanceBookingHours Int    @default(1)
-  allowOnlinePayment    Boolean @default(true)
-  requiresApproval      Boolean @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  businessId             String
+  name                   String
+  description            String?
+  duration               Int // minutes
+  price                  Float
+  currency               String   @default("USD")
+  category               String?
+  isActive               Boolean  @default(true)
+  maxAdvanceBookingDays  Int      @default(30)
+  minAdvanceBookingHours Int      @default(1)
+  allowOnlinePayment     Boolean  @default(true)
+  requiresApproval       Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   // Relations
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -77,13 +77,14 @@ model Service {
 }
 
 model Availability {
-  id          String    @id @default(cuid())
-  businessId  String
-  dayOfWeek   DayOfWeek // Use enum for days
-  startTime   String    // Store as HH:MM string in 24-hour format e.g., "09:00"
-  endTime     String    // Store as HH:MM string e.g., "17:00"
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  businessId   String
+  dayOfWeek    DayOfWeek // Use enum for days
+  startTime    String // Store as HH:MM string in 24-hour format e.g., "09:00"
+  endTime      String // Store as HH:MM string e.g., "17:00"
+  is_available Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relations
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
