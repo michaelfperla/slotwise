@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	mathrand "math/rand"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +31,10 @@ type AuthService interface {
 	ResetPassword(req *ResetPasswordRequest) error
 	ValidateToken(token string) (*models.AuthUser, error)
 	RevokeAllSessions(userID string) error
+	// Magic login methods
+	SendPhoneCode(req *PhoneLoginRequest) error
+	SendEmailCode(req *EmailLoginRequest) error
+	VerifyCode(req *VerifyCodeRequest) (*AuthResponse, error)
 }
 
 // Request/Response types
@@ -64,6 +71,26 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"newPassword" validate:"required,min=8"`
 }
 
+// Magic login request types
+type PhoneLoginRequest struct {
+	Phone     string `json:"phone" validate:"required"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
+type EmailLoginRequest struct {
+	Email     string `json:"email" validate:"required,email"`
+	IPAddress string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
+type VerifyCodeRequest struct {
+	Identifier string `json:"identifier" validate:"required"` // Email or phone
+	Code       string `json:"code" validate:"required,len=4"`
+	IPAddress  string `json:"-"`
+	UserAgent  string `json:"-"`
+}
+
 type AuthResponse struct {
 	User         *models.AuthUser `json:"user"`
 	AccessToken  string           `json:"accessToken"`
@@ -74,14 +101,15 @@ type AuthResponse struct {
 
 // authService implements AuthService interface
 type authService struct {
-	userRepo       repository.UserRepository
-	businessRepo   repository.BusinessRepository // Added
-	sessionRepo    repository.SessionRepository
-	passwordMgr    *password.Manager
-	jwtMgr         *jwt.Manager
-	eventPublisher events.Publisher
-	config         config.JWT
-	logger         logger.Logger
+	userRepo         repository.UserRepository
+	businessRepo     repository.BusinessRepository // Added
+	sessionRepo      repository.SessionRepository
+	verificationRepo repository.VerificationRepository // Added for magic login
+	passwordMgr      *password.Manager
+	jwtMgr           *jwt.Manager
+	eventPublisher   events.Publisher
+	config           config.JWT
+	logger           logger.Logger
 }
 
 // NewAuthService creates a new authentication service
@@ -89,19 +117,21 @@ func NewAuthService(
 	userRepo repository.UserRepository,
 	businessRepo repository.BusinessRepository, // Added
 	sessionRepo repository.SessionRepository,
+	verificationRepo repository.VerificationRepository, // Added for magic login
 	eventPublisher events.Publisher,
 	config config.JWT,
 	logger logger.Logger,
 ) AuthService {
 	return &authService{
-		userRepo:       userRepo,
-		businessRepo:   businessRepo, // Added
-		sessionRepo:    sessionRepo,
-		passwordMgr:    password.NewManager(nil),
-		jwtMgr:         jwt.NewManager(config),
-		eventPublisher: eventPublisher,
-		config:         config,
-		logger:         logger,
+		userRepo:         userRepo,
+		businessRepo:     businessRepo, // Added
+		sessionRepo:      sessionRepo,
+		verificationRepo: verificationRepo, // Added for magic login
+		passwordMgr:      password.NewManager(nil),
+		jwtMgr:           jwt.NewManager(config),
+		eventPublisher:   eventPublisher,
+		config:           config,
+		logger:           logger,
 	}
 }
 
@@ -499,6 +529,239 @@ func (s *authService) generateToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+// Magic Login Methods
+
+// SendPhoneCode sends a verification code to a phone number
+func (s *authService) SendPhoneCode(req *PhoneLoginRequest) error {
+	// Validate phone number format
+	if !isValidPhoneNumber(req.Phone) {
+		return errors.New("invalid phone number format")
+	}
+
+	// Generate 4-digit code
+	code := generateVerificationCode()
+
+	// Store verification code in Redis
+	verificationCode := &models.VerificationCode{
+		Identifier: req.Phone,
+		Code:       code,
+		Type:       "phone",
+		ExpiresAt:  time.Now().Add(10 * time.Minute), // 10 minutes
+		CreatedAt:  time.Now(),
+		Attempts:   0,
+	}
+
+	ctx := context.Background()
+	if err := s.verificationRepo.StoreCode(ctx, verificationCode); err != nil {
+		return fmt.Errorf("failed to store verification code: %w", err)
+	}
+
+	// Log the code (in production, this would send SMS)
+	s.logger.Info("📱 PHONE VERIFICATION CODE", "phone", req.Phone, "code", code)
+
+	return nil
+}
+
+// SendEmailCode sends a verification code to an email address
+func (s *authService) SendEmailCode(req *EmailLoginRequest) error {
+	// Generate 4-digit code
+	code := generateVerificationCode()
+
+	// Store verification code in Redis
+	verificationCode := &models.VerificationCode{
+		Identifier: req.Email,
+		Code:       code,
+		Type:       "email",
+		ExpiresAt:  time.Now().Add(10 * time.Minute), // 10 minutes
+		CreatedAt:  time.Now(),
+		Attempts:   0,
+	}
+
+	ctx := context.Background()
+	if err := s.verificationRepo.StoreCode(ctx, verificationCode); err != nil {
+		return fmt.Errorf("failed to store verification code: %w", err)
+	}
+
+	// Log the code (in production, this would send email)
+	s.logger.Info("📧 EMAIL VERIFICATION CODE", "email", req.Email, "code", code)
+
+	return nil
+}
+
+// VerifyCode verifies a code and logs in the user
+func (s *authService) VerifyCode(req *VerifyCodeRequest) (*AuthResponse, error) {
+	ctx := context.Background()
+
+	// Get verification code from Redis
+	verificationCode, err := s.verificationRepo.GetCode(ctx, req.Identifier)
+	if err != nil {
+		if errors.Is(err, repository.ErrVerificationCodeNotFound) {
+			return nil, errors.New("verification code not found or expired")
+		}
+		return nil, fmt.Errorf("failed to get verification code: %w", err)
+	}
+
+	// Check if code is expired
+	if verificationCode.IsExpired() {
+		s.verificationRepo.DeleteCode(ctx, req.Identifier)
+		return nil, errors.New("verification code expired")
+	}
+
+	// Check if too many attempts
+	if !verificationCode.CanAttempt() {
+		s.verificationRepo.DeleteCode(ctx, req.Identifier)
+		return nil, errors.New("too many verification attempts")
+	}
+
+	// Verify code
+	if verificationCode.Code != req.Code {
+		// Increment attempts
+		s.verificationRepo.IncrementAttempts(ctx, req.Identifier)
+		return nil, errors.New("invalid verification code")
+	}
+
+	// Delete verification code (successful verification)
+	s.verificationRepo.DeleteCode(ctx, req.Identifier)
+
+	// Find or create user
+	user, err := s.findOrCreateUserByIdentifier(req.Identifier, verificationCode.Type)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find or create user: %w", err)
+	}
+
+	// Mark phone/email as verified
+	if verificationCode.Type == "phone" {
+		if err := s.userRepo.VerifyPhone(user.ID); err != nil {
+			s.logger.Error("Failed to verify phone", "error", err, "user_id", user.ID)
+		}
+	} else {
+		if err := s.userRepo.VerifyEmail(user.ID); err != nil {
+			s.logger.Error("Failed to verify email", "error", err, "user_id", user.ID)
+		}
+	}
+
+	// Create session
+	session := &models.Session{
+		ID:         uuid.New().String(),
+		UserID:     user.ID,
+		ExpiresAt:  time.Now().Add(s.config.RefreshTokenTTL),
+		CreatedAt:  time.Now(),
+		LastUsedAt: time.Now(),
+		IPAddress:  req.IPAddress,
+		UserAgent:  req.UserAgent,
+	}
+
+	// Generate tokens
+	tokenPair, err := s.jwtMgr.GenerateTokenPair(user.ToAuthUser(), session.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	session.RefreshToken = tokenPair.RefreshToken
+
+	// Save session
+	if err := s.sessionRepo.Create(session); err != nil {
+		s.logger.Warn("Failed to create session", "error", err, "user_id", user.ID)
+	}
+
+	// Update last login
+	if err := s.userRepo.UpdateLastLogin(user.ID); err != nil {
+		s.logger.Error("Failed to update last login", "error", err, "user_id", user.ID)
+	}
+
+	// Publish login event
+	eventData := events.CreateUserLoginEventData(user.ID, user.Email, req.IPAddress, req.UserAgent)
+	if err := s.eventPublisher.Publish(events.UserLoginEvent, eventData); err != nil {
+		s.logger.Error("Failed to publish login event", "error", err, "user_id", user.ID)
+	}
+
+	return &AuthResponse{
+		User:         user.ToAuthUser(),
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+		ExpiresAt:    tokenPair.ExpiresAt,
+	}, nil
+}
+
+// Helper functions
+
+// generateVerificationCode generates a 4-digit verification code
+func generateVerificationCode() string {
+	return fmt.Sprintf("%04d", mathrand.Intn(10000))
+}
+
+// isValidPhoneNumber validates phone number format
+func isValidPhoneNumber(phone string) bool {
+	// Simple phone validation - accepts formats like +1234567890, 1234567890, etc.
+	phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
+	return phoneRegex.MatchString(phone)
+}
+
+// findOrCreateUserByIdentifier finds an existing user or creates a new one
+func (s *authService) findOrCreateUserByIdentifier(identifier, identifierType string) (*models.User, error) {
+	// Try to find existing user
+	user, err := s.userRepo.GetByEmailOrPhone(identifier)
+	if err != nil && !errors.Is(err, repository.ErrUserNotFound) {
+		return nil, fmt.Errorf("failed to check existing user: %w", err)
+	}
+
+	// If user exists, return them
+	if user != nil {
+		return user, nil
+	}
+
+	// Create new user
+	newUser := &models.User{
+		ID:        uuid.New().String(),
+		FirstName: "User", // Default name, can be updated later
+		LastName:  "",
+		Timezone:  "UTC",
+		Role:      models.RoleClient,
+		Status:    models.StatusActive, // Active since they verified their contact method
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Set email or phone based on type
+	if identifierType == "email" {
+		newUser.Email = identifier
+		newUser.IsEmailVerified = true
+		now := time.Now()
+		newUser.EmailVerifiedAt = &now
+	} else {
+		newUser.Email = fmt.Sprintf("user_%s@temp.local", uuid.New().String()[:8]) // Temporary email
+		phone := identifier
+		newUser.Phone = &phone
+		newUser.IsPhoneVerified = true
+		now := time.Now()
+		newUser.PhoneVerifiedAt = &now
+	}
+
+	// Set a random password hash (user won't use it for magic login)
+	tempPassword := uuid.New().String()
+	passwordHash, err := s.passwordMgr.Hash(tempPassword)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash temporary password: %w", err)
+	}
+	newUser.PasswordHash = passwordHash
+
+	// Create user
+	if err := s.userRepo.Create(newUser); err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// Publish user created event
+	eventData := events.CreateUserCreatedEventData(
+		newUser.ID, newUser.Email, newUser.FirstName, newUser.LastName, string(newUser.Role),
+	)
+	if err := s.eventPublisher.Publish(events.UserCreatedEvent, eventData); err != nil {
+		s.logger.Error("Failed to publish user created event", "error", err, "user_id", newUser.ID)
+	}
+
+	return newUser, nil
 }
 
 // Service errors

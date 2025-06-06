@@ -4,18 +4,18 @@ import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import fastify from 'fastify';
-import { config } from './config';
-import { confirmPaymentHandler, createPaymentIntentHandler, getBusinessRevenueHandler, stripeWebhookHandler } from './controllers/PaymentController';
-import { prisma } from './database/prisma';
+import { config } from './config/index.js';
+import { confirmPaymentHandler, createPaymentIntentHandler, getBusinessRevenueHandler, stripeWebhookHandler } from './controllers/PaymentController.js';
+import { prisma } from './database/prisma.js';
 // import { redisClient } from './database/redis';
 // import { natsConnection } from './events/nats';
-import { authMiddleware } from './middleware/auth';
-import { errorHandler } from './middleware/errorHandler';
-import { analyticsRoutes } from './routes/analyticsRoutes'; // Import analytics routes
-import { businessRoutes } from './routes/business';
-import { healthRoutes } from './routes/health';
-import { serviceRoutes } from './routes/service';
-import { logger } from './utils/logger';
+import { authMiddleware } from './middleware/auth.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { analyticsRoutes } from './routes/analyticsRoutes.js'; // Import analytics routes
+import { businessRoutes } from './routes/business.js';
+import { healthRoutes } from './routes/health.js';
+import { serviceRoutes } from './routes/service.js';
+import { logger } from './utils/logger.js';
 
 const server = fastify({
   logger: {
@@ -114,7 +114,7 @@ async function start() {
     try {
       await prisma.$connect();
       logger.info('Connected to database');
-    } catch (error) {
+    } catch {
       logger.warn('Database connection failed, continuing without database');
     }
 
@@ -141,7 +141,11 @@ async function start() {
 process.on('SIGINT', async () => {
   logger.info('Received SIGINT, shutting down gracefully');
   await server.close();
-  try { await prisma.$disconnect(); } catch {}
+  try {
+    await prisma.$disconnect();
+  } catch {
+    // Ignore disconnection errors during shutdown
+  }
   // try { await redisClient.quit(); } catch {}
   // try { await natsConnection.close(); } catch {}
   process.exit(0);
@@ -150,7 +154,11 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   logger.info('Received SIGTERM, shutting down gracefully');
   await server.close();
-  try { await prisma.$disconnect(); } catch {}
+  try {
+    await prisma.$disconnect();
+  } catch {
+    // Ignore disconnection errors during shutdown
+  }
   // try { await redisClient.quit(); } catch {}
   // try { await natsConnection.close(); } catch {}
   process.exit(0);

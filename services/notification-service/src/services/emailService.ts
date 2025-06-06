@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import handlebars from 'handlebars';
+import juice from 'juice';
 import nodemailer from 'nodemailer';
 import path from 'path';
 import { config } from '../config/config.js';
@@ -170,15 +171,16 @@ export const sendEmail = async (
       status: 'sent',
     });
     return { success: true, messageId: messageId };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error sending email';
     logger.error({ err: error, recipient: to, subject }, `Error sending email to ${to}`);
     emailNotificationLog.push({
       ...logEntryBase,
       id: `log-send-error-${Date.now()}`,
       status: 'failed',
-      error: error.message || 'Unknown error sending email',
+      error: errorMessage,
     });
-    return { success: false, error: error.message };
+    return { success: false, error: errorMessage };
   }
 };
 
@@ -194,7 +196,7 @@ handlebars.registerHelper('formatDate', (date, format) => {
   try {
     // Placeholder for a more robust date formatting library if needed
     return new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric'});
-  } catch (e) {
+  } catch {
     logger.warn({ date, format }, "Handlebars formatDate helper failed.");
     return String(date); // Fallback
   }
@@ -203,7 +205,7 @@ handlebars.registerHelper('formatTime', (date) => {
    try {
        // Placeholder for a more robust time formatting library if needed
        return new Date(date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-   } catch (e) {
+   } catch {
        logger.warn({ date }, "Handlebars formatTime helper failed.");
        return String(date); // Fallback
    }

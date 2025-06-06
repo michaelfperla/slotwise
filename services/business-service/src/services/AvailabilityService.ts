@@ -1,7 +1,7 @@
 import { Availability, DayOfWeek, Prisma, PrismaClient } from '@prisma/client';
-import { prisma } from '../database/prisma';
-import { natsConnection } from '../events/nats';
-import { logger } from '../utils/logger';
+import { prisma } from '../database/prisma.js';
+import { natsConnection } from '../events/nats.js';
+import { logger } from '../utils/logger.js';
 
 export interface AvailabilityRuleData {
   dayOfWeek: DayOfWeek; // Make sure DayOfWeek enum is correctly imported/available

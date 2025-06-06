@@ -1,8 +1,8 @@
 import { Business } from '@prisma/client'; // MODIFIED: PrismaClient removed
 import { nanoid } from 'nanoid';
-import { natsConnection } from '../events/nats';
-import { logger } from '../utils/logger';
-import { prisma } from '../database/prisma'; // MODIFIED: Added import for global Prisma client
+import { prisma } from '../database/prisma.js'; // MODIFIED: Added import for global Prisma client
+import { natsConnection } from '../events/nats.js';
+import { logger } from '../utils/logger.js';
 
 interface CreateBusinessData {
   name: string;

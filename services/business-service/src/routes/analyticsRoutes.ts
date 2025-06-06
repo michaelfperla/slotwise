@@ -18,7 +18,7 @@ interface TrendsData {
   data: Array<{ date: string; bookings: number; revenue: number }>;
 }
 
-const getBusinessOverview = async (businessId: string, prisma: any): Promise<OverviewData> => {
+const getBusinessOverview = async (_businessId: string, _prisma: any): Promise<OverviewData> => {
   return {
     totalBookings: 0,
     totalRevenue: 0,
@@ -26,7 +26,7 @@ const getBusinessOverview = async (businessId: string, prisma: any): Promise<Ove
   };
 };
 
-const getBusinessTrends = async (businessId: string, period: string, prisma: any): Promise<TrendsData> => {
+const getBusinessTrends = async (_businessId: string, period: string, _prisma: any): Promise<TrendsData> => {
   return {
     period,
     data: [],

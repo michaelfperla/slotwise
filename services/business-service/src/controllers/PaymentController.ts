@@ -1,11 +1,11 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { PaymentService } from '../services/PaymentService';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { PaymentService } from '../services/PaymentService.js';
 // BusinessServiceConfig is no longer needed here as PaymentService doesn't require it in constructor
 // import { BusinessServiceConfig } from '../config/config';
 
 // Instantiate PaymentService directly.
 // The config is imported and used within PaymentService.ts for Stripe initialization.
-const paymentService = new PaymentService();
+let paymentService = new PaymentService();
 
 export const createPaymentIntentHandler = async (
   request: FastifyRequest<{ Body: { amount: number; currency: string; businessId: string; bookingId?: string; customerEmail?: string } }>,
@@ -114,7 +114,7 @@ export const getBusinessRevenueHandler = async (
       recentPayments: result.recentPayments,
     });
   } catch (error: any) {
-    // @ts-ignore
+
     console.error(`Revenue retrieval failed for business ${request.params.businessId}:`, error);
     return reply.status(500).send({ error: 'Internal server error while fetching revenue.' });
   }
@@ -137,13 +137,13 @@ export const stripeWebhookHandler = async (
   // or if body parsing is disabled for this route.
   // The subtask runner will need to ensure rawBody is available.
 
-  // @ts-ignore Property 'rawBody' does not exist on type 'FastifyRequest'. Fastify needs specific setup for this.
+  // @ts-expect-error Property 'rawBody' does not exist on type 'FastifyRequest'. Fastify needs specific setup for this.
   if (!request.rawBody) {
     console.error('Stripe Webhook: Raw body is not available. Ensure Fastify is configured correctly for this route.');
     return reply.status(400).send('Raw body needed for webhook verification.');
   }
 
-  // @ts-ignore Property 'rawBody' does not exist on type 'FastifyRequest'.
+  // @ts-expect-error Property 'rawBody' does not exist on type 'FastifyRequest'.
   const result = await paymentService.handleStripeWebhook(signature, request.rawBody);
 
   if (!result.received && result.error) {

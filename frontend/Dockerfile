@@ -22,20 +22,20 @@ RUN npm install
 WORKDIR /app
 COPY frontend/ ./frontend/
 
-# Build the application using Nx from root
-RUN npx nx build frontend
+# Build the application using Nx from root (skip linting for Docker build)
+ENV NEXT_LINT=false
+RUN npx nx build frontend --skip-nx-cache
 
 # Production stage
 FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init and wget for proper signal handling and health checks
+RUN apk add --no-cache dumb-init wget
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+# Create non-root user first
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001 -G nodejs
 
 # Copy package files
 COPY package*.json ./
@@ -43,13 +43,11 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm install --omit=dev && npm cache clean --force
 
-# Copy built application from frontend directory
-COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./.next/static
-COPY --from=builder /app/frontend/public ./public
+# Copy built application from frontend directory with correct ownership
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/public ./public
 
-# Change ownership to non-root user
-RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 EXPOSE 3000

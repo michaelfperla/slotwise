@@ -42,3 +42,5 @@ export const config = {
     secretKey: process.env.STRIPE_SECRET_KEY || '',
   }
 };
+
+export default config;

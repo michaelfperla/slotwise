@@ -1,6 +1,6 @@
 "use client";
 
-import useAuth from '@/hooks/useAuth'; // Assuming @ is configured for src path alias
+import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -17,7 +17,7 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const { login: authLogin, isAuthenticated } = useAuth();
+  const { register, isAuthenticated } = useAuthStore();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -82,36 +82,15 @@ const RegisterPage = () => {
     }
 
     try {
-      const response = await fetch('/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          businessName: userType === 'business_owner' ? businessName : undefined,
-          timezone,
-          role: userType,
-        }),
+      await register({
+        email,
+        password,
+        firstName,
+        lastName,
+        businessName: userType === 'business_owner' ? businessName : undefined,
+        timezone,
+        role: userType,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle different error response formats
-        let errorMessage = 'Registration failed';
-        if (data.error && typeof data.error === 'object') {
-          errorMessage = data.error.message || data.error.details || errorMessage;
-        } else if (data.error && typeof data.error === 'string') {
-          errorMessage = data.error;
-        } else if (data.message) {
-          errorMessage = data.message;
-        }
-        throw new Error(errorMessage);
-      }
 
       // Registration successful - show success message and redirect
       setSuccess('Account created successfully! Redirecting to login page...');
@@ -128,7 +107,7 @@ const RegisterPage = () => {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/business/dashboard');
     }
   }, [isAuthenticated, router]);
 
@@ -167,7 +146,7 @@ const RegisterPage = () => {
               />
               <div>
                 <div className="font-medium">Book appointments</div>
-                <div className="text-sm text-gray-500">I'm a customer looking to book services</div>
+                <div className="text-sm text-gray-500">I&apos;m a customer looking to book services</div>
               </div>
             </label>
             <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">

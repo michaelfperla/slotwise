@@ -1,7 +1,7 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { prisma } from '../database/prisma';
-import { redisClient } from '../database/redis';
-import { natsConnection } from '../events/nats';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { prisma } from '../database/prisma.js';
+import { redisClient } from '../database/redis.js';
+import { natsConnection } from '../events/nats.js';
 
 export async function healthRoutes(fastify: FastifyInstance) {
   // Basic health check

@@ -1,7 +1,7 @@
-import { config } from '../config/config'; // For fromEmail if needed, though emailService handles it
-import { natsClient } from '../events/natsClient'; // To register subscribers
-import { sendEmail } from '../services/emailService';
-import { logger } from '../utils/logger';
+import { config } from '../config/config.js'; // For fromEmail if needed, though emailService handles it
+import { natsClient } from '../events/natsClient.js'; // To register subscribers
+import { sendEmail } from '../services/emailService.js';
+import { logger } from '../utils/logger.js';
 
 // --- Event Payload Interfaces ---
 // These should match the payloads published by the Scheduling Service for these events.

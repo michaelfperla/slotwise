@@ -212,14 +212,14 @@ func EndpointBasedRateLimit(redis *redis.Client, requests int, window time.Durat
 	return limiter.Middleware()
 }
 
-// AuthEndpointRateLimit creates a stricter rate limiter for auth endpoints
-func AuthEndpointRateLimit(redis *redis.Client, logger logger.Logger) gin.HandlerFunc {
-	// Stricter limits for authentication endpoints to prevent brute force attacks
-	return IPBasedRateLimit(redis, 5, time.Minute, logger) // 5 requests per minute per IP
+// AuthEndpointRateLimit creates a rate limiter for auth endpoints
+func AuthEndpointRateLimit(redis *redis.Client, logger logger.Logger, requestsPerMinute int) gin.HandlerFunc {
+	// Rate limits for authentication endpoints to prevent brute force attacks
+	return IPBasedRateLimit(redis, requestsPerMinute, time.Minute, logger)
 }
 
 // GeneralRateLimit creates a general rate limiter for all endpoints
-func GeneralRateLimit(redis *redis.Client, logger logger.Logger) gin.HandlerFunc {
+func GeneralRateLimit(redis *redis.Client, logger logger.Logger, requestsPerMinute int) gin.HandlerFunc {
 	// General rate limiting for all endpoints
-	return IPBasedRateLimit(redis, 100, time.Minute, logger) // 100 requests per minute per IP
+	return IPBasedRateLimit(redis, requestsPerMinute, time.Minute, logger)
 }

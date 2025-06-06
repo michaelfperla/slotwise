@@ -1,11 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
-import { config } from '../config'; // Import the actual config object
+import { config } from '../config/index.js'; // Import the actual config object
 
 const prisma = new PrismaClient();
 // Ensure STRIPE_SECRET_KEY is loaded from config
 const stripe = new Stripe(config.stripe.secretKey, {
-  apiVersion: '2024-04-10', // Use a recent API version
+  apiVersion: '2025-05-28.basil', // Use a recent API version
 });
 
 export class PaymentService {
@@ -46,7 +46,7 @@ export class PaymentService {
           if (existingPayment.businessId !== businessIdFromMetadata && businessIdFromMetadata) {
             paymentRecord = await prisma.payment.update({
                 where: { id: existingPayment.id },
-                // @ts-ignore // businessId might not be recognized by TS if Prisma Client not regenerated
+
                 data: { businessId: businessIdFromMetadata },
             });
           } else {
@@ -73,9 +73,9 @@ export class PaymentService {
             console.warn(`Booking model interaction for bookingId ${params.bookingId} is placeholder.`);
             // For now, we'll simulate this as not implemented if Booking model isn't in business-service
             // This will need to be addressed during integration or if an event system is used.
-             // @ts-ignore Property 'booking' does not exist on type 'PrismaClient'.
+             // @ts-expect-error Property 'booking' does not exist on type 'PrismaClient'.
              if (prisma.booking) {
-                 // @ts-ignore Property 'booking' does not exist on type 'PrismaClient'.
+                 // @ts-expect-error Property 'booking' does not exist on type 'PrismaClient'.
                  await prisma.booking.update({
                      where: { id: params.bookingId },
                      data: { status: 'confirmed' }, // Simplified status
@@ -242,25 +242,24 @@ export class PaymentService {
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       const monthlyRevenue = paymentsForBusiness
-        // @ts-ignore
+
         .filter(payment => {
           const paymentDate = new Date(payment.createdAt);
           return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
         })
-        // @ts-ignore
+
         .reduce((sum, payment) => sum + Number(payment.amount), 0);
 
       const recentPayments = paymentsForBusiness.slice(0, 10).map(p => ({
-        // @ts-ignore
+
         amount: p.amount,
-        // @ts-ignore
+
         date: p.createdAt,
-        // @ts-ignore
+
         currency: p.currency,
-        // @ts-ignore
+
         status: p.status,
         // customerName: 'N/A', // TODO: Retrieve customer details if possible/needed
-        // @ts-ignore
         paymentIntentId: p.stripePaymentIntentId
       }));
 
@@ -288,7 +287,7 @@ export class PaymentService {
 
     // Handle the event
     switch (event.type) {
-      case 'payment_intent.succeeded':
+      case 'payment_intent.succeeded': {
         const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
         console.log(`Webhook: PaymentIntent ${paymentIntentSucceeded.id} succeeded.`);
         // Reuse confirmPayment logic or parts of it to avoid duplication
@@ -313,7 +312,7 @@ export class PaymentService {
             status: paymentIntentSucceeded.status,
             amount: paymentIntentSucceeded.amount / 100,
             currency: paymentIntentSucceeded.currency,
-            // @ts-ignore // businessId might not be recognized by TS if Prisma Client not regenerated
+
             businessId: businessIdFromMetadata,
             bookingId: bookingIdFromMetadata, // Ensure this aligns with your needs
           },
@@ -322,7 +321,7 @@ export class PaymentService {
             amount: paymentIntentSucceeded.amount / 100,
             currency: paymentIntentSucceeded.currency,
             status: paymentIntentSucceeded.status,
-            // @ts-ignore // businessId might not be recognized by TS if Prisma Client not regenerated
+
             businessId: businessIdFromMetadata,
             bookingId: bookingIdFromMetadata,
           },
@@ -334,9 +333,9 @@ export class PaymentService {
         // This part is still a placeholder due to Booking model context.
         if (bookingIdFromMetadata) {
           try {
-            // @ts-ignore Property 'booking' does not exist on type 'PrismaClient'.
+            // @ts-expect-error Property 'booking' does not exist on type 'PrismaClient'.
             if (prisma.booking) { // Check if Booking model is available
-              // @ts-ignore Property 'booking' does not exist on type 'PrismaClient'.
+              // @ts-expect-error Property 'booking' does not exist on type 'PrismaClient'.
               await prisma.booking.update({
                 where: { id: bookingIdFromMetadata },
                 data: { status: 'confirmed' }, // Or a more specific payment-related status
@@ -350,7 +349,8 @@ export class PaymentService {
           }
         }
         break;
-      case 'payment_intent.payment_failed':
+      }
+      case 'payment_intent.payment_failed': {
         const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
         console.log(`Webhook: PaymentIntent ${paymentIntentFailed.id} failed.`);
         // Optionally, update payment record to 'failed' and notify admin/user
@@ -360,6 +360,7 @@ export class PaymentService {
         });
         // TODO: Handle booking status update for failed payments (e.g., set to 'payment_failed')
         break;
+      }
       // ... handle other event types
       default:
         console.log(`Webhook: Unhandled event type ${event.type}`);

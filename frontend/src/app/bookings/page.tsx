@@ -69,7 +69,7 @@ export default function BookingsPage() {
         </div>
       ) : bookings.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">You don't have any bookings yet.</p>
+          <p className="text-gray-500 mb-4">You don&apos;t have any bookings yet.</p>
           <button
             onClick={() => router.push('/book')}
             className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"

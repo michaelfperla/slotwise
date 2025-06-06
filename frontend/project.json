@@ -19,8 +19,7 @@
       "options": {
         "command": "next dev --port 3000",
         "cwd": "frontend"
-      },
-      "dependsOn": ["build"]
+      }
     },
     "start": {
       "executor": "nx:run-commands",

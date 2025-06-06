@@ -1,7 +1,7 @@
-import { PrismaClient, Service, Prisma } from '@prisma/client'; // Import Service type and Prisma
-import { prisma } from '../database/prisma';
-import { natsConnection } from '../events/nats'; // Import NATS connection
-import { logger } from '../utils/logger'; // Optional: for logging event publishing
+import { Prisma, PrismaClient, Service } from '@prisma/client'; // Import Service type and Prisma
+import { prisma } from '../database/prisma.js';
+import { natsConnection } from '../events/nats.js'; // Import NATS connection
+import { logger } from '../utils/logger.js'; // Optional: for logging event publishing
 
 export interface CreateServiceData {
   name: string;

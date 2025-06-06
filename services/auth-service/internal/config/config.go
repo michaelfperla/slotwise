@@ -54,9 +54,10 @@ type Email struct {
 }
 
 type RateLimit struct {
-	RequestsPerMinute int           `mapstructure:"requests_per_minute"`
-	BurstSize         int           `mapstructure:"burst_size"`
-	CleanupInterval   time.Duration `mapstructure:"cleanup_interval"`
+	RequestsPerMinute     int           `mapstructure:"requests_per_minute"`
+	BurstSize             int           `mapstructure:"burst_size"`
+	CleanupInterval       time.Duration `mapstructure:"cleanup_interval"`
+	AuthRequestsPerMinute int           `mapstructure:"auth_requests_per_minute"`
 }
 
 func Load() (*Config, error) {
@@ -68,14 +69,29 @@ func Load() (*Config, error) {
 	// Set defaults
 	setDefaults()
 
-	// Read environment variables
+	// Enable environment variable support with prefix
+	viper.SetEnvPrefix("") // No prefix to match Docker Compose env vars
 	viper.AutomaticEnv()
 
-	// Read config file
+	// Map environment variables to config keys
+	viper.BindEnv("database.host", "DATABASE_HOST")
+	viper.BindEnv("database.port", "DATABASE_PORT")
+	viper.BindEnv("database.user", "DATABASE_USER")
+	viper.BindEnv("database.password", "DATABASE_PASSWORD")
+	viper.BindEnv("database.name", "DATABASE_NAME")
+	viper.BindEnv("redis.host", "REDIS_HOST")
+	viper.BindEnv("redis.port", "REDIS_PORT")
+	viper.BindEnv("nats.url", "NATS_URL")
+	viper.BindEnv("jwt.secret", "JWT_SECRET")
+	viper.BindEnv("environment", "ENVIRONMENT")
+	viper.BindEnv("log_level", "LOG_LEVEL")
+
+	// Read config file (optional in Docker)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
+		// Config file not found is OK, we'll use env vars and defaults
 	}
 
 	var config Config
@@ -92,12 +108,12 @@ func setDefaults() {
 	viper.SetDefault("port", 8001)
 	viper.SetDefault("log_level", "info")
 
-	// Database defaults
+	// Database defaults - Updated to match Docker Compose environment variables
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", 5432)
-	viper.SetDefault("database.user", "slotwise_auth_user")
-	viper.SetDefault("database.password", "slotwise_auth_password")
-	viper.SetDefault("database.name", "slotwise_auth")
+	viper.SetDefault("database.user", "slotwise")
+	viper.SetDefault("database.password", "slotwise_password")
+	viper.SetDefault("database.name", "slotwise")
 	viper.SetDefault("database.ssl_mode", "disable")
 
 	// Redis defaults
@@ -122,7 +138,8 @@ func setDefaults() {
 	viper.SetDefault("email.from", "noreply@slotwise.com")
 
 	// Rate limiting defaults
-	viper.SetDefault("rate_limit.requests_per_minute", 60)
-	viper.SetDefault("rate_limit.burst_size", 10)
+	viper.SetDefault("rate_limit.requests_per_minute", 1000)
+	viper.SetDefault("rate_limit.burst_size", 100)
 	viper.SetDefault("rate_limit.cleanup_interval", "1m")
+	viper.SetDefault("rate_limit.auth_requests_per_minute", 100)
 }

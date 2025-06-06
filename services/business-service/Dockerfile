@@ -43,26 +43,17 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init and wget for proper signal handling and health checks
+RUN apk add --no-cache dumb-init wget
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+# Create non-root user first
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001 -G nodejs
 
-# Copy package files and lock file
-COPY --from=builder /app/package*.json ./
+# Copy built application with correct ownership
+COPY --from=builder --chown=nextjs:nodejs /app/services/business-service/dist ./dist
+COPY --from=builder --chown=nextjs:nodejs /app/services/business-service/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
-# Install only production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
-
-# Copy built application
-COPY --from=builder /app/services/business-service/dist ./dist
-COPY --from=builder /app/services/business-service/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Change ownership to non-root user
-RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 EXPOSE 8003

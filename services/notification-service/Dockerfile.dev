@@ -1,0 +1,53 @@
+# Development Dockerfile for Notification Service
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install development tools globally
+RUN npm install -g nodemon ts-node tsx
+
+# Install dumb-init, wget, and SSL libraries for proper signal handling, health checks, and Prisma
+RUN apk add --no-cache dumb-init wget openssl-dev
+
+# Copy workspace package files
+COPY package*.json ./
+COPY nx.json ./
+COPY tsconfig.json ./
+COPY jest.preset.js ./
+
+# Copy service-specific files
+COPY services/notification-service/package*.json ./services/notification-service/
+COPY services/notification-service/tsconfig.json ./services/notification-service/
+COPY services/notification-service/project.json ./services/notification-service/
+
+# Copy shared dependencies
+COPY shared/ ./shared/
+
+# Install all dependencies (including devDependencies for development)
+RUN npm ci
+
+# Copy source code
+COPY services/notification-service/src ./services/notification-service/src
+COPY services/notification-service/prisma ./services/notification-service/prisma
+
+# Build shared packages first
+WORKDIR /app/shared/types
+RUN npm run build
+
+WORKDIR /app/shared/utils
+RUN npm run build
+
+# Generate Prisma client
+WORKDIR /app/services/notification-service
+RUN npx prisma generate
+
+# Set working directory back to root
+WORKDIR /app
+
+EXPOSE 8004
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Default command (will be overridden by docker-compose for development)
+CMD ["node", "services/notification-service/dist/index.js"]

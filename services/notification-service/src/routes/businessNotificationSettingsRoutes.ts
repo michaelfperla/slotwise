@@ -44,6 +44,7 @@ export const businessNotificationSettingsSchema = z.object({
 });
 
 // Zod schema for request parameters
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const paramsSchema = z.object({
   businessId: z.string().min(1, "Business ID is required"),
 });

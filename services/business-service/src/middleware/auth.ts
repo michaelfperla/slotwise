@@ -1,6 +1,6 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import jwt from 'jsonwebtoken';
-import { config } from '../config';
+import { config } from '../config/index.js';
 
 interface AuthUser {
   id: string;

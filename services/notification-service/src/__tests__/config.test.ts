@@ -1,4 +1,4 @@
-import { config } from '../config/config';
+import { config } from '../config/config.js';
 
 describe('Notification Service Configuration', () => {
   describe('when loading configuration', () => {

@@ -77,6 +77,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	sessionRepo := repository.NewSessionRepository(redis)
 	businessRepo := repository.NewBusinessRepository(db, appLogger) // Initialize BusinessRepository
+	verificationRepo := repository.NewVerificationRepository(redis) // Initialize VerificationRepository for magic login
 	appLogger.Info("Repositories initialized")
 
 	// Initialize JWT manager
@@ -84,7 +85,7 @@ func main() {
 	appLogger.Info("JWT manager initialized")
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo, businessRepo, sessionRepo, eventPublisher, cfg.JWT, appLogger) // Pass BusinessRepository
+	authService := service.NewAuthService(userRepo, businessRepo, sessionRepo, verificationRepo, eventPublisher, cfg.JWT, appLogger) // Pass all repositories
 	appLogger.Info("Services initialized")
 
 	// Setup router with all components

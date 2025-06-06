@@ -65,38 +65,7 @@ const BookingConfirmPage = () => {
     fetchBookingDetails();
   }, []); // Add dependencies if bookingIdFromQuery or similar is used
 
-  const handleConfirmBooking = async () => {
-    if (!bookingDetails || !customerId) {
-      setError('Booking information or user ID is missing.');
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
 
-    try {
-      const token = localStorage.getItem('authToken'); // Re-check token for safety
-      if (!token) throw new Error('Authentication required.');
-
-      const response = await fetch('/api/v1/bookings', {
-        // Scheduling Service POST endpoint
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`, // Auth token for customerId on backend
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          businessId: bookingDetails.businessId,
-          serviceId: bookingDetails.serviceId,
-          customerId: customerId, // Send customerId obtained from token
-          startTime: bookingDetails.startTime, // ISO string as collected
-          // EndTime is calculated by backend based on service duration
-        }),
-      });
-      // --- End of replacement section ---
-      setIsLoading(false);
-    };
-    fetchBookingDetails();
-  }, []); // Add dependencies if bookingIdFromQuery or similar is used
 
   const handlePaymentSuccess = (paymentResult: unknown) => {
     console.log('Payment successful!', paymentResult);

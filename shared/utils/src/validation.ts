@@ -111,6 +111,25 @@ export function sanitizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }
 
+// Magic login helper functions
+export function detectIdentifierType(identifier: string): 'email' | 'phone' | 'unknown' {
+  const trimmed = identifier.trim();
+
+  if (validateEmail(trimmed)) {
+    return 'email';
+  }
+
+  if (validatePhone(trimmed)) {
+    return 'phone';
+  }
+
+  return 'unknown';
+}
+
+export function isValidIdentifier(identifier: string): boolean {
+  return detectIdentifierType(identifier) !== 'unknown';
+}
+
 // Validation error formatting
 export function formatValidationErrors(
   errors: z.ZodError

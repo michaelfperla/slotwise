@@ -1,6 +1,6 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 // Define a more specific type for Prisma known request errors
 interface PrismaKnownError extends FastifyError {

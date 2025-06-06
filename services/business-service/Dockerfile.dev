@@ -1,0 +1,53 @@
+# Development Dockerfile for Business Service
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install development tools globally
+RUN npm install -g nodemon ts-node tsx
+
+# Install dumb-init, wget, and SSL libraries for proper signal handling, health checks, and Prisma
+RUN apk add --no-cache dumb-init wget openssl-dev
+
+# Copy workspace package files
+COPY package*.json ./
+COPY nx.json ./
+COPY tsconfig.json ./
+COPY jest.preset.js ./
+
+# Copy service-specific files
+COPY services/business-service/package*.json ./services/business-service/
+COPY services/business-service/tsconfig.json ./services/business-service/
+COPY services/business-service/project.json ./services/business-service/
+
+# Copy shared dependencies
+COPY shared/ ./shared/
+
+# Install all dependencies (including devDependencies for development)
+RUN npm ci
+
+# Copy source code
+COPY services/business-service/src ./services/business-service/src
+COPY services/business-service/prisma ./services/business-service/prisma
+
+# Build shared packages first
+WORKDIR /app/shared/types
+RUN npm run build
+
+WORKDIR /app/shared/utils
+RUN npm run build
+
+# Generate Prisma client
+WORKDIR /app/services/business-service
+RUN npx prisma generate
+
+# Set working directory back to root
+WORKDIR /app
+
+EXPOSE 8003
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Default command (will be overridden by docker-compose for development)
+CMD ["node", "services/business-service/dist/index.js"]

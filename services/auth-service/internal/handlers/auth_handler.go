@@ -25,12 +25,12 @@ func NewAuthHandler(authService service.AuthService, logger logger.Logger) *Auth
 
 // RegisterRequest represents the registration request payload
 type RegisterRequest struct {
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=8"`
-	FirstName string `json:"firstName" binding:"required"`
-	LastName  string `json:"lastName" binding:"required"`
-	Timezone  string `json:"timezone" binding:"required"`
-	Role      string `json:"role,omitempty"`
+	Email        string  `json:"email" binding:"required,email"`
+	Password     string  `json:"password" binding:"required,min=8"`
+	FirstName    string  `json:"firstName" binding:"required"`
+	LastName     string  `json:"lastName" binding:"required"`
+	Timezone     string  `json:"timezone" binding:"required"`
+	Role         string  `json:"role,omitempty"`
 	BusinessName *string `json:"businessName,omitempty"` // Added for business registration
 }
 
@@ -61,6 +61,20 @@ type VerifyEmailRequest struct {
 	Token string `json:"token" binding:"required"`
 }
 
+// Magic login request types
+type PhoneLoginRequest struct {
+	Phone string `json:"phone" binding:"required"`
+}
+
+type EmailLoginRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type VerifyCodeRequest struct {
+	Identifier string `json:"identifier" binding:"required"`
+	Code       string `json:"code" binding:"required,len=4"`
+}
+
 // APIResponse represents a standard API response
 type APIResponse struct {
 	Success   bool        `json:"success"`
@@ -86,12 +100,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// Convert to service request
 	serviceReq := &service.RegisterRequest{
-		Email:     req.Email,
-		Password:  req.Password,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Timezone:  req.Timezone,
-		Role:      req.Role,
+		Email:        req.Email,
+		Password:     req.Password,
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		Timezone:     req.Timezone,
+		Role:         req.Role,
 		BusinessName: req.BusinessName, // Pass through business name
 	}
 
@@ -287,6 +301,99 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	}
 
 	h.respondWithSuccess(c, http.StatusOK, gin.H{"user": user})
+}
+
+// Magic Login Handlers
+
+// PhoneLogin handles phone number login (sends verification code)
+func (h *AuthHandler) PhoneLogin(c *gin.Context) {
+	var req PhoneLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondWithError(c, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request payload", err.Error())
+		return
+	}
+
+	// Convert to service request
+	serviceReq := &service.PhoneLoginRequest{
+		Phone:     req.Phone,
+		IPAddress: c.ClientIP(),
+		UserAgent: c.GetHeader("User-Agent"),
+	}
+
+	if err := h.authService.SendPhoneCode(serviceReq); err != nil {
+		h.handleServiceError(c, err, "phone login")
+		return
+	}
+
+	h.logger.Info("Phone verification code sent",
+		"phone", req.Phone,
+		"ip_address", c.ClientIP(),
+	)
+
+	h.respondWithSuccess(c, http.StatusOK, gin.H{
+		"message": "Verification code sent to your phone",
+	})
+}
+
+// EmailLogin handles email login (sends verification code)
+func (h *AuthHandler) EmailLogin(c *gin.Context) {
+	var req EmailLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondWithError(c, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request payload", err.Error())
+		return
+	}
+
+	// Convert to service request
+	serviceReq := &service.EmailLoginRequest{
+		Email:     req.Email,
+		IPAddress: c.ClientIP(),
+		UserAgent: c.GetHeader("User-Agent"),
+	}
+
+	if err := h.authService.SendEmailCode(serviceReq); err != nil {
+		h.handleServiceError(c, err, "email login")
+		return
+	}
+
+	h.logger.Info("Email verification code sent",
+		"email", req.Email,
+		"ip_address", c.ClientIP(),
+	)
+
+	h.respondWithSuccess(c, http.StatusOK, gin.H{
+		"message": "Verification code sent to your email",
+	})
+}
+
+// VerifyCode handles verification code validation and login
+func (h *AuthHandler) VerifyCode(c *gin.Context) {
+	var req VerifyCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.respondWithError(c, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request payload", err.Error())
+		return
+	}
+
+	// Convert to service request
+	serviceReq := &service.VerifyCodeRequest{
+		Identifier: req.Identifier,
+		Code:       req.Code,
+		IPAddress:  c.ClientIP(),
+		UserAgent:  c.GetHeader("User-Agent"),
+	}
+
+	response, err := h.authService.VerifyCode(serviceReq)
+	if err != nil {
+		h.handleServiceError(c, err, "code verification")
+		return
+	}
+
+	h.logger.Info("User logged in via magic link",
+		"user_id", response.User.ID,
+		"identifier", req.Identifier,
+		"ip_address", c.ClientIP(),
+	)
+
+	h.respondWithSuccess(c, http.StatusOK, response)
 }
 
 // respondWithSuccess sends a successful response

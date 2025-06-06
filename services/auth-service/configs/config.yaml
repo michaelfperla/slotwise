@@ -5,9 +5,9 @@ log_level: info
 database:
   host: localhost
   port: 5432
-  user: slotwise_auth_user
-  password: slotwise_auth_password
-  name: slotwise_auth
+  user: slotwise
+  password: slotwise_dev_password
+  name: slotwise
   ssl_mode: disable
 
 redis:
@@ -32,6 +32,7 @@ email:
   from: noreply@slotwise.com
 
 rate_limit:
-  requests_per_minute: 60
-  burst_size: 10
+  requests_per_minute: 1000
+  burst_size: 100
   cleanup_interval: 1m
+  auth_requests_per_minute: 100  # More lenient for auth endpoints in dev

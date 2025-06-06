@@ -12,6 +12,7 @@ const emailNotificationTypeSchema = z.enum([
 ]);
 
 // Validation schema for sending email notifications
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sendEmailNotificationSchema = z.object({
   type: emailNotificationTypeSchema,
   recipientEmail: z.string().email(),
@@ -33,6 +34,7 @@ const sendEmailNotificationSchema = z.object({
 //   },
 // };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const notificationQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -65,6 +67,7 @@ const scheduledNotifications: ScheduledNotification[] = [];
 
 
 // Validation schema for scheduling email notifications
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const scheduleEmailNotificationSchema = z.object({
   type: emailNotificationTypeSchema,
   recipientEmail: z.string().email(), // Explicitly ask for email for now
@@ -298,7 +301,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         const { id } = request.params;
 
         // Check in scheduled first
-        let notification: any = scheduledNotifications.find(n => n.id === id);
+        const notification = scheduledNotifications.find(n => n.id === id);
         if (notification) {
           return reply.send({
             success: true,
@@ -340,6 +343,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 // In a real app, use a proper cron job library (node-cron, etc.) or a message queue with delayed messages.
 const SCHEDULE_CHECK_INTERVAL_MS = 60 * 1000; // Check every 60 seconds
 
+// eslint-disable-next-line no-undef
 setInterval(async () => {
   const now = new Date();
   logger.info(`Running scheduled notification check at ${now.toISOString()}...`);

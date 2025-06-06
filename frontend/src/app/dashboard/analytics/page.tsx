@@ -1,19 +1,18 @@
 "use client"; // This directive is often needed for pages with hooks and event handlers
 
-import React, { useEffect, useState } from 'react';
-import MetricCard from '@/components/analytics/MetricCard';
 import BookingTrendsChart from '@/components/analytics/BookingTrendsChart';
+import MetricCard from '@/components/analytics/MetricCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
 import {
-  fetchBusinessOverview,
-  fetchBusinessTrends,
-  fetchPopularServices,
-  // fetchCustomerInsights, // Example for future use
-  OverviewData,
-  TrendsData,
-  PopularService,
-  // CustomerInsights, // Example for future use
+    fetchBusinessOverview,
+    fetchBusinessTrends,
+    fetchPopularServices,
+    // fetchCustomerInsights, // Example for future use
+    OverviewData,
+    PopularService,
+    TrendsData,
 } from '@/utils/analytics';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Assuming ShadCN Tabs component
+import React, { useEffect, useState } from 'react';
 
 // Mock businessId - in a real app, this would come from context, props, or auth state
 const MOCK_BUSINESS_ID = "business123";

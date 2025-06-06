@@ -30,19 +30,22 @@ const (
 type User struct {
 	ID              string     `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	Email           string     `gorm:"uniqueIndex;not null" json:"email"`
+	Phone           *string    `gorm:"uniqueIndex" json:"phone,omitempty"` // Phone number for magic login
 	PasswordHash    string     `gorm:"not null" json:"-"`
 	FirstName       string     `gorm:"not null" json:"firstName"`
 	LastName        string     `gorm:"not null" json:"lastName"`
 	Avatar          *string    `json:"avatar"`
 	Timezone        string     `gorm:"not null;default:'UTC'" json:"timezone"`
 	IsEmailVerified bool       `gorm:"default:false" json:"isEmailVerified"`
+	IsPhoneVerified bool       `gorm:"default:false" json:"isPhoneVerified"` // Phone verification status
 	EmailVerifiedAt *time.Time `json:"emailVerifiedAt"`
+	PhoneVerifiedAt *time.Time `json:"phoneVerifiedAt"` // Phone verification timestamp
 	LastLoginAt     *time.Time `json:"lastLoginAt"`
 	Role            UserRole   `gorm:"type:varchar(20);not null;default:'client'" json:"role"`
 	Status          UserStatus `gorm:"type:varchar(30);not null;default:'pending_verification'" json:"status"`
 
 	// Business association
-	BusinessID *string   `gorm:"type:uuid;index" json:"businessId,omitempty"` // Foreign key to Business table
+	BusinessID *string   `gorm:"type:uuid;index" json:"businessId,omitempty"`     // Foreign key to Business table
 	Business   *Business `gorm:"foreignKey:BusinessID" json:"business,omitempty"` // Belongs to Business
 
 	// Preferences stored as JSONB
@@ -130,6 +133,9 @@ func (u *User) ToAuthUser() *AuthUser {
 		LastName:  u.LastName,
 		Role:      string(u.Role),
 	}
+	if u.Phone != nil {
+		authUser.Phone = *u.Phone
+	}
 	if u.BusinessID != nil {
 		authUser.BusinessID = *u.BusinessID
 	}
@@ -141,6 +147,7 @@ func (u *User) ToAuthUser() *AuthUser {
 type AuthUser struct {
 	ID         string `json:"id"`
 	Email      string `json:"email"`
+	Phone      string `json:"phone,omitempty"`
 	FirstName  string `json:"firstName"`
 	LastName   string `json:"lastName"`
 	Role       string `json:"role"`
@@ -167,4 +174,29 @@ func (s *Session) IsExpired() bool {
 // UpdateLastUsed updates the last used timestamp
 func (s *Session) UpdateLastUsed() {
 	s.LastUsedAt = time.Now()
+}
+
+// VerificationCode represents a verification code stored in Redis
+type VerificationCode struct {
+	Identifier string    `json:"identifier"` // Email or phone number
+	Code       string    `json:"code"`       // 4-digit verification code
+	Type       string    `json:"type"`       // "email" or "phone"
+	ExpiresAt  time.Time `json:"expiresAt"`  // Expiration time
+	CreatedAt  time.Time `json:"createdAt"`  // Creation time
+	Attempts   int       `json:"attempts"`   // Number of verification attempts
+}
+
+// IsExpired checks if the verification code is expired
+func (vc *VerificationCode) IsExpired() bool {
+	return time.Now().After(vc.ExpiresAt)
+}
+
+// CanAttempt checks if more verification attempts are allowed
+func (vc *VerificationCode) CanAttempt() bool {
+	return vc.Attempts < 3 // Allow max 3 attempts
+}
+
+// IncrementAttempts increments the attempt counter
+func (vc *VerificationCode) IncrementAttempts() {
+	vc.Attempts++
 }

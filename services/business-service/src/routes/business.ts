@@ -1,9 +1,9 @@
 import { DayOfWeek } from '@prisma/client'; // Import DayOfWeek enum
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { AvailabilityService } from '../services/AvailabilityService'; // Import AvailabilityService
-import { BusinessService } from '../services/BusinessService';
-import { zodToJsonSchema } from '../utils/schema';
+import { AvailabilityService } from '../services/AvailabilityService.js'; // Import AvailabilityService
+import { BusinessService } from '../services/BusinessService.js';
+import { zodToJsonSchema } from '../utils/schema.js';
 
 const businessService = new BusinessService();
 const availabilityService = new AvailabilityService(); // Instantiate AvailabilityService

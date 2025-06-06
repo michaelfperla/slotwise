@@ -1,0 +1,57 @@
+# Stage 1: Builder - Install all dependencies as the correct user
+FROM node:20-alpine AS builder
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create a non-root user and group in the builder stage
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Switch to the nextjs user for all operations
+USER nextjs
+
+WORKDIR /app
+
+# Copy root package files and install root dependencies
+COPY --chown=nextjs:nodejs package*.json ./
+COPY --chown=nextjs:nodejs nx.json ./
+COPY --chown=nextjs:nodejs tsconfig.json ./
+RUN npm install
+
+# Copy frontend-specific package files
+COPY --chown=nextjs:nodejs frontend/package*.json ./frontend/
+WORKDIR /app/frontend
+RUN npm install
+
+# ---
+
+# Stage 2: Final Development Image
+FROM node:20-alpine
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+# Copy node_modules from the builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/frontend/node_modules ./frontend/node_modules
+
+# Copy frontend configuration files
+COPY frontend/next.config.ts ./frontend/
+COPY frontend/tsconfig.json ./frontend/
+COPY frontend/postcss.config.mjs ./frontend/
+
+# This copy is now very fast because node_modules is excluded by volume mounts
+# and we will use a volume mount for development anyway.
+COPY frontend/ ./frontend/
+
+EXPOSE 3000
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start development server with hot-reloading
+WORKDIR /app/frontend
+CMD ["npm", "run", "dev"]

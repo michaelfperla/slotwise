@@ -1,10 +1,17 @@
-version: '3.8'
+# ========================================
+# SlotWise Development Environment
+# ========================================
+# This Docker Compose file is for DEVELOPMENT ONLY
+# It provides all infrastructure services needed for local development
+# ========================================
 
 services:
-  # PostgreSQL Database
+  # ========================================
+  # DATABASE SERVICE
+  # ========================================
   postgres:
     image: postgres:15-alpine
-    container_name: slotwise-postgres
+    container_name: slotwise-postgres-dev
     environment:
       POSTGRES_DB: slotwise
       POSTGRES_USER: slotwise
@@ -13,119 +20,352 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
       - ./postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
     networks:
-      - slotwise-network
+      - slotwise-dev-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U slotwise"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=database"
 
-  # Redis Cache
+  # ========================================
+  # CACHE SERVICE
+  # ========================================
   redis:
     image: redis:7-alpine
-    container_name: slotwise-redis
+    container_name: slotwise-redis-dev
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_data_dev:/data
     networks:
-      - slotwise-network
+      - slotwise-dev-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     command: redis-server --appendonly yes
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=cache"
 
-  # NATS Message Broker
+  # ========================================
+  # MESSAGE BROKER SERVICE
+  # ========================================
   nats:
     image: nats:2.10-alpine
-    container_name: slotwise-nats
+    container_name: slotwise-nats-dev
     ports:
       - "4222:4222"  # Client connections
       - "8222:8222"  # HTTP monitoring
-      - "6222:6222"  # Routing port for clustering
     volumes:
       - ./nats/nats.conf:/etc/nats/nats.conf
+      - nats_data_dev:/data
     networks:
-      - slotwise-network
+      - slotwise-dev-network
     command: ["-c", "/etc/nats/nats.conf"]
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=messaging"
 
-  # NATS Streaming (JetStream)
-  nats-streaming:
-    image: nats:2.10-alpine
-    container_name: slotwise-nats-streaming
-    ports:
-      - "4223:4222"
-      - "8223:8222"
-    volumes:
-      - ./nats/jetstream.conf:/etc/nats/jetstream.conf
-      - nats_jetstream_data:/data
-    networks:
-      - slotwise-network
-    command: ["-c", "/etc/nats/jetstream.conf"]
-    depends_on:
-      - nats
+  # ========================================
+  # DEVELOPMENT TOOLS
+  # ========================================
 
-  # Adminer (Database Management UI)
+  # Database Management UI
   adminer:
     image: adminer:4.8.1
-    container_name: slotwise-adminer
+    container_name: slotwise-adminer-dev
     ports:
       - "8080:8080"
     networks:
-      - slotwise-network
+      - slotwise-dev-network
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       ADMINER_DEFAULT_SERVER: postgres
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=dev-tool"
 
-  # Redis Commander (Redis Management UI)
+  # Redis Management UI
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: slotwise-redis-commander
+    container_name: slotwise-redis-commander-dev
     ports:
       - "8081:8081"
     networks:
-      - slotwise-network
+      - slotwise-dev-network
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     environment:
       REDIS_HOSTS: local:redis:6379
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=dev-tool"
 
-  # NATS Monitoring (NATS Management UI)
+  # NATS Management UI
   nats-surveyor:
     image: natsio/nats-surveyor:latest
-    container_name: slotwise-nats-surveyor
+    container_name: slotwise-nats-surveyor-dev
     ports:
       - "8082:7777"
     networks:
-      - slotwise-network
+      - slotwise-dev-network
     depends_on:
-      - nats
+      nats:
+        condition: service_healthy
     environment:
       NATS_SURVEYOR_SERVERS: "nats://nats:4222"
     command: ["-s", "nats://nats:4222"]
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=dev-tool"
 
+  # ========================================
+  # APPLICATION SERVICES
+  # ========================================
+
+  # Auth Service (Go)
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    container_name: slotwise-auth-service-dev
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - ENVIRONMENT=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=slotwise
+      - DATABASE_PASSWORD=slotwise_dev_password
+      - DATABASE_NAME=slotwise_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=development-jwt-secret-not-for-production
+      - LOG_LEVEL=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-dev-network
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=application"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Scheduling Service (Go)
+  scheduling-service:
+    build:
+      context: ../services/scheduling-service
+      dockerfile: Dockerfile
+    container_name: slotwise-scheduling-service-dev
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgres://slotwise:slotwise_dev_password@postgres:5432/slotwise_scheduling?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8004
+      - LOG_LEVEL=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-dev-network
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=application"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Business Service (Node.js)
+  business-service:
+    build:
+      context: ..
+      dockerfile: services/business-service/Dockerfile.dev
+    container_name: slotwise-business-service-dev
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - HOST=0.0.0.0
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://slotwise:slotwise_dev_password@postgres:5432/slotwise_business?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=development-jwt-secret-not-for-production
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+      - RATE_LIMIT_MAX=1000
+      - RATE_LIMIT_TIME_WINDOW=60000
+      - LOG_LEVEL=debug
+      - STRIPE_SECRET_KEY=sk_test_development_key_not_for_production
+      - STRIPE_WEBHOOK_SECRET=whsec_development_webhook_secret
+    volumes:
+      # Mount entire service directory for hot-reloading
+      - ../services/business-service:/app/services/business-service
+      - ../shared:/app/shared
+      - /app/services/business-service/node_modules
+      - /app/node_modules
+    command: ["tsx", "watch", "./services/business-service/src/index.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-dev-network
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=application"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Notification Service (Node.js)
+  notification-service:
+    build:
+      context: ..
+      dockerfile: services/notification-service/Dockerfile.dev
+    container_name: slotwise-notification-service-dev
+    ports:
+      - "8004:8004"
+    environment:
+      - PORT=8004
+      - HOST=0.0.0.0
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://slotwise:slotwise_dev_password@postgres:5432/slotwise_notification?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=development-jwt-secret-not-for-production
+      - SENDGRID_API_KEY=SG.test_key_for_development
+      - SENDGRID_FROM_EMAIL=dev@slotwise.local
+      - LOG_LEVEL=debug
+    volumes:
+      # Mount entire service directory for hot-reloading
+      - ../services/notification-service:/app/services/notification-service
+      - ../shared:/app/shared
+      - /app/services/notification-service/node_modules
+      - /app/node_modules
+    command: ["tsx", "watch", "./services/notification-service/src/index.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - slotwise-dev-network
+    restart: unless-stopped
+    labels:
+      - "slotwise.environment=development"
+      - "slotwise.service=application"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    container_name: slotwise-frontend-dev
+    build:
+      context: ../
+      dockerfile: frontend/Dockerfile.dev
+    volumes:
+      - ../frontend:/app/frontend
+      - /app/frontend/node_modules
+      - /app/frontend/.next
+    ports:
+      - "3000:3000"
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://localhost:8001
+      - NEXT_PUBLIC_BUSINESS_SERVICE_URL=http://localhost:8003
+      - NEXT_PUBLIC_SCHEDULING_SERVICE_URL=http://localhost:8002
+      - NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=http://localhost:8004
+    networks:
+      - slotwise-dev-network
+    depends_on:
+      - business-service
+
+# ========================================
+# VOLUMES (Development Data)
+# ========================================
 volumes:
-  postgres_data:
+  postgres_data_dev:
     driver: local
-  redis_data:
+    labels:
+      - "slotwise.environment=development"
+  redis_data_dev:
     driver: local
-  nats_jetstream_data:
+    labels:
+      - "slotwise.environment=development"
+  nats_data_dev:
     driver: local
+    labels:
+      - "slotwise.environment=development"
 
+# ========================================
+# NETWORKS (Development)
+# ========================================
 networks:
-  slotwise-network:
+  slotwise-dev-network:
     driver: bridge
+    labels:
+      - "slotwise.environment=development"
     ipam:
       config:
         - subnet: 172.20.0.0/16

@@ -14,6 +14,8 @@ type UserRepository interface {
 	Create(user *models.User) error
 	GetByID(id string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
+	GetByPhone(phone string) (*models.User, error)
+	GetByEmailOrPhone(identifier string) (*models.User, error)
 	GetByPasswordResetToken(token string) (*models.User, error)
 	GetByEmailVerificationToken(token string) (*models.User, error)
 	Update(user *models.User) error
@@ -24,6 +26,7 @@ type UserRepository interface {
 	ClearPasswordResetToken(id string) error
 	SetEmailVerificationToken(id, token string, expiresAt time.Time) error
 	VerifyEmail(id string) error
+	VerifyPhone(id string) error
 	UpdatePassword(id, passwordHash string) error
 	GetActiveUsers() ([]*models.User, error)
 	CountByRole(role models.UserRole) (int64, error)
@@ -67,6 +70,30 @@ func (r *userRepository) GetByEmail(email string) (*models.User, error) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+	return &user, nil
+}
+
+// GetByPhone retrieves a user by phone number
+func (r *userRepository) GetByPhone(phone string) (*models.User, error) {
+	var user models.User
+	if err := r.db.Where("phone = ?", phone).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user by phone: %w", err)
+	}
+	return &user, nil
+}
+
+// GetByEmailOrPhone retrieves a user by email or phone number
+func (r *userRepository) GetByEmailOrPhone(identifier string) (*models.User, error) {
+	var user models.User
+	if err := r.db.Where("email = ? OR phone = ?", identifier, identifier).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user by email or phone: %w", err)
 	}
 	return &user, nil
 }
@@ -185,6 +212,19 @@ func (r *userRepository) VerifyEmail(id string) error {
 		"email_verification_expires_at": nil,
 	}).Error; err != nil {
 		return fmt.Errorf("failed to verify email: %w", err)
+	}
+	return nil
+}
+
+// VerifyPhone marks the user's phone as verified
+func (r *userRepository) VerifyPhone(id string) error {
+	now := time.Now()
+	if err := r.db.Model(&models.User{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"is_phone_verified": true,
+		"phone_verified_at": now,
+		"status":            models.StatusActive,
+	}).Error; err != nil {
+		return fmt.Errorf("failed to verify phone: %w", err)
 	}
 	return nil
 }

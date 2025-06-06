@@ -56,8 +56,12 @@ func SetupRouter(cfg RouterConfig) *gin.Engine {
 	router.Use(middleware.SecurityLogging(cfg.Logger))
 	router.Use(middleware.ErrorLogging(cfg.Logger))
 
-	// General rate limiting
-	router.Use(middleware.GeneralRateLimit(cfg.Redis, cfg.Logger))
+	// General rate limiting (configurable per environment)
+	generalRateLimit := cfg.Config.RateLimit.RequestsPerMinute
+	if generalRateLimit == 0 {
+		generalRateLimit = 100 // fallback default
+	}
+	router.Use(middleware.GeneralRateLimit(cfg.Redis, cfg.Logger, generalRateLimit))
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(cfg.AuthService, cfg.Logger)
@@ -86,8 +90,12 @@ func SetupRouter(cfg RouterConfig) *gin.Engine {
 		// Public auth routes (no authentication required)
 		auth := v1.Group("/auth")
 		{
-			// Apply stricter rate limiting for auth endpoints
-			auth.Use(middleware.AuthEndpointRateLimit(cfg.Redis, cfg.Logger))
+			// Apply rate limiting for auth endpoints (configurable per environment)
+			authRateLimit := cfg.Config.RateLimit.AuthRequestsPerMinute
+			if authRateLimit == 0 {
+				authRateLimit = 5 // fallback to strict limit if not configured
+			}
+			auth.Use(middleware.AuthEndpointRateLimit(cfg.Redis, cfg.Logger, authRateLimit))
 
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
@@ -95,6 +103,10 @@ func SetupRouter(cfg RouterConfig) *gin.Engine {
 			auth.POST("/verify-email", authHandler.VerifyEmail)
 			auth.POST("/forgot-password", authHandler.ForgotPassword)
 			auth.POST("/reset-password", authHandler.ResetPassword)
+			// Magic login endpoints
+			auth.POST("/phone-login", authHandler.PhoneLogin)
+			auth.POST("/email-login", authHandler.EmailLogin)
+			auth.POST("/verify-code", authHandler.VerifyCode)
 		}
 
 		// Protected auth routes (authentication required)

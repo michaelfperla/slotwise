@@ -1,8 +1,7 @@
-import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import * as analyticsUtils from '@/utils/analytics'; // To mock its functions
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AnalyticsPage from '../page'; // Adjust path as needed
-import * as analyticsUtils from '@/utils/analytics'; // To mock its functions
 
 // Mock the analytics utility functions
 jest.mock('@/utils/analytics', () => ({
@@ -13,17 +12,26 @@ jest.mock('@/utils/analytics', () => ({
 }));
 
 // Mock ShadCN Tabs component as its internals are not the focus of this test
-jest.mock('@/components/ui/tabs', () => ({
-  Tabs: ({ children, value, onValueChange }: {children: React.ReactNode, value: string, onValueChange: (value: string) => void}) => (
-    <div>
-      <div data-testid="tabs-value">{value}</div>
-      <div data-testid="tabs-onvaluechange" onClick={() => onValueChange('mockValue')}>{/* Placeholder for interaction */}</div>
-      {children}
-    </div>
-  ),
-  TabsList: ({ children }: {children: React.ReactNode}) => <div data-testid="tabs-list">{children}</div>,
-  TabsTrigger: ({ children, value }: {children: React.ReactNode, value: string}) => <button data-testid={`tab-${value}`}>{children}</button>,
-  TabsContent: ({ children, value }: {children: React.ReactNode, value: string}) => <div data-testid={`tab-content-${value}`}>{children}</div>,
+jest.mock('@/components/ui', () => ({
+  Tabs: function MockTabs(props) {
+    return React.createElement('div', null,
+      React.createElement('div', { 'data-testid': 'tabs-value' }, props.value),
+      React.createElement('div', {
+        'data-testid': 'tabs-onvaluechange',
+        onClick: () => props.onValueChange('mockValue')
+      }),
+      props.children
+    );
+  },
+  TabsList: function MockTabsList(props) {
+    return React.createElement('div', { 'data-testid': 'tabs-list' }, props.children);
+  },
+  TabsTrigger: function MockTabsTrigger(props) {
+    return React.createElement('button', { 'data-testid': `tab-${props.value}` }, props.children);
+  },
+  TabsContent: function MockTabsContent(props) {
+    return React.createElement('div', { 'data-testid': `tab-content-${props.value}` }, props.children);
+  },
 }));
 
 

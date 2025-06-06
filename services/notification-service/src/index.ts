@@ -1,12 +1,12 @@
 import Fastify from 'fastify';
 import { config } from './config/config.js';
-import { logger } from './utils/logger.js';
+import { natsClient } from './events/natsClient.js';
+import { authMiddleware } from './middleware/auth.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { businessNotificationSettingsRoutes } from './routes/businessNotificationSettingsRoutes.js';
 import { healthRoutes } from './routes/health.js';
 import { notificationRoutes } from './routes/notification.js';
-import { businessNotificationSettingsRoutes } from './routes/businessNotificationSettingsRoutes.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { authMiddleware } from './middleware/auth.js';
-import { natsClient } from './events/natsClient.js';
+import { logger } from './utils/logger.js';
 
 const fastify = Fastify({
   logger: false, // We'll use our custom logger

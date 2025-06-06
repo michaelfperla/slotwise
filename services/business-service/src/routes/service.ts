@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { ServiceService } from '../services/ServiceService';
-import { zodToJsonSchema } from '../utils/schema';
+import { ServiceService } from '../services/ServiceService.js';
+import { zodToJsonSchema } from '../utils/schema.js';
 
 const serviceService = new ServiceService();
 
