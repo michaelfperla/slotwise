@@ -100,7 +100,7 @@
     "deps:audit:scheduling": "cd services/scheduling-service && go list -json -deps ./... | nancy sleuth"
   },
   "devDependencies": {
-    "@nx/eslint": "21.1.2",
+    "@nx/eslint": "21.1.3",
     "@nx/jest": "21.1.2",
     "@nx/next": "^21.1.2",
     "@swc-node/register": "^1.10.10",
